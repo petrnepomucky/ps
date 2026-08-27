@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Retro Snake Game</title>
+    <style>
+        /* === FIREMNÍ STYLY V SOULADU S MANUÁLEM === */
+        :root {
+            --brand-green: #009645;
+            --brand-orange: #F27D00;
+            --brand-black: #000000;
+            --brand-white: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif; /* Zakázáno patkové písmo */
+        }
+
+        body {
+            background-color: var(--brand-white);
+            color: var(--brand-green);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* === DESIGNOVÝ TĚLO TELEFONU === */
+        .phone-body {
+            background-color: var(--brand-green);
+            border-radius: 40px;
+            padding: 25px 20px 30px 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 380px;
+            border: 4px solid var(--brand-black);
+        }
+
+        .phone-speaker {
+            width: 60px;
+            height: 6px;
+            background-color: var(--brand-black);
+            border-radius: 3px;
+            margin-bottom: 15px;
+        }
+
+        /* === DISPLEJ MOBILU === */
+        .phone-screen {
+            background-color: var(--brand-white);
+            border: 4px solid var(--brand-black);
+            border-radius: 12px;
+            padding: 10px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .score-board {
+            width: 100%;
+            background-color: var(--brand-green);
+            color: var(--brand-white);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .highscore-board {
+            width: 100%;
+            background-color: var(--brand-white);
+            color: var(--brand-green);
+            border: 1px solid var(--brand-green);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .highscore-board strong {
+            color: var(--brand-orange);
+        }
+
+        #game-container {
+            position: relative;
+            border: 2px solid var(--brand-green);
+            background-color: var(--brand-white);
+            width: 320px;
+            height: 320px;
+        }
+
+        canvas {
+            display: block;
+            background-color: var(--brand-white);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 150, 69, 0.95);
+            color: var(--brand-white);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .overlay h2 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .overlay p {
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            background-color: var(--brand-orange);
+            color: var(--brand-white);
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+            box-shadow: 0 4px var(--brand-black);
+            transition: transform 0.1s ease;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px var(--brand-black);
+        }
+
+        /* === SEŘÍZENÁ OVLÁDACÍ TLAČÍTKA === */
+        .controls-wrapper {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 45px);
+            gap: 4px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .key {
+            background-color: var(--brand-white);
+            color: var(--brand-green);
+            border: 2px solid var(--brand-black);
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 3px 0 var(--brand-black);
+        }
+
+        .key:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 var(--brand-black);
+        }
+
+        #key-up    { grid-column: 2; grid-row: 1; }
+        #key-left  { grid-column: 1; grid-row: 2; }
+        #key-right { grid-column: 3; grid-row: 2; }
+        #key-down  { grid-column: 2; grid-row: 3; }
+
+        .action-key {
+            background-color: var(--brand-orange);
+            color: var(--brand-white);
+            border: 2px solid var(--brand-black);
+            border-radius: 6px;
+            width: 160px;
+            padding: 10px 0;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 3px 0 var(--brand-black);
+            text-transform: uppercase;
+        }
+
+        .action-key:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 var(--brand-black);
+        }
+
+        .controls-hint {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--brand-green);
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-body">
+        <div class="phone-speaker"></div>
+
+        <div class="phone-screen">
+            <div class="score-board">
+                <span>SKÓRE: <span id="score">0</span></span>
+                <span>REKORD: <span id="high-score">0</span></span>
+            </div>
+
+            <div id="game-container">
+                <canvas id="gameCanvas" width="320" height="320"></canvas>
+
+                <div id="overlay" class="overlay">
+                    <h2 id="overlay-title">HAD NOKIA</h2>
+                    <p id="overlay-msg">Stiskněte tlačítko pro start</p>
+                    <button id="start-btn" class="btn">SPUSTIT HRU</button>
+                </div>
+            </div>
+
+            <div class="highscore-board">
+                Nejlepší výkon: <strong id="hs-val">0 b.</strong><br>
+                <span id="hs-date" style="font-weight: normal; opacity: 0.9;">Rekord zatím nebyl vytvořen</span>
+            </div>
+        </div>
+
+        <div class="controls-wrapper">
+            <div class="dpad">
+                <div class="key" id="key-up">▲</div>
+                <div class="key" id="key-left">◄</div>
+                <div class="key" id="key-right">►</div>
+                <div class="key" id="key-down">▼</div>
+            </div>
+
+            <div class="action-key" id="key-space">Start / Pauza</div>
+        </div>
+    </div>
+
+    <div class="controls-hint">
+        Lze ovládat tlačítky na mobilu nebo klávesnicí (Šipky / WASD + Mezerník).
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = document.getElementById("score");
+        const highScoreEl = document.getElementById("high-score");
+        const hsValEl = document.getElementById("hs-val");
+        const hsDateEl = document.getElementById("hs-date");
+        const overlay = document.getElementById("overlay");
+        const overlayTitle = document.getElementById("overlay-title");
+        const overlayMsg = document.getElementById("overlay-msg");
+        const startBtn = document.getElementById("start-btn");
+
+        const gridSize = 16;
+        const tileCount = canvas.width / gridSize;
+
+        let snake = [];
+        let food = { x: 0, y: 0 };
+        let dx = gridSize;
+        let dy = 0;
+        let score = 0;
+        let highScore = localStorage.getItem("corporate_snake_hs") || 0;
+        let highScoreDate = localStorage.getItem("corporate_snake_date") || null;
+        let gameInterval = null;
+        let isPaused = false;
+        let gameRunning = false;
+
+        // === OPTIMALIZACE VSTUPŮ (Fronta příkazů) ===
+        let inputQueue = [];
+
+        function updateHighScoreDisplay() {
+            highScoreEl.textContent = highScore;
+            hsValEl.textContent = `${highScore} b.`;
+            if (highScoreDate) {
+                hsDateEl.textContent = `Dosaženo: ${highScoreDate}`;
+            } else {
+                hsDateEl.textContent = "Rekord zatím nebyl vytvořen";
+            }
+        }
+        updateHighScoreDisplay();
+
+        function resetGame() {
+            snake = [
+                { x: 10 * gridSize, y: 10 * gridSize },
+                { x: 9 * gridSize, y: 10 * gridSize },
+                { x: 8 * gridSize, y: 10 * gridSize }
+            ];
+            dx = gridSize;
+            dy = 0;
+            inputQueue = []; // Vyčištění fronty před startem
+            score = 0;
+            scoreEl.textContent = score;
+            generateFood();
+            gameRunning = true;
+            isPaused = false;
+            overlay.classList.add("hidden");
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 90);
+        }
+
+        function generateFood() {
+            food.x = Math.floor(Math.random() * tileCount) * gridSize;
+            food.y = Math.floor(Math.random() * tileCount) * gridSize;
+            snake.forEach(segment => {
+                if (segment.x === food.x && segment.y === food.y) {
+                    generateFood();
+                }
+            });
+        }
+
+        function gameLoop() {
+            if (isPaused) return;
+
+            // Zpracování směru z fronty (vždy max. 1 krok za snímek)
+            processNextInput();
+
+            moveSnake();
+            if (checkCollision()) {
+                gameOver();
+                return;
+            }
+            draw();
+        }
+
+        // Zpracuje pouze další platný pohyb ve frontě
+        function processNextInput() {
+            if (inputQueue.length === 0) return;
+
+            const nextAction = inputQueue.shift();
+
+            if (nextAction === "up" && dy === 0) { dx = 0; dy = -gridSize; }
+            else if (nextAction === "down" && dy === 0) { dx = 0; dy = gridSize; }
+            else if (nextAction === "left" && dx === 0) { dx = -gridSize; dy = 0; }
+            else if (nextAction === "right" && dx === 0) { dx = gridSize; dy = 0; }
+        }
+
+        function moveSnake() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreEl.textContent = score;
+
+                if (score > highScore) {
+                    highScore = score;
+                    const now = new Date();
+                    highScoreDate = now.toLocaleDateString("cs-CZ") + " v " + now.toLocaleTimeString("cs-CZ", { hour: '2-digit', minute: '2-digit' });
+
+                    localStorage.setItem("corporate_snake_hs", highScore);
+                    localStorage.setItem("corporate_snake_date", highScoreDate);
+                    updateHighScoreDisplay();
+                }
+                generateFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                return true;
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function draw() {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.05)";
+            for (let i = 0; i < canvas.width; i += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            // Jídlo (Oranžová)
+            ctx.fillStyle = "#F27D00";
+            ctx.fillRect(food.x + 1, food.y + 1, gridSize - 2, gridSize - 2);
+
+            // Had (Zelená)
+            snake.forEach(segment => {
+                ctx.fillStyle = "#009645";
+                ctx.fillRect(segment.x + 1, segment.y + 1, gridSize - 2, gridSize - 2);
+            });
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            gameRunning = false;
+            overlayTitle.textContent = "Konec Hry!";
+            overlayMsg.textContent = `Výsledné skóre: ${score}`;
+            startBtn.textContent = "HRÁT ZNOVU";
+            overlay.classList.remove("hidden");
+        }
+
+        function togglePause() {
+            if (!gameRunning) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                overlayTitle.textContent = "Pauza";
+                overlayMsg.textContent = "Hra pozastavena";
+                startBtn.textContent = "POKRAČOVAT";
+                overlay.classList.remove("hidden");
+            } else {
+                overlay.classList.add("hidden");
+            }
+        }
+
+        function handleInput(action) {
+            if (action === "space") {
+                if (!gameRunning) resetGame();
+                else togglePause();
+                return;
+            }
+
+            if (!gameRunning || isPaused) return;
+
+            // Omezujeme frontu na max 2 nadcházející stisky (prevence záseku při zběsilém mačkání)
+            if (inputQueue.length < 2) {
+                const lastAction = inputQueue.length > 0 ? inputQueue[inputQueue.length - 1] : null;
+                // Přidáme do fronty pouze pokud se nejedná o duplicitní stisk
+                if (action !== lastAction) {
+                    inputQueue.push(action);
+                }
+            }
+        }
+
+        // Klávesnice
+        window.addEventListener("keydown", e => {
+            if (e.key === " " || e.code === "Space") handleInput("space");
+            if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") handleInput("up");
+            if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") handleInput("down");
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") handleInput("left");
+            if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") handleInput("right");
+        });
+
+        // Tlačítka mobilu
+        document.getElementById("key-up").addEventListener("click", () => handleInput("up"));
+        document.getElementById("key-down").addEventListener("click", () => handleInput("down"));
+        document.getElementById("key-left").addEventListener("click", () => handleInput("left"));
+        document.getElementById("key-right").addEventListener("click", () => handleInput("right"));
+        document.getElementById("key-space").addEventListener("click", () => handleInput("space"));
+        startBtn.addEventListener("click", () => handleInput("space"));
+
+        draw();
+    </script>
+</body>
+</html>
