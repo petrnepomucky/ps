@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -322,17 +321,21 @@
     <div class="panel-foot">
       <button class="btn add" id="addRow">+ Přidat dlaždici</button>
       <div class="spacer"></div>
-      <button class="btn ghost" id="exportBtn">Export</button>
+      <button class="btn ghost" id="exportBtn">Export JSON</button>
       <button class="btn ghost" id="importBtn">Import</button>
       <button class="btn ghost" id="resetBtn">Výchozí</button>
+      <button class="btn add" id="bakeBtn">⬇ Uložit do souboru</button>
       <button class="btn primary" id="saveBtn">Uložit</button>
     </div>
     <p class="hint">Prázdný odkaz = dlaždice zůstane šrafovaná a po kliknutí otevře toto nastavení.
+      <b>Uložit</b> = jen do tohoto prohlížeče. <b>Uložit do souboru</b> = stáhne HTML s odkazy napevno, funguje i jinde a u kolegů.
       Heslo je v souboru čitelné — jde o vizuální omezení, ne o silné zabezpečení.</p>
   </div>
 </div>
 
 <input type="file" id="importFile" accept="application/json" style="display:none">
+
+<script id="embedded-config" type="application/json">null</script>
 
 <script>
 (function(){
@@ -361,12 +364,18 @@
   var tiles = loadTiles();
   var auth = loadAuth();
 
+  function readEmbedded(){
+    try{ var el=document.getElementById("embedded-config"); if(el){ var v=JSON.parse(el.textContent); if(v&&typeof v==="object") return v; } }catch(e){}
+    return null;
+  }
   function loadTiles(){
     try{ var raw=localStorage.getItem(KEY); if(raw){ var p=JSON.parse(raw); if(Array.isArray(p)&&p.length) return p; } }catch(e){}
+    var emb=readEmbedded(); if(emb && Array.isArray(emb.tiles) && emb.tiles.length) return clone(emb.tiles);
     return clone(DEFAULTS);
   }
   function loadAuth(){
     try{ var raw=localStorage.getItem(AUTH_KEY); if(raw){ var a=JSON.parse(raw); if(a&&typeof a==="object") return {enabled:a.enabled!==false,user:a.user||"",pass:a.pass||""}; } }catch(e){}
+    var emb=readEmbedded(); if(emb && emb.auth && typeof emb.auth==="object"){ var e2=emb.auth; return {enabled:e2.enabled!==false,user:e2.user||"",pass:e2.pass||""}; }
     return clone(AUTH_DEFAULT);
   }
   function persistTiles(){ try{ localStorage.setItem(KEY, JSON.stringify(tiles)); }catch(e){} }
@@ -534,6 +543,20 @@
     var data=JSON.stringify({tiles:draft, auth:authDraft}, null, 2);
     var blob=new Blob([data],{type:"application/json"});
     var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="rozcestnik-psas.json"; a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("bakeBtn").addEventListener("click",function(){
+    // zapíše aktuální rozpracované nastavení napevno do nového HTML souboru
+    var cfg={tiles:draft, auth:authDraft};
+    var htmlEl=document.documentElement.cloneNode(true);
+    var emb=htmlEl.querySelector("#embedded-config");
+    if(emb) emb.textContent=JSON.stringify(cfg);
+    // vyčistit přechodné stavy, aby se soubor otevřel čistě
+    var ov=htmlEl.querySelector("#overlay"); if(ov) ov.classList.remove("open");
+    var bd=htmlEl.querySelector("body"); if(bd) bd.className = (authDraft && authDraft.enabled!==false) ? "locked" : "";
+    var out="<!DOCTYPE html>\n"+htmlEl.outerHTML;
+    var blob=new Blob([out],{type:"text/html"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="rozcestnik-psas.html"; a.click(); URL.revokeObjectURL(a.href);
   });
 
   var importFile=document.getElementById("importFile");
