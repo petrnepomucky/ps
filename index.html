@@ -45,13 +45,13 @@
     padding:0 6px; display:inline-flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:800;
   }
 
-  main{max-width:1280px; margin:0 auto; padding:16px 18px 140px}
+  main{max-width:1180px; margin:0 auto; padding:16px 18px 120px}
 
   /* ---- panels ---- */
   .panel{background:var(--card); border:1px solid var(--line); border-radius:12px; margin-bottom:14px}
   .panel > summary{
     list-style:none; cursor:pointer; padding:12px 16px; display:flex; align-items:center; gap:10px;
-    font-weight:700; user-select:none;
+    font-weight:700; user-select:none; flex-wrap:wrap;
   }
   .panel > summary::-webkit-details-marker{display:none}
   .panel > summary .chev{transition:transform .15s; color:var(--muted)}
@@ -81,76 +81,113 @@
 
   /* ---- toolbar ---- */
   .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px}
-  .search{position:relative; flex:1; min-width:220px}
-  .search input{width:100%; padding:10px 12px 10px 36px; border:1px solid var(--line); border-radius:9px; background:#fff}
+  .search{position:relative; flex:1; min-width:180px}
+  .search input{width:100%; padding:11px 12px 11px 36px; border:1px solid var(--line); border-radius:9px; background:#fff}
   .search input:focus{outline:2px solid var(--focus); outline-offset:1px; border-color:var(--focus)}
   .search svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted)}
   .chk{display:inline-flex; align-items:center; gap:6px; font-size:13.5px; color:var(--muted); white-space:nowrap}
-  .count{font-size:13px; color:var(--muted); white-space:nowrap}
+  .count{font-size:13px; color:var(--muted); white-space:nowrap; margin-left:auto}
 
-  /* ---- product table ---- */
-  .tablewrap{background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden}
-  table{width:100%; border-collapse:collapse}
-  thead th{
-    text-align:left; font-size:12px; font-weight:700; color:var(--muted);
-    padding:10px 12px; border-bottom:1px solid var(--line); background:#fafbfc; white-space:nowrap;
+  /* ---- product list (responsive grid) ---- */
+  .listwrap{background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .listhead{
+    display:grid; grid-template-columns:1fr 92px 92px 210px; gap:12px;
+    padding:10px 16px; background:#fafbfc; border-bottom:1px solid var(--line);
+    font-size:12px; font-weight:700; color:var(--muted);
   }
-  tbody td{padding:10px 12px; border-bottom:1px solid var(--line-2); vertical-align:middle}
-  tbody tr:hover{background:#fafbfc}
-  tbody tr.matched{background:#fff9f1}
-  tbody tr.matched:hover{background:#fdf3e6}
-  .pname{font-weight:600}
-  .meta{color:var(--muted); font-size:12.5px}
-  .ean{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--muted)}
-  td.right{text-align:right}
-  .price{font-weight:700}
-  .stock{display:inline-flex; align-items:center; gap:6px; font-size:13px}
+  .listhead .right{text-align:right}
+  .item{
+    display:grid; grid-template-columns:1fr 92px 92px 210px; gap:12px; align-items:center;
+    padding:12px 16px; border-bottom:1px solid var(--line-2);
+  }
+  .item:hover{background:#fafbfc}
+  .item.matched{background:#fff9f1}
+  .item.matched:hover{background:#fdf3e6}
+  .c-name .pname{font-weight:600; line-height:1.3}
+  .c-name .meta{color:var(--muted); font-size:12.5px; margin-top:2px}
+  .c-name .ean{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .badge2{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700;
+    background:var(--amber-soft); color:var(--amber-d); padding:1px 6px; border-radius:6px; vertical-align:middle}
+  .stock{display:inline-flex; align-items:center; gap:6px; font-size:14px; justify-content:flex-end}
+  .c-ml,.c-lb{text-align:right}
   .dot{width:8px; height:8px; border-radius:50%; background:var(--ok); flex:0 0 auto}
   .dot.zero{background:var(--zero)}
-  .badge2{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700;
-    background:var(--amber-soft); color:var(--amber-d); padding:2px 7px; border-radius:6px}
-  .qtybox{display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:8px; overflow:hidden}
-  .qtybox button{width:28px; height:30px; border:0; background:#fff; color:var(--ink); font-weight:800}
+  .lbl{display:none; color:var(--muted); font-size:12px; font-weight:600; margin-right:auto}
+  .c-act{display:flex; align-items:center; justify-content:flex-end; gap:8px}
+  .qtybox{display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff}
+  .qtybox button{width:32px; height:34px; border:0; background:#fff; color:var(--ink); font-weight:800; font-size:17px}
   .qtybox button:hover{background:#f1f2f4}
-  .qtybox input{width:44px; height:30px; border:0; text-align:center; border-left:1px solid var(--line); border-right:1px solid var(--line)}
+  .qtybox input{width:46px; height:34px; border:0; text-align:center; border-left:1px solid var(--line); border-right:1px solid var(--line)}
   .qtybox input:focus{outline:none}
-  .addbtn{margin-left:8px; background:var(--graphite); color:#fff; border:0; padding:8px 12px; border-radius:8px; font-weight:700}
+  .addbtn{background:var(--graphite); color:#fff; border:0; padding:9px 14px; border-radius:8px; font-weight:700; height:34px}
   .addbtn:hover{background:var(--graphite-2)}
-  .empty{padding:40px 16px; text-align:center; color:var(--muted)}
+  .empty{padding:44px 16px; text-align:center; color:var(--muted)}
   .empty strong{color:var(--ink)}
+
+  /* ---- mobile: karty ---- */
+  @media(max-width:720px){
+    main{padding:12px 12px 110px}
+    .listhead{display:none}
+    .item{
+      grid-template-columns:1fr 1fr;
+      grid-template-areas:"name name" "ml lb" "act act";
+      gap:8px 12px; padding:14px 14px;
+    }
+    .c-name{grid-area:name}
+    .c-ml{grid-area:ml; text-align:left}
+    .c-lb{grid-area:lb; text-align:left}
+    .c-act{grid-area:act; justify-content:stretch; margin-top:4px}
+    .stock{justify-content:flex-start; font-size:15px}
+    .lbl{display:inline}
+    .c-act .qtybox button{width:40px; height:42px; font-size:19px}
+    .c-act .qtybox input{width:52px; height:42px; font-size:16px}
+    .addbtn{flex:1; height:42px; font-size:15px}
+    .qtybox{height:42px}
+  }
+  @media(max-width:560px){
+    header{gap:8px; padding:10px 12px}
+    header .brand{font-size:16px}
+    header .sub{display:none}
+    .toolbtn{padding:9px 11px}
+    .toolbtn .txtlbl{display:none}
+  }
 
   /* ---- cart drawer ---- */
   .cart{
-    position:fixed; right:0; top:0; height:100%; width:420px; max-width:92vw; background:#fff;
+    position:fixed; right:0; top:0; height:100%; width:430px; max-width:100vw; background:#fff;
     border-left:1px solid var(--line); box-shadow:-8px 0 30px rgba(0,0,0,.12); z-index:40;
     transform:translateX(100%); transition:transform .22s ease; display:flex; flex-direction:column;
   }
   .cart.open{transform:none}
-  .cart header{position:static; background:var(--graphite); box-shadow:none}
   .cart .chead{display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--graphite); color:#fff}
   .cart .chead b{font-size:16px}
-  .cart .chead .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:22px; line-height:1}
+  .cart .chead .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:26px; line-height:1; width:34px; height:34px}
   .cart .items{flex:1; overflow:auto; padding:8px 14px}
-  .citem{display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--line-2)}
+  .citem{display:flex; gap:10px; padding:12px 0; border-bottom:1px solid var(--line-2)}
   .citem .n{font-weight:600; font-size:14px}
-  .citem .m{color:var(--muted); font-size:12px}
-  .citem .rm{margin-left:auto; background:transparent; border:0; color:var(--danger); font-weight:700; align-self:flex-start}
+  .citem .m{color:var(--muted); font-size:12px; margin-top:1px}
+  .citem .rm{margin-left:auto; background:transparent; border:0; color:var(--danger); font-weight:700; align-self:flex-start; padding:2px 4px}
+  .citem .qtybox button{width:34px; height:36px}
+  .citem .qtybox input{height:36px}
   .cart .foot{border-top:1px solid var(--line); padding:14px; background:#fafbfc}
   .form label{display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin:8px 0 3px}
-  .form .txt{padding:8px 10px}
-  .totrow{display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:8px}
-  .totrow b{color:var(--ink)}
+  .form .txt{padding:9px 11px}
+  .totbox{background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px; margin-bottom:12px}
+  .totrow{display:flex; justify-content:space-between; align-items:baseline}
+  .totrow .lab{color:var(--muted); font-size:13px}
+  .totrow .val{font-size:20px; font-weight:800}
+  .totnote{color:var(--muted); font-size:11.5px; margin-top:5px; line-height:1.35}
   .backdrop{position:fixed; inset:0; background:rgba(20,22,25,.45); z-index:35; opacity:0; pointer-events:none; transition:opacity .2s}
   .backdrop.show{opacity:1; pointer-events:auto}
 
   /* ---- scanner modal ---- */
   .modal{position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; padding:16px}
   .modal.show{display:flex}
-  .modal .box{background:#fff; border-radius:14px; width:460px; max-width:100%; overflow:hidden}
+  .modal .box{background:#fff; border-radius:14px; width:460px; max-width:100%; overflow:hidden; max-height:92vh; display:flex; flex-direction:column}
   .modal .mhead{display:flex; align-items:center; gap:10px; padding:13px 16px; background:var(--graphite); color:#fff}
   .modal .mhead b{font-size:16px}
-  .modal .mhead .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:22px}
-  .modal .mbody{padding:16px}
+  .modal .mhead .x{margin-left:auto; background:transparent; border:0; color:#fff; font-size:26px; width:34px; height:34px}
+  .modal .mbody{padding:16px; overflow:auto}
   #scanview{width:100%; aspect-ratio:4/3; background:#111; border-radius:10px; object-fit:cover; display:none}
   .scanline{font-size:13px; color:var(--muted); margin:10px 0}
   .lastscan{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-weight:700; color:var(--ink)}
@@ -171,11 +208,11 @@
   <div class="spacer"></div>
   <button class="toolbtn" id="btnScan" title="Skenovat EAN">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/></svg>
-    Skenovat EAN
+    <span class="txtlbl">Skenovat EAN</span>
   </button>
   <button class="toolbtn accent" id="btnCart">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M6 6L5 3H2"/></svg>
-    Poptávka <span class="cart-count" id="cartCount">0</span>
+    <span class="txtlbl">Poptávka</span> <span class="cart-count" id="cartCount">0</span>
   </button>
 </header>
 
@@ -238,26 +275,18 @@
     </div>
     <label class="chk"><input type="checkbox" id="onlyStock"> jen skladem</label>
     <label class="chk"><input type="checkbox" id="onlyMatch"> jen párované s feedem 2</label>
-    <label class="chk"><input type="checkbox" id="hidePrice"> skrýt ceny</label>
     <span class="count" id="count">—</span>
   </div>
 
-  <!-- product table -->
-  <div class="tablewrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Zboží</th>
-          <th>EAN</th>
-          <th>MJ</th>
-          <th class="right price-col">Cena s DPH</th>
-          <th class="right">Malešice</th>
-          <th class="right">Libeň</th>
-          <th style="text-align:right">Do poptávky</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+  <!-- product list -->
+  <div class="listwrap">
+    <div class="listhead">
+      <div>Zboží</div>
+      <div class="right">Malešice</div>
+      <div class="right">Libeň</div>
+      <div class="right">Do poptávky</div>
+    </div>
+    <div id="rows"></div>
     <div class="empty" id="emptyState">
       <strong>Zatím žádná data.</strong><br>Načti feed 1 v sekci „Zdroj dat" nahoře.
     </div>
@@ -276,7 +305,10 @@
     <div class="empty" style="padding:30px 6px">Košík je prázdný.<br>Přidej zboží z katalogu nebo naskenuj EAN.</div>
   </div>
   <div class="foot">
-    <div class="totrow price-col"><span>Orientační hodnota s DPH</span><b class="num" id="cartTotal">0,00 Kč</b></div>
+    <div class="totbox">
+      <div class="totrow"><span class="lab">Celkem orientačně s DPH</span><span class="val num" id="cartTotal">0,00 Kč</span></div>
+      <div class="totnote">Ceny jsou pouze orientační a budou co nejdříve potvrzeny.</div>
+    </div>
     <div class="form">
       <div class="feedgrid" style="gap:8px">
         <div><label>Jméno a příjmení</label><input class="txt" id="fName" placeholder="Jan Novák"></div>
@@ -330,8 +362,6 @@ const POPTAVKA_EMAIL = "poptavka@stavimex.cz";
 // Volitelně: URL Google Apps Script doPost(e), který poptávku uloží/rozešle.
 // Když necháš prázdné (""), použije se e-mailový klient (mailto).
 const ODESLAT_ENDPOINT = "";
-// Předvyplněná URL feedu 1 (můžeš změnit v UI):
-const DEFAULT_FEED1_URL = "https://script.google.com/macros/s/AKfycbzBT8G4mF9bkDdwR2eE2GZdycHsaSIyZPeRR9xK-IE-l0v8W6pSvOVEGY4-MpUY2BPi/exec";
 
 /* ============================================================
    STAV
@@ -354,7 +384,6 @@ function parseFeed(xmlString){
   const doc = new DOMParser().parseFromString(xmlString, "application/xml");
   if(doc.querySelector("parsererror")) throw new Error("XML se nepodařilo přečíst (neplatný formát).");
   const all = Array.from(doc.getElementsByTagName("*"));
-  // produktové uzly = elementy, které mají přímého potomka s tagem obsahujícím "ean"
   const nodes = all.filter(el => Array.from(el.children).some(c => /ean/i.test(c.tagName)));
   return nodes.map(node => {
     const rec = {};
@@ -365,7 +394,6 @@ function parseFeed(xmlString){
   });
 }
 
-/* pomocné čtení polí (case-insensitive, s aliasy) */
 function field(rec, names){
   for(const n of names){ if(rec[n]!=null && rec[n]!=="") return rec[n]; }
   return "";
@@ -389,55 +417,41 @@ async function fetchFeed(url){
   if(!res.ok) throw new Error("Server vrátil " + res.status);
   return await res.text();
 }
-
 async function loadFeed1FromUrl(url){
+  if(!url){ setStat("#stat1","Zadej URL feedu.","err"); return; }
   setStat("#stat1","Načítám z URL…");
-  try{
-    const xml = await fetchFeed(url);
-    ingestFeed1(xml);
-    store.set("feed1url", url);
-  }catch(err){
-    setStat("#stat1", "Z URL se načíst nepodařilo (" + err.message + "). Bývá to CORS nebo přístupová práva Apps Scriptu — nahraj XML soubor nebo ho vlož ručně.", "err");
-  }
+  try{ const xml = await fetchFeed(url); ingestFeed1(xml); store.set("feed1url", url); }
+  catch(err){ setStat("#stat1","Z URL se načíst nepodařilo ("+err.message+"). Bývá to CORS nebo přístupová práva Apps Scriptu — nahraj XML soubor nebo ho vlož ručně.","err"); }
 }
 function ingestFeed1(xml){
   const list = parseFeed(xml);
   if(!list.length){ setStat("#stat1","V XML nebyly nalezeny žádné položky s EANem.","err"); return; }
-  products = list;
-  reindexMatches();
-  setStat("#stat1", "Načteno " + list.length + " položek.", "ok");
-  $("#src1pill").textContent = "feed 1: " + list.length + " položek";
-  $("#src1pill").className = "pill good";
+  products = list; reindexMatches();
+  setStat("#stat1","Načteno "+list.length+" položek.","ok");
+  $("#src1pill").textContent = "feed 1: "+list.length+" položek"; $("#src1pill").className="pill good";
   render();
 }
-
 async function loadFeed2FromUrl(url){
+  if(!url){ setStat("#stat2","Zadej URL feedu.","err"); return; }
   setStat("#stat2","Načítám z URL…");
-  try{
-    const xml = await fetchFeed(url);
-    ingestFeed2(xml);
-    store.set("feed2url", url);
-  }catch(err){
-    setStat("#stat2", "Z URL se načíst nepodařilo (" + err.message + "). Nahraj XML soubor nebo ho vlož ručně.", "err");
-  }
+  try{ const xml = await fetchFeed(url); ingestFeed2(xml); store.set("feed2url", url); }
+  catch(err){ setStat("#stat2","Z URL se načíst nepodařilo ("+err.message+"). Nahraj XML soubor nebo ho vlož ručně.","err"); }
 }
 function ingestFeed2(xml){
   const list = parseFeed(xml);
   feed2Index = new Map();
   list.forEach(r => { if(r.__EAN) feed2Index.set(r.__EAN, r); });
   reindexMatches();
-  setStat("#stat2", "Načteno " + list.length + " položek, z toho " + feed2Index.size + " s EANem k párování.", "ok");
-  $("#src2pill").textContent = "feed 2: " + feed2Index.size + " EAN";
-  $("#src2pill").className = "pill warn";
+  setStat("#stat2","Načteno "+list.length+" položek, z toho "+feed2Index.size+" s EANem k párování.","ok");
+  $("#src2pill").textContent = "feed 2: "+feed2Index.size+" EAN"; $("#src2pill").className="pill warn";
   render();
 }
-
 function reindexMatches(){
   products.forEach(p => { p.__match = (p.__EAN && feed2Index.has(p.__EAN)) ? feed2Index.get(p.__EAN) : null; });
 }
 
 /* ============================================================
-   RENDER TABULKY
+   RENDER SEZNAMU
    ============================================================ */
 function fmtNum(n){ return (Math.round(n*100)/100).toLocaleString("cs-CZ"); }
 function fmtKc(n){ return n.toLocaleString("cs-CZ",{minimumFractionDigits:2,maximumFractionDigits:2}) + " Kč"; }
@@ -455,48 +469,39 @@ function filtered(){
          || P.ean(p).includes(q));
   });
 }
-
 function render(){
-  const hidePrice = $("#hidePrice").checked;
-  document.querySelectorAll(".price-col").forEach(el=> el.style.display = hidePrice ? "none" : "");
   const rows = $("#rows");
   const list = filtered();
   $("#emptyState").style.display = products.length ? "none" : "";
   if(!products.length){ rows.innerHTML=""; $("#count").textContent="—"; return; }
   $("#count").textContent = list.length + " / " + products.length + " položek";
 
-  rows.innerHTML = list.map((p,i)=>{
+  rows.innerHTML = list.map(p=>{
     const idx = products.indexOf(p);
     const ml = P.ml(p), lb = P.lb(p);
-    const matchInfo = p.__match ? feed2Summary(p.__match) : "";
-    return `<tr class="${p.__match?'matched':''}">
-      <td>
+    const badge = p.__match ? `&nbsp; <span class="badge2">✓ feed 2${feed2Summary(p.__match)}</span>` : "";
+    return `<div class="item ${p.__match?'matched':''}">
+      <div class="c-name">
         <div class="pname">${esc(P.name(p))}</div>
-        <div class="meta">č. ${esc(P.cislo(p)||'—')}${matchInfo?` &nbsp;·&nbsp; <span class="badge2">✓ feed 2${matchInfo}</span>`:''}</div>
-      </td>
-      <td class="ean">${esc(P.ean(p)||'—')}</td>
-      <td>${esc(P.mj(p))}</td>
-      <td class="right price price-col">${hidePrice?'':fmtKc(P.price(p))}</td>
-      <td class="right"><span class="stock"><span class="dot ${ml<=0?'zero':''}"></span><span class="num">${fmtNum(ml)}</span></span></td>
-      <td class="right"><span class="stock"><span class="dot ${lb<=0?'zero':''}"></span><span class="num">${fmtNum(lb)}</span></span></td>
-      <td class="right" style="white-space:nowrap">
+        <div class="meta">č. ${esc(P.cislo(p)||'—')} &nbsp;·&nbsp; <span class="ean">${esc(P.ean(p)||'bez EAN')}</span> &nbsp;·&nbsp; ${esc(P.mj(p))}${badge}</div>
+      </div>
+      <div class="c-ml"><span class="stock"><span class="lbl">Malešice</span><span class="dot ${ml<=0?'zero':''}"></span><span class="num">${fmtNum(ml)}</span></span></div>
+      <div class="c-lb"><span class="stock"><span class="lbl">Libeň</span><span class="dot ${lb<=0?'zero':''}"></span><span class="num">${fmtNum(lb)}</span></span></div>
+      <div class="c-act">
         <span class="qtybox">
-          <button data-dec="${idx}">−</button>
+          <button data-dec="${idx}" aria-label="ubrat">−</button>
           <input class="num" data-qty="${idx}" value="1" inputmode="numeric">
-          <button data-inc="${idx}">+</button>
+          <button data-inc="${idx}" aria-label="přidat">+</button>
         </span>
         <button class="addbtn" data-add="${idx}">Přidat</button>
-      </td>
-    </tr>`;
+      </div>
+    </div>`;
   }).join("");
 }
-
 function feed2Summary(m){
-  // vytáhni pár smysluplných polí z feedu 2 pro zobrazení ve značce
   const price = field(m,["PRICE","CENA","CENA_SDPH"]);
   const stock = field(m,["STOCK","ZASOBA","QTY","SKLAD"]);
   const bits=[];
-  if(price) bits.push(price);
   if(stock) bits.push("sklad "+stock);
   return bits.length? " · "+esc(bits.join(" · ")) : "";
 }
@@ -505,13 +510,10 @@ function feed2Summary(m){
    KOŠÍK / POPTÁVKA
    ============================================================ */
 function addToCart(idx, qty){
-  const p = products[idx];
-  const k = P.key(p);
-  const cur = cart.get(k);
+  const p = products[idx]; const k = P.key(p); const cur = cart.get(k);
   qty = Math.max(1, parseInt(qty)||1);
   if(cur){ cur.qty += qty; } else { cart.set(k, {rec:p, qty}); }
-  renderCart();
-  saveDraft();
+  renderCart(); saveDraft();
 }
 function setCartQty(k, qty){
   const it = cart.get(k); if(!it) return;
@@ -521,22 +523,23 @@ function setCartQty(k, qty){
 }
 function removeFromCart(k){ cart.delete(k); renderCart(); saveDraft(); }
 
+function plural(n){ return n===1?" položka":(n>=2&&n<=4?" položky":" položek"); }
+
 function renderCart(){
-  const box = $("#cartItems");
-  const n = cart.size;
+  const box = $("#cartItems"); const n = cart.size;
   $("#cartCount").textContent = n;
-  $("#cartItemsPill").textContent = n + (n===1?" položka":(n>=2&&n<=4?" položky":" položek"));
+  $("#cartItemsPill").textContent = n + plural(n);
   if(!n){
     box.innerHTML = `<div class="empty" style="padding:30px 6px">Košík je prázdný.<br>Přidej zboží z katalogu nebo naskenuj EAN.</div>`;
     $("#cartTotal").textContent = fmtKc(0); return;
   }
   let total=0;
   box.innerHTML = [...cart.entries()].map(([k,it])=>{
-    const p=it.rec; const line=P.price(p)*it.qty; total+=line;
+    const p=it.rec; total += P.price(p)*it.qty;
     return `<div class="citem">
       <div style="flex:1">
         <div class="n">${esc(P.name(p))}</div>
-        <div class="m">č. ${esc(P.cislo(p)||'—')} · EAN ${esc(P.ean(p)||'—')} · ${fmtKc(P.price(p))}/${esc(P.mj(p))}</div>
+        <div class="m">č. ${esc(P.cislo(p)||'—')} · EAN ${esc(P.ean(p)||'—')} · ${esc(P.mj(p))}</div>
         <div class="qtybox" style="margin-top:6px">
           <button data-cdec="${k}">−</button>
           <input class="num" data-cqty="${k}" value="${it.qty}" inputmode="numeric">
@@ -556,12 +559,13 @@ function buildText(){
   lines.push("");
   let total=0;
   [...cart.values()].forEach((it,i)=>{
-    const p=it.rec; const line=P.price(p)*it.qty; total+=line;
+    const p=it.rec; total += P.price(p)*it.qty;
     lines.push(`${i+1}. ${P.name(p)}`);
-    lines.push(`   č. ${P.cislo(p)||'—'} · EAN ${P.ean(p)||'—'} · ${it.qty} ${P.mj(p)} × ${fmtKc(P.price(p))} = ${fmtKc(line)}`);
+    lines.push(`   č. ${P.cislo(p)||'—'} · EAN ${P.ean(p)||'—'} · množství: ${it.qty} ${P.mj(p)}`);
   });
   lines.push("");
-  lines.push("Orientační hodnota s DPH: "+fmtKc(total));
+  lines.push("Celkem orientačně s DPH: "+fmtKc(total));
+  lines.push("(Ceny jsou pouze orientační a budou co nejdříve potvrzeny.)");
   lines.push("");
   lines.push("Kontakt:");
   lines.push("  Jméno: "+($("#fName").value||"—"));
@@ -571,21 +575,13 @@ function buildText(){
   if($("#fNote").value.trim()){ lines.push("  Poznámka: "+$("#fNote").value.trim()); }
   return lines.join("\n");
 }
-
 function payload(){
   return {
     datum: new Date().toISOString(),
-    kontakt: {
-      jmeno:$("#fName").value, firma:$("#fCompany").value,
-      email:$("#fEmail").value, telefon:$("#fPhone").value, poznamka:$("#fNote").value
-    },
-    polozky: [...cart.values()].map(it=>({
-      cislo:P.cislo(it.rec), nazev:P.name(it.rec), ean:P.ean(it.rec),
-      mj:P.mj(it.rec), cena_sdph:P.price(it.rec), mnozstvi:it.qty
-    }))
+    kontakt: { jmeno:$("#fName").value, firma:$("#fCompany").value, email:$("#fEmail").value, telefon:$("#fPhone").value, poznamka:$("#fNote").value },
+    polozky: [...cart.values()].map(it=>({ cislo:P.cislo(it.rec), nazev:P.name(it.rec), ean:P.ean(it.rec), mj:P.mj(it.rec), cena_sdph:P.price(it.rec), mnozstvi:it.qty }))
   };
 }
-
 async function sendPoptavka(){
   if(!cart.size){ setStat("#sendStat","Košík je prázdný.","err"); return; }
   if(ODESLAT_ENDPOINT){
@@ -594,24 +590,15 @@ async function sendPoptavka(){
       await fetch(ODESLAT_ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload())});
       setStat("#sendStat","Poptávka odeslána. Děkujeme!","ok");
       cart.clear(); renderCart(); saveDraft();
-    }catch(err){
-      setStat("#sendStat","Odeslání selhalo ("+err.message+"). Zkus tlačítko Kopírovat a poslat ručně.","err");
-    }
+    }catch(err){ setStat("#sendStat","Odeslání selhalo ("+err.message+"). Zkus tlačítko Kopírovat a poslat ručně.","err"); }
     return;
   }
-  // mailto fallback
   const subject = "Poptávka STAVIMEX — "+($("#fCompany").value||$("#fName").value||"web");
-  const href = "mailto:"+encodeURIComponent(POPTAVKA_EMAIL)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(buildText());
-  window.location.href = href;
+  window.location.href = "mailto:"+encodeURIComponent(POPTAVKA_EMAIL)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(buildText());
   setStat("#sendStat","Otevřel se e-mailový klient s předvyplněnou poptávkou.","ok");
 }
-
-/* draft persistence (guarded) */
 function saveDraft(){
-  try{
-    const d = [...cart.entries()].map(([k,it])=>({k, cislo:P.cislo(it.rec), ean:P.ean(it.rec), qty:it.qty}));
-    store.set("draft", JSON.stringify(d));
-  }catch(e){}
+  try{ store.set("draft", JSON.stringify([...cart.entries()].map(([k,it])=>({k, qty:it.qty})))); }catch(e){}
 }
 
 /* ============================================================
@@ -620,17 +607,14 @@ function saveDraft(){
 let stream=null, detector=null, scanning=false;
 function openScanner(){ $("#scanModal").classList.add("show"); prepDetector(); }
 function closeScanner(){ $("#scanModal").classList.remove("show"); stopCam(); }
-
 function prepDetector(){
   if("BarcodeDetector" in window){
-    try{ detector = new window.BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
-      $("#camNote").textContent=""; }
+    try{ detector = new window.BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]}); $("#camNote").textContent=""; }
     catch(e){ detector=null; }
   } else {
     detector=null;
     $("#camNote").textContent = "Kamera-sken nepodporuje tento prohlížeč (např. iOS Safari) — použij ruční zadání.";
-    $("#camToggle").disabled = true;
-    $("#camToggle").style.opacity = .5;
+    $("#camToggle").disabled = true; $("#camToggle").style.opacity = .5;
   }
 }
 async function startCam(){
@@ -638,8 +622,7 @@ async function startCam(){
   try{
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
     const v=$("#scanview"); v.srcObject=stream; v.style.display="block"; await v.play();
-    $("#camToggle").textContent="Vypnout kameru";
-    $("#scanMsg").textContent="Skenuji… namiř na čárový kód.";
+    $("#camToggle").textContent="Vypnout kameru"; $("#scanMsg").textContent="Skenuji… namiř na čárový kód.";
     scanning=true; scanLoop();
   }catch(err){ $("#scanMsg").textContent="Kameru se nepodařilo spustit: "+err.message; }
 }
@@ -651,37 +634,29 @@ function stopCam(){
 }
 async function scanLoop(){
   if(!scanning) return;
-  try{
-    const codes = await detector.detect($("#scanview"));
-    if(codes && codes.length){ handleEan(codes[0].rawValue); }
-  }catch(e){}
+  try{ const codes = await detector.detect($("#scanview")); if(codes && codes.length){ handleEan(codes[0].rawValue); } }catch(e){}
   if(scanning) requestAnimationFrame(()=> setTimeout(scanLoop, 250));
 }
-
 let lastHandled=0;
 function handleEan(raw){
   const ean = String(raw).replace(/\s+/g,"");
   const now=Date.now(); if(now-lastHandled<1200) return; lastHandled=now;
-
   const inFeed1 = products.find(p=>P.ean(p)===ean);
   const inFeed2 = feed2Index.get(ean);
-
   let html = `<div class="lastscan">EAN ${esc(ean)}</div>`;
   if(inFeed1){
-    const idx=products.indexOf(inFeed1);
-    addToCart(idx,1);
+    addToCart(products.indexOf(inFeed1),1);
     html += `<div class="pill good" style="margin-top:6px">✓ v katalogu — přidáno do poptávky</div>
-             <div style="margin-top:4px">${esc(P.name(inFeed1))} · ${fmtKc(P.price(inFeed1))}/${esc(P.mj(inFeed1))}</div>`;
+             <div style="margin-top:4px">${esc(P.name(inFeed1))}</div>`;
     toast("Přidáno: "+P.name(inFeed1), inFeed2?"match":"");
   } else {
     html += `<div class="pill" style="margin-top:6px;background:#f3d6d6;color:#b23b3b">Není v katalogu (feed 1)</div>`;
-    toast("EAN "+ean+" není v katalogu", "");
+    toast("EAN "+ean+" není v katalogu","");
   }
   if(inFeed2){
     html += `<div class="pill warn" style="margin-top:6px">✓ nalezeno i ve feedu 2</div>
-             <div style="margin-top:4px" class="meta">`+
-             Object.entries(inFeed2).filter(([k])=>!k.startsWith("__"))
-               .map(([k,v])=>`${esc(k.toLowerCase())}: ${esc(v)}`).join(" · ")+`</div>`;
+             <div style="margin-top:4px" class="meta" style="color:var(--muted);font-size:12.5px">`+
+             Object.entries(inFeed2).filter(([k])=>!k.startsWith("__")).map(([k,v])=>`${esc(k.toLowerCase())}: ${esc(v)}`).join(" · ")+`</div>`;
   } else if(feed2Index.size){
     html += `<div class="pill" style="margin-top:6px">— ve feedu 2 není</div>`;
   }
@@ -689,7 +664,7 @@ function handleEan(raw){
 }
 
 /* ============================================================
-   UI DRÁTOVÁNÍ
+   UI
    ============================================================ */
 function setStat(sel,msg,cls){ const el=$(sel); el.textContent=msg; el.className="status"+(cls?" "+cls:""); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -697,14 +672,12 @@ function toast(msg,cls){ const t=$("#toast"); t.textContent=msg; t.className="sh
 function openCart(){ $("#cart").classList.add("open"); $("#backdrop").classList.add("show"); }
 function closeCart(){ $("#cart").classList.remove("open"); $("#backdrop").classList.remove("show"); }
 
-// table delegation
 $("#rows").addEventListener("click", e=>{
   const t=e.target;
   if(t.dataset.add!=null){ const i=+t.dataset.add; addToCart(i, $(`input[data-qty="${i}"]`).value); toast("Přidáno do poptávky"); }
   else if(t.dataset.inc!=null){ const inp=$(`input[data-qty="${t.dataset.inc}"]`); inp.value=(+inp.value||0)+1; }
   else if(t.dataset.dec!=null){ const inp=$(`input[data-qty="${t.dataset.dec}"]`); inp.value=Math.max(1,(+inp.value||1)-1); }
 });
-// cart delegation
 $("#cartItems").addEventListener("click", e=>{
   const t=e.target;
   if(t.dataset.crm!=null) removeFromCart(t.dataset.crm);
@@ -713,10 +686,8 @@ $("#cartItems").addEventListener("click", e=>{
 });
 $("#cartItems").addEventListener("change", e=>{ if(e.target.dataset.cqty!=null) setCartQty(e.target.dataset.cqty, e.target.value); });
 
-// filters
-["#q","#onlyStock","#onlyMatch","#hidePrice"].forEach(s=> $(s).addEventListener("input", render));
+["#q","#onlyStock","#onlyMatch"].forEach(s=> $(s).addEventListener("input", render));
 
-// data source buttons
 $("#load1url").onclick = ()=> loadFeed1FromUrl($("#url1").value.trim());
 $("#load2url").onclick = ()=> loadFeed2FromUrl($("#url2").value.trim());
 $("#paste1toggle").onclick = ()=>{ $("#xml1").style.display="block"; $("#paste1row").style.display="flex"; };
@@ -726,7 +697,6 @@ $("#parse2").onclick = ()=>{ try{ ingestFeed2($("#xml2").value); }catch(e){ setS
 $("#file1").onchange = e=>{ const f=e.target.files[0]; if(f) f.text().then(t=>{ try{ingestFeed1(t);}catch(x){setStat("#stat1",x.message,"err");} }); };
 $("#file2").onchange = e=>{ const f=e.target.files[0]; if(f) f.text().then(t=>{ try{ingestFeed2(t);}catch(x){setStat("#stat2",x.message,"err");} }); };
 
-// cart + scanner + send
 $("#btnCart").onclick = openCart;
 $("#cartClose").onclick = closeCart;
 $("#backdrop").onclick = closeCart;
@@ -742,12 +712,9 @@ $("#copyBtn").onclick = ()=>{
     .catch(()=> setStat("#sendStat","Kopírování se nepodařilo.","err"));
 };
 
-// init
 (function init(){
-  const savedUrl1 = store.get("feed1url") || DEFAULT_FEED1_URL;
-  const savedUrl2 = store.get("feed2url") || "";
-  $("#url1").value = savedUrl1;
-  $("#url2").value = savedUrl2;
+  $("#url1").value = store.get("feed1url") || "";
+  $("#url2").value = store.get("feed2url") || "";
   renderCart();
 })();
 </script>
