@@ -1,1 +1,545 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nástroje oddělení — Pražské služby, a.s.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green:        #009645;
+  --green-dark:   #007a38;
+  --green-light:  #e6f4ec;
+  --green-mid:    #b3ddc5;
+  --orange:       #F27D00;
+  --orange-light: #FDE9D2;
+  --ink:          #1a1a1a;
+  --ink-soft:     #4a4a4a;
+  --ink-muted:    #888;
+  --surface:      #fff;
+  --bg:           #f5f7f5;
+  --border:       #e0e8e2;
+  --font:         'DM Sans', Arial, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--bg); color: var(--ink); }
 
+/* ── HEADER ── */
+.site-header {
+  background: var(--green);
+  padding: 0 32px;
+  display: flex; align-items: center;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 12px rgba(0,100,50,.18);
+  height: 58px; gap: 16px;
+}
+.header-logo {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+  border-right: 1px solid rgba(255,255,255,.2);
+  padding-right: 16px; margin-right: 4px;
+}
+.logo-box {
+  width: 34px; height: 34px; background: white;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+}
+.logo-box svg { width: 20px; height: 20px; fill: var(--green); }
+.logo-text strong { display: block; font-size: 13px; font-weight: 700; color: white; line-height: 1.1; }
+.logo-text span   { font-size: 10px; color: rgba(255,255,255,.6); }
+.header-mid { flex: 1; font-size: 13px; color: rgba(255,255,255,.8); font-weight: 500; }
+.header-claim { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+  padding: 52px 32px 60px; position: relative; overflow: hidden;
+}
+.hero::after  { content:''; position:absolute; right:-60px; top:-60px; width:280px; height:280px; border-radius:50%; background:rgba(255,255,255,.05); pointer-events:none; }
+.hero::before { content:''; position:absolute; left:-40px; bottom:-60px; width:180px; height:180px; border-radius:50%; background:rgba(242,125,0,.12); pointer-events:none; }
+.hero-inner { max-width: 680px; margin: 0 auto; position: relative; z-index: 1; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.13); color: rgba(255,255,255,.9);
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 20px; margin-bottom: 18px;
+}
+.hero h1 { font-size: clamp(26px,4vw,40px); font-weight: 700; color: white; line-height: 1.18; margin-bottom: 12px; }
+.hero h1 em { font-style: normal; color: var(--orange); }
+.hero p { font-size: 15px; color: rgba(255,255,255,.7); line-height: 1.65; max-width: 540px; }
+.hero-stats { display: flex; gap: 32px; margin-top: 32px; flex-wrap: wrap; }
+.hstat-n { font-size: 28px; font-weight: 700; color: white; }
+.hstat-n span { font-size: 14px; }
+.hstat-l { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 2px; }
+
+/* ── SEKCE ── */
+.section { max-width: 1180px; margin: 0 auto; padding: 56px 32px; }
+.sec-head { margin-bottom: 48px; }
+.sec-title { font-size: 22px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.sec-title::before { content:''; width:4px; height:22px; background:var(--green); border-radius:2px; display:block; }
+.sec-sub { font-size: 13px; color: var(--ink-muted); padding-left: 14px; }
+
+/* ── KARTA NÁSTROJE ── */
+.tool-row {
+  display: grid; grid-template-columns: 1fr 222px;
+  gap: 48px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 40px 48px; margin-bottom: 28px;
+  transition: box-shadow .2s, border-color .2s;
+}
+.tool-row:hover { box-shadow: 0 8px 32px rgba(0,100,50,.09); border-color: var(--green-mid); }
+.tool-row.rev { grid-template-columns: 222px 1fr; }
+.tool-row.rev .tool-info  { order: 2; }
+.tool-row.rev .tool-phone { order: 1; }
+.tool-row.fun { border-color: #f8bbd0; background: linear-gradient(135deg,#fff9f9,#fff); }
+
+/* štítky */
+.tool-cat {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 20px; margin-bottom: 14px;
+}
+.cat-doc   { background:#FDE9D2; color:#c46400; }
+.cat-sign  { background:var(--green-light); color:var(--green-dark); }
+.cat-ocr   { background:#e8f0fe; color:#1a5eb8; }
+.cat-tel   { background:#f0e6fb; color:#6b28ab; }
+.cat-tech  { background:#fff3e0; color:#b35c00; }
+.cat-fun   { background:#fce4ec; color:#ad1457; }
+
+.tool-title { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 8px; line-height: 1.25; }
+.tool-desc  { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin-bottom: 20px; }
+.tool-features { list-style: none; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px; }
+.tool-features li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--ink-soft); }
+.fd { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.fd svg { width:10px; height:10px; stroke:white; fill:none; stroke-width:3; }
+.fd-green  { background:var(--green); }
+.fd-orange { background:var(--orange); }
+.fd-blue   { background:#1a73e8; }
+.fd-purple { background:#7b1fa2; }
+.fd-amber  { background:#f59e0b; }
+.fd-pink   { background:#e91e63; }
+
+.tool-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-open {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--green); color: white;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  border: none; border-radius: 8px; padding: 10px 20px;
+  cursor: pointer; text-decoration: none; transition: background .15s;
+}
+.btn-open:hover { background: var(--green-dark); }
+.btn-open svg { width:14px; height:14px; stroke:white; fill:none; stroke-width:2.5; }
+.btn-qr {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; color: var(--ink-soft);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 16px;
+  cursor: pointer; text-decoration: none; transition: border-color .15s, background .15s;
+}
+.btn-qr:hover { background: var(--bg); border-color: var(--ink-muted); }
+.btn-qr svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; }
+
+/* ── TELEFON ── */
+.tool-phone { display: flex; justify-content: center; align-items: center; }
+.phone-shell {
+  width: 210px; background: #181e18;
+  border-radius: 34px; padding: 10px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 20px 50px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.5);
+}
+.phone-notch { width: 70px; height: 20px; background: #181e18; border-radius: 0 0 13px 13px; margin: 0 auto; position: relative; z-index: 2; }
+.phone-screen { border-radius: 24px; overflow: hidden; }
+.phone-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 13px 4px;
+  font-size: 10px; font-weight: 600; color: white; font-family: var(--font);
+}
+.phone-content { height: 380px; overflow: hidden; position: relative; background: var(--bg); }
+.phone-content iframe {
+  width: 375px; height: 610px; border: none;
+  transform: scale(0.56); transform-origin: top left;
+  pointer-events: none;
+}
+.phone-home-bar { height: 18px; background: white; display: flex; align-items: center; justify-content: center; }
+.phone-home-bar div { width: 56px; height: 4px; background: #ccc; border-radius: 2px; }
+
+/* ── QR MODAL ── */
+.qr-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(4px);
+}
+.qr-overlay.open { display: flex; }
+.qr-modal { background: var(--surface); border-radius: 16px; width: 280px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.qr-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--green-light);
+}
+.qr-modal-head span { font-size: 13px; font-weight: 600; color: var(--green-dark); }
+.qr-close {
+  width: 26px; height: 26px; border: none;
+  background: rgba(0,100,50,.1); border-radius: 6px;
+  cursor: pointer; font-size: 14px; color: var(--green-dark);
+  display: flex; align-items: center; justify-content: center;
+}
+.qr-close:hover { background: var(--green-mid); }
+.qr-body { padding: 24px; text-align: center; }
+.qr-body img { width: 200px; height: 200px; border-radius: 10px; border: 1px solid var(--border); }
+.qr-body p { font-size: 12px; color: var(--ink-muted); margin: 12px 0 14px; line-height: 1.6; }
+.qr-body a { font-size: 13px; font-weight: 600; color: var(--green); text-decoration: none; }
+.qr-body a:hover { color: var(--green-dark); }
+
+/* ── FOOTER ── */
+footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var(--orange); }
+.footer-inner {
+  max-width: 1180px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+}
+.footer-left { display: flex; align-items: center; gap: 10px; }
+.footer-left svg { width: 22px; height: 22px; fill: rgba(255,255,255,.35); }
+.footer-left span { font-size: 13px; color: rgba(255,255,255,.45); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 12px; color: rgba(255,255,255,.4); text-decoration: none; transition: color .15s; }
+.footer-links a:hover { color: rgba(255,255,255,.85); }
+.footer-copy { font-size: 11px; color: rgba(255,255,255,.25); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 820px) {
+  .tool-row, .tool-row.rev { grid-template-columns: 1fr; padding: 28px 24px; gap: 28px; }
+  .tool-row.rev .tool-info  { order: 1; }
+  .tool-row.rev .tool-phone { order: 2; }
+  .hero { padding: 36px 20px 44px; }
+  .site-header { padding: 0 16px; }
+  .header-claim { display: none; }
+  .section { padding: 40px 20px; }
+  footer { padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <a href="index.html" class="header-logo">
+    <div class="logo-box">
+      <svg viewBox="0 0 36 36"><text y="26" font-size="22" font-weight="900" font-family="Arial">PS</text></svg>
+    </div>
+    <div class="logo-text">
+      <strong>Pražské služby</strong>
+      <span>a.s.</span>
+    </div>
+  </a>
+  <div class="header-mid">Oddělení správy nemovitostí · Nástroje</div>
+  <div class="header-claim">NEPŘEKONATELNÝ SERVIS</div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      Interní webové nástroje
+    </div>
+    <h1>Aplikace pro <em>správu nemovitostí</em><br>přímo v prohlížeči</h1>
+    <p>Soubor interních nástrojů vyvinutých Oddělením správy nemovitostí. Vše běží lokálně v prohlížeči – žádná data se nikam neodesílají. Funguje i na mobilu.</p>
+    <div class="hero-stats">
+      <div><div class="hstat-n">6</div><div class="hstat-l">Nástrojů</div></div>
+      <div><div class="hstat-n">100<span>%</span></div><div class="hstat-l">Lokálně v prohlížeči</div></div>
+      <div><div class="hstat-n">0</div><div class="hstat-l">Odeslaných dat</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- NÁSTROJE -->
+<section class="section">
+  <div class="sec-head">
+    <div class="sec-title">Dostupné nástroje</div>
+    <div class="sec-sub">Náhled v telefonu je živý – lze přímo kliknout · tlačítko otevře nástroj na celé obrazovce · QR kód pro mobil</div>
+  </div>
+
+  <!-- 1. PP.html -->
+  <div class="tool-row" data-url="https://ps.yey.cz/PP.html" data-name="Předávací protokol">
+    <div class="tool-info">
+      <div class="tool-cat cat-doc">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Dokumenty
+      </div>
+      <div class="tool-title">Předávací protokol</div>
+      <div class="tool-desc">Generátor předávacích protokolů k provedeným pracím. Nahrajte fakturu jako PDF nebo ji vyfotografujte telefonem – nástroj automaticky vyčte dodavatele, číslo faktury a položky a předvyplní celý protokol.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>OCR načtení faktury z PDF nebo fotky telefonem</li>
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Editovatelné položky – přidání, mazání, přeskládání</li>
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vložení podpisu a export do PDF nebo tisk</li>
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení výchozího objednatele v prohlížeči</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/PP.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/PP.html" title="Předávací protokol" loading="lazy" allow="camera"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. SIG.html -->
+  <div class="tool-row rev" data-url="https://ps.yey.cz/SIG.html" data-name="Podpis na protokol">
+    <div class="tool-info">
+      <div class="tool-cat cat-sign">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Podpisy
+      </div>
+      <div class="tool-title">Podpis na protokol</div>
+      <div class="tool-desc">Vkládání naskenovaného podpisu a textového popisku do předávacích protokolů. Přijímá PDF, JPG i PNG. Podpis umístíte myší nebo dotykem a lze mu upravit velikost i odstranit bílé pozadí.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vstup PDF / JPG / PNG – výstup vždy PDF</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Umístění a změna velikosti podpisu myší nebo dotykem</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Odstranění bílého pozadí u skenovaného podpisu</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení výchozího podpisu a textu v prohlížeči</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/SIG.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/SIG.html" title="Podpis na protokol" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. OCR.html -->
+  <div class="tool-row" data-url="https://ps.yey.cz/OCR.html" data-name="OCR → PDF">
+    <div class="tool-info">
+      <div class="tool-cat cat-ocr">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Rozpoznávání textu
+      </div>
+      <div class="tool-title">OCR → PDF</div>
+      <div class="tool-desc">Rozpoznání textu z fotografií, skenů a PDF a uložení do jednoho vyhledatelného PDF. Přijímá JPG, PNG, WEBP i PDF. Výsledek je PDF s neviditelnou textovou vrstvou – text lze označit i prohledávat (Ctrl+F).</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-blue"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vstup JPG / PNG / WEBP / PDF – výstup vyhledatelné PDF</li>
+        <li><div class="fd fd-blue"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Ruční i automatická oprava orientace stránek</li>
+        <li><div class="fd fd-blue"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Podpora češtiny, angličtiny a slovenštiny</li>
+        <li><div class="fd fd-blue"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vše probíhá lokálně – žádný soubor se nikam neodesílá</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/OCR.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:#1a73e8"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/OCR.html" title="OCR → PDF" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TEL.html -->
+  <div class="tool-row rev" data-url="https://ps.yey.cz/TEL.html" data-name="Telefonní seznam">
+    <div class="tool-info">
+      <div class="tool-cat cat-tel">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Kontakty
+      </div>
+      <div class="tool-title">Telefonní seznam</div>
+      <div class="tool-desc">Interní telefonní seznam zaměstnanců pro recepci. Vyhledávání jmen s našeptáváním (bez ohledu na diakritiku), filtrování podle lokality. Aktualizace importem nového souboru z Outlooku (CSV) nebo Excelu (XLSX).</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vyhledávání s našeptáváním – i bez diakritiky</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Filtrování podle lokality, řazení dle sloupců</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Import z Outlooku (CSV) nebo Excelu (XLSX)</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Klikací telefon i e-mail – vytočení přímo z mobilu</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/TEL.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:#7b1fa2"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/TEL.html" title="Telefonní seznam" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. EPS-AB.html -->
+  <div class="tool-row" data-url="https://ps.yey.cz/EPS-AB.html" data-name="EPS výkres – AB">
+    <div class="tool-info">
+      <div class="tool-cat cat-tech">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Technická dokumentace
+      </div>
+      <div class="tool-title">EPS výkres – prohlížeč</div>
+      <div class="tool-desc">Offline prohlížeč výkresů EPS (Elektronická požární signalizace) ve formátu PDF pro lokalitu AB. Optimalizovaný pro velké technické výkresy s přiblížením, otočením a přechodem na konkrétní nález.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-amber"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Prohlížení PDF výkresů EPS – lokace AB</li>
+        <li><div class="fd fd-amber"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Zoom, otočení, přechod na konkrétní nález</li>
+        <li><div class="fd fd-amber"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Funguje offline – soubor zůstane uložen v prohlížeči</li>
+        <li><div class="fd fd-amber"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Možnost otevřít vlastní PDF výkres</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/EPS-AB.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:#e65100"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/EPS-AB.html" title="EPS výkres" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. HAD.html -->
+  <div class="tool-row rev fun" data-url="https://ps.yey.cz/HAD.html" data-name="Had Nokia">
+    <div class="tool-info">
+      <div class="tool-cat cat-fun">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Easter egg
+      </div>
+      <div class="tool-title">Had Nokia 🐍</div>
+      <div class="tool-desc">Klasická hra Had v korporátním hávu. Pro chvíle, kdy čekáte na schválení rozpočtu nebo se načítá velký PDF výkres. Ovládání klávesnicí (šipky / WASD) nebo dotykem na mobilu.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-pink"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Retro Nokia styl s korporátními barvami PSAS</li>
+        <li><div class="fd fd-pink"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Ukládání rekordu v prohlížeči</li>
+        <li><div class="fd fd-pink"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Dotyková ovládání pro mobilní zařízení</li>
+        <li><div class="fd fd-pink"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>100% nezbytná součást správy nemovitostí</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/HAD.html" class="btn-open" target="_blank" style="background:#e91e63">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Hrát
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:#880e4f"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/HAD.html" title="Had Nokia" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <svg viewBox="0 0 24 24"><path d="M4 4h7a4 4 0 0 1 0 8H6v4H4V4zm2 6h5a2 2 0 0 0 0-4H6v4z"/></svg>
+      <span>Pražské služby, a.s. · Pod Šancemi 444/1, 190 00 Praha 9</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">← Zpět na rozcestník</a>
+      <a href="https://www.psas.cz" target="_blank">psas.cz</a>
+    </div>
+    <div class="footer-copy">Oddělení správy nemovitostí · vývoj podpořen Claude (Anthropic)</div>
+  </div>
+</footer>
+
+<!-- QR MODAL -->
+<div class="qr-overlay" id="qr-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="qr-modal">
+    <div class="qr-modal-head">
+      <span id="qr-title">QR kód</span>
+      <button class="qr-close" onclick="document.getElementById('qr-overlay').classList.remove('open')">✕</button>
+    </div>
+    <div class="qr-body">
+      <img id="qr-img" src="" alt="QR kód">
+      <p>Naskenujte pro otevření na mobilním zařízení nebo vytiskněte na nástěnku.</p>
+      <a id="qr-dl" href="#" download="qr.png">⬇ Stáhnout QR kód</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function showQR(row) {
+  const url  = row.dataset.url;
+  const name = row.dataset.name;
+  const src  = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=009645&data=' + encodeURIComponent(url);
+  document.getElementById('qr-title').textContent = name;
+  document.getElementById('qr-img').src = src;
+  document.getElementById('qr-dl').href = src;
+  document.getElementById('qr-overlay').classList.add('open');
+}
+</script>
+</body>
+</html>
