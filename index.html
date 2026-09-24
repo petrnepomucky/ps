@@ -259,8 +259,8 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
 
-<!-- 2. SIG.html -->
-  <div class="tool-row rev" data-url="https://ps.yey.cz/CP.html" data-name="Podací arch">
+<!-- 1. SIG.html -->
+  <div class="tool-row" data-url="https://ps.yey.cz/CP.html" data-name="Podací arch">
     <div class="tool-info">
       <div class="tool-cat cat-sign">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -300,45 +300,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   
-  <!-- 1. PP.html -->
-  <div class="tool-row" data-url="https://ps.yey.cz/PP.html" data-name="Předávací protokol">
-    <div class="tool-info">
-      <div class="tool-cat cat-doc">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Dokumenty
-      </div>
-      <div class="tool-title">Předávací protokol</div>
-      <div class="tool-desc">Generátor předávacích protokolů k provedeným pracím. Nahrajte fakturu jako PDF nebo ji vyfotografujte telefonem – nástroj automaticky vyčte dodavatele, číslo faktury a položky a předvyplní celý protokol.</div>
-      <ul class="tool-features">
-        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>OCR načtení faktury z PDF nebo fotky telefonem</li>
-        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Editovatelné položky – přidání, mazání, přeskládání</li>
-        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vložení podpisu a export do PDF nebo tisk</li>
-        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení výchozího objednatele v prohlížeči</li>
-      </ul>
-      <div class="tool-actions">
-        <a href="https://ps.yey.cz/PP.html" class="btn-open" target="_blank">
-          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Otevřít nástroj
-        </a>
-        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          QR kód
-        </button>
-      </div>
-    </div>
-    <div class="tool-phone">
-      <div class="phone-shell">
-        <div class="phone-notch"></div>
-        <div class="phone-screen">
-          <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
-          <div class="phone-content">
-            <iframe src="https://ps.yey.cz/PP.html" title="Předávací protokol" loading="lazy" allow="camera"></iframe>
-          </div>
-          <div class="phone-home-bar"><div></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
+  
 
   <!-- 2. SIG.html -->
   <div class="tool-row rev" data-url="https://ps.yey.cz/SIG.html" data-name="Podpis na protokol">
@@ -420,8 +382,49 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     </div>
   </div>
 
+<!-- 4. PP.html -->
+  <div class="tool-row rev" data-url="https://ps.yey.cz/PP.html" data-name="Předávací protokol">
+    <div class="tool-info">
+      <div class="tool-cat cat-doc">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Dokumenty
+      </div>
+      <div class="tool-title">Předávací protokol</div>
+      <div class="tool-desc">Generátor předávacích protokolů k provedeným pracím. Nahrajte fakturu jako PDF nebo ji vyfotografujte telefonem – nástroj automaticky vyčte dodavatele, číslo faktury a položky a předvyplní celý protokol.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>OCR načtení faktury z PDF nebo fotky telefonem</li>
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Editovatelné položky – přidání, mazání, přeskládání</li>
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vložení podpisu a export do PDF nebo tisk</li>
+        <li><div class="fd fd-orange"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení výchozího objednatele v prohlížeči</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/PP.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/PP.html" title="Předávací protokol" loading="lazy" allow="camera"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
   <!-- 4. EPS-AB.html -->
-  <div class="tool-row rev" data-url="https://ps.yey.cz/EPS-AB.html" data-name="EPS výkres – AB">
+  <div class="tool-row" data-url="https://ps.yey.cz/EPS-AB.html" data-name="EPS výkres – AB">
     <div class="tool-info">
       <div class="tool-cat cat-tech">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
@@ -461,7 +464,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 6. HAD.html -->
-  <div class="tool-row fun" data-url="https://ps.yey.cz/HAD.html" data-name="Had Nokia">
+  <div class="tool-row rev" data-url="https://ps.yey.cz/HAD.html" data-name="Had Nokia">
     <div class="tool-info">
       <div class="tool-cat cat-fun">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
