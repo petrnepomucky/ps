@@ -521,6 +521,32 @@
     .g24 > .f { grid-column: span 12; }
     .g24 > .f.s24 { grid-column: span 24; }
   }
+
+  /* Záložky a kombinace v seznamu služeb */
+  .svc-pop { width: 580px; }
+  .svc-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: #fafbfc; border-radius: 6px 6px 0 0; }
+  .svc-tab {
+    flex: 1; border: none; background: transparent; border-bottom: 2px solid transparent; border-radius: 0;
+    padding: 9px 10px; font-size: 12.5px; font-weight: bold; color: var(--muted); cursor: pointer;
+  }
+  .svc-tab:hover { background: var(--zelena-15); }
+  .svc-tab.on { color: var(--zelena-tmm); border-bottom-color: var(--zelena); background: #fff; }
+  .svc-pop .csub {
+    padding: 7px 10px 3px; font-size: 12px; font-weight: bold; color: var(--text);
+    border-top: 1px solid var(--border); margin-top: 2px;
+  }
+  .svc-pop .csub:first-child { border-top: none; margin-top: 0; }
+  button.combo {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    border: none; border-radius: 0; background: transparent; padding: 5px 10px 5px 16px; font: inherit; cursor: pointer;
+  }
+  button.combo:hover { background: #eef3fb; }
+  button.combo.on { background: var(--zelena-15); }
+  button.combo .ccode { display: flex; align-items: center; gap: 2px; min-width: 190px; flex: none; }
+  button.combo .plus { color: var(--muted); font-size: 11px; }
+  button.combo .cname { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  button.combo .cmark { margin-left: auto; color: var(--zelena-tm); font-weight: bold; }
+  .card-head .svc-warn { color: var(--oranzova-tm); font-weight: bold; }
 </style>
 </head>
 <body>
@@ -862,6 +888,87 @@ const SVC_LABEL = Object.fromEntries(SERVICES);
 const SIZE_CODES = ['S', 'M', 'L', 'XL'];            // vzájemně se vylučují
 const COD_CODES = ['Dh', 'Du', '4', '5', '41'];       // dobírkové služby
 
+// ---- Druhy listovních zásilek a přípustné doplňkové služby ----
+// Zdroj: list „Kombinace služeb - psaní“ (platnost od 1. 4. 2026).
+const LETTER_BASES = ['50', '51', '52', '53', '54', '55', '56', '57'];
+const LETTER_ALLOWED = {
+  '50': ['1', '1K', '3', '4', '5', '6', '8', '13', '16', '20', '22', '3U', '26', '32', '33', '36', '37'],
+  '51': ['1', '1K', '3', '4', '5', '6', '8', '13', '16', '20', '22', '3U', '26', '32', '33', '36', '37'],
+  '52': ['1', '3', '4', '5', '8', '13', '16', '20', '22', '3U', '26', '32', '33', '36', '37'],
+  '56': ['1', '1K', '3', '6', '8', '13', '20', '22', '3U', '26', '32', '33', '36', '37', '38'],
+  '57': ['1', '1K', '3', '6', '8', '13', '20', '22', '3U', '26', '32', '33', '36', '37', '38'],
+};
+
+// ---- Základní kombinace služeb ----
+// Přepsáno z listu „Kombinace služeb - psaní“, sekce „Základní kombinace služeb“
+// (řádky 35–69), „Ministerstvo spravedlnosti (o.s.ř)“ (71–100) a „Ministerstvo
+// vnitra (správní řád) a Ministerstvo financí (daňový řád)“ (103–120).
+// Zápis „5x“ ve vzoru znamená druh zásilky; 52 (slepecká) nemá Ekonomický
+// režim dodání 1K, proto u ní kombinace s 1K nejsou.
+const COMBO_GROUPS = [
+  {
+    title: 'Základní kombinace — doporučené zásilky a úřední psaní',
+    items: [
+      { sub: 'Ekonomický režim dodání', codes: [['50', '1K'], ['51', '1K'], ['56', '1K'], ['57', '1K']] },
+      { sub: 'Do vlastních rukou + Ekonomický režim dodání', codes: [['50', '1', '1K'], ['51', '1', '1K'], ['56', '1', '1K'], ['57', '1', '1K']] },
+      { sub: 'Do vlastních rukou výhradně jen adresáta + Ekonomický režim dodání', codes: [['50', '8', '1K'], ['51', '8', '1K'], ['56', '8', '1K'], ['57', '8', '1K']] },
+      { sub: 'Dodejka + Ekonomický režim dodání', codes: [['50', '3', '1K'], ['51', '3', '1K'], ['56', '3', '1K'], ['57', '3', '1K']] },
+      { sub: 'Dodejka + Do vlastních rukou + Ekonomický režim dodání', codes: [['50', '32', '1K'], ['51', '32', '1K'], ['56', '32', '1K'], ['57', '32', '1K']] },
+      { sub: 'Dodejka + Do vlastních rukou výhradně jen adresáta + Ekonomický režim dodání', codes: [['50', '33', '1K'], ['51', '33', '1K'], ['52', '33'], ['56', '33', '1K'], ['57', '33', '1K']] },
+      { sub: 'Odpovědní zásilka', codes: [['50', '6'], ['51', '6'], ['56', '6'], ['57', '6']] },
+      { sub: 'Uložit 15 dnů – ZP (+ Ekonomický režim dodání)', codes: [['50', '3U', '1K'], ['51', '3U', '1K'], ['52', '3U'], ['56', '3U'], ['57', '3U']] },
+      { sub: 'Uložit 10 dní + Ekonomický režim dodání', codes: [['50', '22', '1K'], ['51', '22', '1K'], ['52', '22'], ['56', '22', '1K'], ['57', '22', '1K']] },
+      { sub: 'Neukládat + Ekonomický režim dodání', codes: [['50', '20', '1K'], ['51', '20', '1K'], ['52', '20'], ['56', '20', '1K'], ['57', '20', '1K']] },
+      { sub: 'Neprodlužovat odběrní lhůtu + Ekonomický režim dodání', codes: [['50', '16', '1K'], ['51', '16', '1K'], ['52', '16']] },
+    ],
+  },
+  {
+    title: 'Ministerstvo spravedlnosti (o. s. ř.)',
+    items: [
+      { sub: 'Úřední psaní typ I', codes: [['56', '32', '22', '37', '1K'], ['56', '33', '22', '37', '1K'], ['56', '32', '22', '38', '1K'], ['56', '33', '22', '38', '1K']] },
+      { sub: 'Úřední psaní standard typ I', codes: [['57', '32', '22', '37', '1K'], ['57', '33', '22', '37', '1K'], ['57', '32', '22', '38', '1K'], ['57', '33', '22', '38', '1K']] },
+      { sub: 'Úřední psaní typ II', codes: [['56', '32', '22', '38', '1K'], ['56', '33', '22', '38', '1K'], ['56', '32', '20', '38', '1K'], ['56', '33', '20', '38', '1K']] },
+      { sub: 'Úřední psaní standard typ II', codes: [['57', '32', '22', '38', '1K'], ['57', '33', '22', '38', '1K'], ['57', '32', '20', '38', '1K'], ['57', '33', '20', '38', '1K']] },
+      { sub: 'Úřední psaní typ III', codes: [['56', '32', '20', '37', '1K']] },
+      { sub: 'Úřední psaní standard typ III', codes: [['57', '32', '20', '37', '1K']] },
+    ],
+  },
+  {
+    title: 'Ministerstvo vnitra (správní řád) a Ministerstvo financí (daňový řád)',
+    items: [
+      { sub: 'Obálka bez pruhu', codes: [['50', '3', '22', '1K'], ['50', '3', '22', '37', '1K'], ['51', '3', '22', '1K'], ['51', '3', '22', '37', '1K']] },
+      { sub: 'Obálka s modrým pruhem', codes: [['50', '32', '22', '1K'], ['50', '32', '22', '37', '1K'], ['51', '32', '22', '1K'], ['51', '32', '22', '37', '1K']] },
+      { sub: 'Obálka s červeným pruhem', codes: [['50', '33', '22', '1K'], ['50', '33', '22', '37', '1K'], ['51', '33', '22', '1K'], ['51', '33', '22', '37', '1K']] },
+    ],
+  },
+];
+
+// Popis kombinace pro tooltip: „50 Doporučená zásilka + 32 Dodejka a do vlastních rukou + …“
+const BASE_SHORT = {
+  '50': 'Doporučená zásilka',
+  '51': 'Doporučená zásilka standard',
+  '52': 'Doporučená slepecká zásilka',
+  '56': 'Úřední psaní',
+  '57': 'Úřední psaní standard',
+};
+function comboTitle(codes) {
+  return codes.map(c => c + ' – ' + (SVC_LABEL[c] || '')).join('\n');
+}
+// Upozornění na kombinace, které dle listu „Kombinace služeb - psaní“ nejdou dohromady.
+// Jen upozorňuje, export neblokuje — matice pokrývá listovní zásilky, ne balíky.
+function svcWarnings(r) {
+  const s = r.sluzby || [];
+  const bases = s.filter(c => LETTER_BASES.includes(c));
+  const out = [];
+  if (bases.length > 1) out.push('vybráno víc druhů zásilky (' + bases.join(', ') + ') — má být jen jeden');
+  const base = bases[0];
+  if (base && LETTER_ALLOWED[base]) {
+    const bad = s.filter(c => c !== base && !LETTER_BASES.includes(c) && !LETTER_ALLOWED[base].includes(c));
+    if (bad.length) out.push('k „' + (SVC_LABEL[base] || base) + '“ dle ČP nepatří: ' + bad.join(', '));
+  }
+  return out;
+}
+
 const MAX_ROWS = 74;          // list ePA má řádky 6–79
 const PDF_ROWS = 10;          // tištěná šablona má 10 řádků na list
 const STORAGE_KEY = 'podaci-arch-v2';
@@ -1194,12 +1301,14 @@ function updateCardStatus(i) {
     return;
   }
   const p = rowProblems(r);
+  const w = svcWarnings(r);
+  const warnHtml = w.length ? ' <span class="svc-warn" title="Podle listu „Kombinace služeb - psaní“ — export to nezablokuje">⚠ ' + escapeHtml(w.join('; ')) + '</span>' : '';
   if (!p.length) {
     card.className = 'card ok';
-    st.textContent = '✓ Všechny povinné údaje jsou vyplněné · služby: ' + r.sluzby.join('+');
+    st.innerHTML = '✓ Všechny povinné údaje jsou vyplněné · služby: ' + escapeHtml(r.sluzby.join('+')) + warnHtml;
   } else {
     card.className = 'card bad';
-    st.textContent = 'Chybí / opravit: ' + p.map(x => x[1]).filter(Boolean).join(', ');
+    st.innerHTML = 'Chybí / opravit: ' + escapeHtml(p.map(x => x[1]).filter(Boolean).join(', ')) + warnHtml;
     p.forEach(([f]) => { const w = card.querySelector(`.f[data-fw="${f}"]`); if (w) w.classList.add('miss'); });
   }
 }
@@ -1279,13 +1388,21 @@ document.addEventListener('focusout', e => {
 });
 
 // ---------- Služby — dropdown ----------
+let svcTab = 'kombinace';   // aktivní záložka v rozbalovacím seznamu služeb
+
 function toggleSvc(i) {
   if (svcOpen === i) { closeSvc(); return; }
   closeSvc();
   svcOpen = i;
+  // Když už zásilka nějaké služby má, uživatel spíš upravuje → otevřít jednotlivé služby
+  svcTab = (rows[i].sluzby || []).length ? 'sluzby' : 'kombinace';
   const pop = document.querySelector(`.svc-pop[data-pop="${i}"]`);
   pop.innerHTML = `
-    <div class="top"><input type="text" class="svc-q" placeholder="Hledat službu (kód nebo název)…" oninput="renderSvcList(${i})" onkeydown="if(event.key==='Escape'){closeSvc();}"></div>
+    <div class="svc-tabs">
+      <button type="button" class="svc-tab" data-tab="kombinace" onclick="setSvcTab(${i}, 'kombinace')">Kombinace</button>
+      <button type="button" class="svc-tab" data-tab="sluzby" onclick="setSvcTab(${i}, 'sluzby')">Jednotlivé služby</button>
+    </div>
+    <div class="top"><input type="text" class="svc-q" oninput="renderSvcList(${i})" onkeydown="if(event.key==='Escape'){closeSvc();}"></div>
     <div class="list"></div>
     <div class="bot">
       <span style="display:flex;gap:6px">
@@ -1296,12 +1413,26 @@ function toggleSvc(i) {
     </div>`;
   pop.classList.add('open');
   renderSvcList(i);
-  setTimeout(() => pop.querySelector('.svc-q').focus(), 20);
+  setTimeout(() => { const q = pop.querySelector('.svc-q'); if (q) q.focus(); }, 20);
+}
+function setSvcTab(i, tab) {
+  svcTab = tab;
+  const pop = document.querySelector(`.svc-pop[data-pop="${i}"]`);
+  if (pop) { const q = pop.querySelector('.svc-q'); if (q) { q.value = ''; q.focus(); } }
+  renderSvcList(i);
 }
 function renderSvcList(i) {
   const pop = document.querySelector(`.svc-pop[data-pop="${i}"]`);
   if (!pop) return;
-  const q = normalize(pop.querySelector('.svc-q').value.trim());
+  pop.querySelectorAll('.svc-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === svcTab));
+  const qEl = pop.querySelector('.svc-q');
+  qEl.placeholder = svcTab === 'kombinace'
+    ? 'Hledat kombinaci (kód, druh zásilky, „modrý pruh“…)'
+    : 'Hledat službu (kód nebo název)…';
+  pop.querySelector('.list').innerHTML = svcTab === 'kombinace' ? comboListHtml(i, qEl.value.trim()) : svcListHtml(i, qEl.value.trim());
+}
+function svcListHtml(i, query) {
+  const q = normalize(query);
   const sel = rows[i].sluzby;
   const item = ([c, l]) => `<label class="it"><input type="checkbox" value="${escapeHtml(c)}" ${sel.includes(c) ? 'checked' : ''} onchange="onSvcCheck(${i}, this)"><span class="code">${escapeHtml(c)}</span><span>${escapeHtml(l)}</span></label>`;
   const match = ([c, l]) => !q || normalize(c) === q || normalize(c).startsWith(q) || normalize(l).includes(q);
@@ -1310,8 +1441,48 @@ function renderSvcList(i) {
   let html = '';
   if (chosen.length) html += '<div class="grp">Vybrané</div>' + chosen.map(item).join('');
   if (rest.length) html += (chosen.length ? '<div class="grp">Další služby</div>' : '') + rest.map(item).join('');
-  if (!html) html = '<div class="book-empty">Žádná služba neodpovídá.</div>';
-  pop.querySelector('.list').innerHTML = html;
+  return html || '<div class="book-empty">Žádná služba neodpovídá.</div>';
+}
+function comboListHtml(i, query) {
+  const q = normalize(query);
+  const cur = (rows[i].sluzby || []).join('+');
+  let html = '';
+  let shown = 0;
+  COMBO_GROUPS.forEach(g => {
+    let gHtml = '';
+    g.items.forEach(it => {
+      // Kombinace projde filtrem podle svého kódu, popisu skupiny i názvů služeb
+      const hits = it.codes.filter(codes => {
+        if (!q) return true;
+        const hay = normalize(codes.join('+') + ' ' + it.sub + ' ' + g.title + ' ' + codes.map(c => SVC_LABEL[c] || '').join(' '));
+        return hay.includes(q);
+      });
+      if (!hits.length) return;
+      gHtml += `<div class="csub">${escapeHtml(it.sub)}</div>`;
+      hits.forEach(codes => {
+        const code = codes.join('+');
+        const active = code === cur;
+        shown++;
+        gHtml += `<button type="button" class="combo${active ? ' on' : ''}" onclick="applyCombo(${i}, ${JSON.stringify(codes).replace(/"/g, '&quot;')})" title="${escapeHtml(comboTitle(codes))}">
+          <span class="ccode">${codes.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('<span class="plus">+</span>')}</span>
+          <span class="cname">${escapeHtml(BASE_SHORT[codes[0]] || SVC_LABEL[codes[0]] || codes[0])}</span>
+          ${active ? '<span class="cmark">✓</span>' : ''}
+        </button>`;
+      });
+    });
+    if (gHtml) html += `<div class="grp">${escapeHtml(g.title)}</div>` + gHtml;
+  });
+  if (!shown) return '<div class="book-empty">Žádná kombinace neodpovídá. Jednotlivé služby najdeš na druhé záložce.</div>';
+  return html;
+}
+function applyCombo(i, codes) {
+  rows[i].sluzby = codes.slice();
+  refreshSvcField(i);
+  updateCardStatus(i);
+  updateCounts();
+  saveDraft();
+  closeSvc();
+  toast('Nastaveno: ' + codes.join('+'), 'success');
 }
 function onSvcCheck(i, cb) {
   const c = cb.value;
