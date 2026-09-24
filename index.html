@@ -258,6 +258,48 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     <div class="sec-sub">Náhled v telefonu je živý – lze přímo kliknout · tlačítko otevře nástroj na celé obrazovce · QR kód pro mobil</div>
   </div>
 
+
+<!-- 2. SIG.html -->
+  <div class="tool-row rev" data-url="https://ps.yey.cz/CP.html" data-name="Podací arch">
+    <div class="tool-info">
+      <div class="tool-cat cat-sign">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Podpisy
+      </div>
+      <div class="tool-title">Podací arch České pošty</div>
+      <div class="tool-desc">Generuje "ePA" soubor CSV pro Českou Poštu.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení adresátů do databáze v prohlížeši</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Databáze je možné importovat, exportovat, sdílet</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení odesílatele v prohlížeči</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Export do formátu CSV a PDF</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/CP.html" class="btn-open" target="_blank">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/CP.html" title="Podpis na protokol" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
   <!-- 1. PP.html -->
   <div class="tool-row" data-url="https://ps.yey.cz/PP.html" data-name="Předávací protokol">
     <div class="tool-info">
