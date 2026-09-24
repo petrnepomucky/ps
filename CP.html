@@ -642,7 +642,7 @@
     <div class="stripe"></div>
     <p><strong>Podací arch — elektronický (ePA) i tištěný</strong></p>
     <p>Interní nástroj Oddělení správy nemovitostí, <strong>Pražské služby, a.s.</strong></p>
-    <p>Hlavní výstup je <strong>elektronický podací arch (ePA)</strong> ve formátu CSV podle vzoru České pošty (list „ePA“, platnost od 1. 4. 2026): středník jako oddělovač, kódování CP-1250, stejné pořadí sloupců a hlavička jako při uložení vzorového Excelu do CSV. Adresa a telefon odesílatele (Pražské služby a.s.) jsou napevno; jméno a e-mail odesílatele si každý uživatel může přepsat v horní liště — jeho volba se uloží v jeho prohlížeči. Adresáti se vyplňují ve formuláři nebo z adresáře. Služby se vybírají ze seznamu a do souboru se zapíší jako kódy spojené znakem „+“ (např. 50+34).</p>
+    <p>Hlavní výstup je <strong>elektronický podací arch (ePA)</strong> ve formátu CSV podle vzoru České pošty (list „ePA“, platnost od 1. 4. 2026): středník jako oddělovač, kódování CP-1250, stejné pořadí sloupců a hlavička jako při uložení vzorového Excelu do CSV. Adresa odesílatele (Pražské služby a.s.) je napevno; jméno, e-mail a telefon odesílatele si každý uživatel může přepsat v horní liště — jeho volba se uloží v jeho prohlížeči. Adresáti se vyplňují ve formuláři nebo z adresáře. Služby se vybírají ze seznamu a do souboru se zapíší jako kódy spojené znakem „+“ (např. 50+34).</p>
     <p>Tlačítko „Tisk PDF“ dál vyplní oficiální tištěnou šablonu podacího archu (10 zásilek na list, při více zásilkách více listů).</p>
     <p>Adresář se ukládá jen v tomto prohlížeči (localStorage); zálohu uděláš tlačítkem „Export adresáře“.</p>
     <div class="meta">
@@ -758,36 +758,42 @@ const SENDER_FIXED = {
   cp: '444',
   co: '1',
   zeme: 'CZ',
-  tel: '736518222',
 };
 const SENDER_DEFAULT = {
   jmeno: 'Renáta Vyskočilová Ps',
   email: 'renata.vyskocilova@psas.cz',
+  tel: '736518222',
 };
+const SENDER_EDITABLE = ['jmeno', 'email', 'tel'];
 const SENDER_KEY = 'podaci-arch-sender-v1';
 let SENDER = Object.assign({}, SENDER_FIXED, SENDER_DEFAULT);
 function loadSender() {
   try {
     const raw = lsGet(SENDER_KEY);
     if (raw) {
-      const s = JSON.parse(raw);
-      SENDER = Object.assign({}, SENDER_FIXED, SENDER_DEFAULT, {
-        jmeno: (s.jmeno || '').trim() || SENDER_DEFAULT.jmeno,
-        email: (s.email || '').trim() || SENDER_DEFAULT.email,
+      const s = JSON.parse(raw) || {};
+      const over = {};
+      SENDER_EDITABLE.forEach(f => {
+        const v = String(s[f] || '').trim();
+        if (v) over[f] = f === 'tel' ? fmtPhone(v) : v;
       });
+      SENDER = Object.assign({}, SENDER_FIXED, SENDER_DEFAULT, over);
     }
   } catch (e) { /* ignore */ }
 }
 function saveSender() {
-  lsSet(SENDER_KEY, JSON.stringify({ jmeno: SENDER.jmeno, email: SENDER.email }));
+  const out = {};
+  SENDER_EDITABLE.forEach(f => { out[f] = SENDER[f]; });
+  lsSet(SENDER_KEY, JSON.stringify(out));
 }
 function onSenderEdit(field, value) {
-  const v = String(value || '').trim();
+  let v = String(value || '').trim();
+  if (field === 'tel') v = fmtPhone(v);
   SENDER[field] = v || SENDER_DEFAULT[field];
   saveSender();
 }
 function resetSenderToDefault() {
-  if (!confirm('Vrátit jméno a e-mail odesílatele na výchozí (Renáta Vyskočilová)?')) return;
+  if (!confirm('Vrátit jméno, e-mail a telefon odesílatele na výchozí (Renáta Vyskočilová)?')) return;
   SENDER = Object.assign({}, SENDER_FIXED, SENDER_DEFAULT);
   saveSender();
   renderSender();
@@ -1054,7 +1060,7 @@ function loadDraft() {
 function renderSender() {
   const karta = document.getElementById('cislo-karty').value.trim();
   const s = SENDER;
-  const isDefault = s.jmeno === SENDER_DEFAULT.jmeno && s.email === SENDER_DEFAULT.email;
+  const isDefault = SENDER_EDITABLE.every(f => s[f] === SENDER_DEFAULT[f]);
   document.getElementById('sender-box').innerHTML =
     `<span class="tag">Odesílatel</span>
      <span class="sender-edit">
@@ -1067,11 +1073,16 @@ function renderSender() {
        <input type="text" id="sender-email" value="${escapeHtml(s.email)}" maxlength="50"
               onchange="onSenderEdit('email', this.value); renderSender()" oninput="SENDER.email = this.value.trim() || SENDER_DEFAULT.email; saveSender()">
      </span>
-     <span class="sender-fixed" title="Adresa a telefon firmy — nastaveno napevno">
-       ${escapeHtml(s.ulice)} ${escapeHtml(s.cp)}/${escapeHtml(s.co)}, ${escapeHtml(fmtPsc(s.psc))} ${escapeHtml(s.cast)} · tel. ${escapeHtml(s.tel)}
+     <span class="sender-edit">
+       <label class="sl">Telefon <span title="9 číslic bez +420, dle návodu ČP" style="color:var(--muted);font-weight:normal">(9 číslic)</span></label>
+       <input type="text" id="sender-tel" value="${escapeHtml(s.tel)}" maxlength="20" style="min-width:130px"
+              onchange="onSenderEdit('tel', this.value); renderSender()" oninput="SENDER.tel = fmtPhone(this.value) || SENDER_DEFAULT.tel; saveSender()">
+     </span>
+     <span class="sender-fixed" title="Adresa firmy — nastavená napevno">
+       ${escapeHtml(s.ulice)} ${escapeHtml(s.cp)}/${escapeHtml(s.co)}, ${escapeHtml(fmtPsc(s.psc))} ${escapeHtml(s.cast)}
      </span>
      <span class="sender-fixed">Zák. karta: ${karta ? escapeHtml(karta) : '—'}</span>
-     ${isDefault ? '' : '<button class="small" onclick="resetSenderToDefault()" title="Vrátit jméno a e-mail na výchozí (Renáta)">↺ výchozí</button>'}`;
+     ${isDefault ? '' : '<button class="small" onclick="resetSenderToDefault()" title="Vrátit jméno, e-mail a telefon na výchozí (Renáta)">↺ výchozí</button>'}`;
 }
 
 // ---------- Validace (odpovídá vzorci ve sloupci AA listu ePA + dobírka) ----------
