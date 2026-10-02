@@ -1217,7 +1217,7 @@ function rowProblems(r) {
 // Příznak jako ve sloupci AA vzorového Excelu (1 = povinné údaje OK)
 function excelFlag(r) {
   const h = f => String(r[f] || '').trim() !== '';
-  const ok = h('jmeno') && h('hmotnost') && h('psc') && h('obec') && h('cast') && h('ulice') && (h('cp') || h('co')) && h('zeme') && (r.sluzby || []).length > 0;
+  const ok = h('jmeno') && h('psc') && h('obec') && h('cast') && h('ulice') && (h('cp') || h('co')) && h('zeme') && (r.sluzby || []).length > 0;
   return ok ? 1 : 0;
 }
 
