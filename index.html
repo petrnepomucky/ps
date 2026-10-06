@@ -167,7 +167,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--ink); }
 .phone-home-bar div { width: 56px; height: 4px; background: #ccc; border-radius: 2px; }
 
 
-/* AppSheet náhled (AppSheet nejde vložit do iframe) */
+/* Statický náhled (AppSheet / Apps Script nejdou vložit do iframe) */
 .as-mock { padding: 12px 10px; font-family: var(--font); }
 .as-head { font-size: 13px; font-weight: 700; color: #4a148c; margin-bottom: 10px; }
 .as-item { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; margin-bottom: 7px; }
@@ -175,6 +175,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--ink); }
 .as-item b { width: 70%; margin-bottom: 6px; }
 .as-item i { width: 45%; background: #ece6f2; }
 .as-note { font-size: 10.5px; color: var(--ink-muted); text-align: center; margin-top: 14px; line-height: 1.5; }
+.as-mock.gs .as-head { color: var(--green-dark); }
+.as-mock.gs .as-item b { background: var(--green-mid); }
+.as-mock.gs .as-item i { background: var(--green-light); }
 
 /* ── QR MODAL ── */
 .qr-overlay {
@@ -240,7 +243,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
 
 <!-- HEADER -->
 <header class="site-header">
-  <a href="index.html" class="header-logo">
+  <a href="https://ps.yey.cz/index.html" class="header-logo">
     <div class="logo-box">
       <svg viewBox="0 0 36 36"><text y="26" font-size="22" font-weight="900" font-family="Arial">PS</text></svg>
     </div>
@@ -263,7 +266,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     <h1>Aplikace pro <em>správu nemovitostí</em><br>přímo v prohlížeči</h1>
     <p>Soubor interních nástrojů vyvinutých Oddělením správy nemovitostí. Webové nástroje běží lokálně v prohlížeči – žádná data se nikam neodesílají. Funguje i na mobilu.</p>
     <div class="hero-stats">
-      <div><div class="hstat-n">4</div><div class="hstat-l">Nástrojů</div></div>
+      <div><div class="hstat-n">5</div><div class="hstat-l">Nástrojů</div></div>
       <div><div class="hstat-n">100<span>%</span></div><div class="hstat-l">Lokálně v prohlížeči</div></div>
       <div><div class="hstat-n">0</div><div class="hstat-l">Odeslaných dat</div></div>
     </div>
@@ -278,7 +281,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 1. CP.html -->
-  <div class="tool-row" data-url="https://app.yey.cz/cp.html" data-name="Podací arch">
+  <div class="tool-row" data-url="https://ps.yey.cz/cp.html" data-name="Podací arch">
     <div class="tool-info">
       <div class="tool-cat cat-sign">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -293,7 +296,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <li><div class="fd fd-yellow"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Export do formátu CSV a PDF</li>
       </ul>
       <div class="tool-actions">
-        <a href="https://app.yey.cz/cp.html" class="btn-open" target="_blank" rel="noopener">
+        <a href="https://ps.yey.cz/cp.html" class="btn-open" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Otevřít nástroj
         </a>
@@ -309,7 +312,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <div class="phone-screen">
           <div class="phone-bar" style="background:var(--yellow)"><span>9:41</span><span>●●● 100%</span></div>
           <div class="phone-content">
-            <iframe src="https://app.yey.cz/cp.html" title="Podací arch" loading="lazy"></iframe>
+            <iframe src="https://ps.yey.cz/cp.html" title="Podací arch" loading="lazy"></iframe>
           </div>
           <div class="phone-home-bar"><div></div></div>
         </div>
@@ -318,7 +321,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 2. SIG.html -->
-  <div class="tool-row rev" data-url="https://app.yey.cz/sig.html" data-name="Podpis na protokol">
+  <div class="tool-row rev" data-url="https://ps.yey.cz/sig.html" data-name="Podpis na protokol">
     <div class="tool-info">
       <div class="tool-cat cat-sign">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -333,7 +336,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Uložení výchozího podpisu a textu v prohlížeči</li>
       </ul>
       <div class="tool-actions">
-        <a href="https://app.yey.cz/sig.html" class="btn-open" target="_blank" rel="noopener">
+        <a href="https://ps.yey.cz/sig.html" class="btn-open" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Otevřít nástroj
         </a>
@@ -349,7 +352,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <div class="phone-screen">
           <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
           <div class="phone-content">
-            <iframe src="https://app.yey.cz/sig.html" title="Podpis na protokol" loading="lazy"></iframe>
+            <iframe src="https://ps.yey.cz/sig.html" title="Podpis na protokol" loading="lazy"></iframe>
           </div>
           <div class="phone-home-bar"><div></div></div>
         </div>
@@ -358,7 +361,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 3. OCR.html -->
-  <div class="tool-row" data-url="https://app.yey.cz/ocr.html" data-name="OCR → PDF">
+  <div class="tool-row" data-url="https://ps.yey.cz/ocr.html" data-name="OCR → PDF">
     <div class="tool-info">
       <div class="tool-cat cat-ocr">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -373,7 +376,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <li><div class="fd fd-blue"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vše probíhá lokálně – žádný soubor se nikam neodesílá</li>
       </ul>
       <div class="tool-actions">
-        <a href="https://app.yey.cz/ocr.html" class="btn-open" target="_blank" rel="noopener">
+        <a href="https://ps.yey.cz/ocr.html" class="btn-open" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Otevřít nástroj
         </a>
@@ -389,7 +392,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <div class="phone-screen">
           <div class="phone-bar" style="background:#1a73e8"><span>9:41</span><span>●●● 100%</span></div>
           <div class="phone-content">
-            <iframe src="https://app.yey.cz/ocr.html" title="OCR → PDF" loading="lazy"></iframe>
+            <iframe src="https://ps.yey.cz/ocr.html" title="OCR → PDF" loading="lazy"></iframe>
           </div>
           <div class="phone-home-bar"><div></div></div>
         </div>
@@ -445,8 +448,55 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     </div>
   </div>
 
-  <!-- 5. HAD.html (easter egg, nepočítá se mezi nástroje) -->
-  <div class="tool-row" data-url="https://app.yey.cz/had.html" data-name="Had Nokia">
+  <!-- 5. Provozovny (Google Apps Script) -->
+  <div class="tool-row" data-url="https://script.google.com/macros/s/AKfycbxx6JKJ7tp-dc7RVVPJEfd_TMafqVQg5FENkwJBowtyRdaHz-xGKhv56goTXdum8KNbmg/exec" data-name="Provozovny">
+    <div class="tool-info">
+      <div class="tool-cat cat-sign">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Provozovny
+      </div>
+      <div class="tool-title">Provozovny</div>
+      <div class="tool-desc">Webová aplikace s přehledem provozoven Pražských služeb. Běží jako Google Apps Script a pracuje s daty uloženými v Google účtu firmy.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Přehled provozoven na jednom místě</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Data napojená na Google Sheets</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Funguje v prohlížeči i na mobilu</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://script.google.com/macros/s/AKfycbxx6JKJ7tp-dc7RVVPJEfd_TMafqVQg5FENkwJBowtyRdaHz-xGKhv56goTXdum8KNbmg/exec" class="btn-open" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít aplikaci
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:var(--green-dark)"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <div class="as-mock gs">
+              <div class="as-head">Provozovny</div>
+              <div class="as-item"><b></b><i></i></div>
+              <div class="as-item"><b></b><i></i></div>
+              <div class="as-item"><b></b><i></i></div>
+              <div class="as-item"><b></b><i></i></div>
+              <div class="as-item"><b></b><i></i></div>
+              <div class="as-note">Náhled není k dispozici –<br>otevřete aplikaci tlačítkem</div>
+            </div>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. HAD.html (easter egg, nepočítá se mezi nástroje) -->
+  <div class="tool-row rev" data-url="https://ps.yey.cz/had.html" data-name="Had Nokia">
     <div class="tool-info">
       <div class="tool-cat cat-fun">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -461,7 +511,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <li><div class="fd fd-pink"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>100% nezbytná součást správy nemovitostí</li>
       </ul>
       <div class="tool-actions">
-        <a href="https://app.yey.cz/had.html" class="btn-open" target="_blank" rel="noopener" style="background:#e91e63">
+        <a href="https://ps.yey.cz/had.html" class="btn-open" target="_blank" rel="noopener" style="background:#e91e63">
           <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Hrát
         </a>
@@ -477,7 +527,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
         <div class="phone-screen">
           <div class="phone-bar" style="background:#880e4f"><span>9:41</span><span>●●● 100%</span></div>
           <div class="phone-content">
-            <iframe src="https://app.yey.cz/had.html" title="Had Nokia" loading="lazy"></iframe>
+            <iframe src="https://ps.yey.cz/had.html" title="Had Nokia" loading="lazy"></iframe>
           </div>
           <div class="phone-home-bar"><div></div></div>
         </div>
@@ -495,6 +545,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
       <span>Pražské služby, a.s. · Pod Šancemi 444/1, 190 00 Praha 9</span>
     </div>
     <div class="footer-links">
+      <a href="https://ps.yey.cz/index.html">Nástroje</a>
       <a href="https://www.psas.cz" target="_blank" rel="noopener">psas.cz</a>
     </div>
     <div class="footer-copy">Oddělení správy nemovitostí · vývoj podpořen Claude (Anthropic)</div>
