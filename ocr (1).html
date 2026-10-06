@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR → PDF · Pražské služby</title>
+<style>
+  :root{
+    --psas-green:#009645;
+    --psas-green-dark:#00753a;
+    --psas-orange:#F27D00;
+    --psas-orange-dark:#d46e00;
+    --ink:#1c2321;
+    --muted:#6b746f;
+    --line:#e2e6e3;
+    --bg:#f4f6f5;
+    --card:#ffffff;
+    --danger:#c0392b;
+    --radius:12px;
+    --shadow:0 1px 3px rgba(0,0,0,.06),0 6px 18px rgba(0,0,0,.05);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:960px;margin:0 auto;padding:0 16px 64px}
+
+  header{background:var(--psas-green);color:#fff}
+  header .bar{max-width:960px;margin:0 auto;padding:18px 16px;display:flex;align-items:center;gap:14px}
+  header .mark{width:40px;height:40px;border-radius:9px;background:#fff;display:grid;place-items:center;flex:0 0 auto}
+  header .mark span{color:var(--psas-green);font-weight:800;font-size:20px;letter-spacing:-.5px}
+  header h1{margin:0;font-size:20px;font-weight:700}
+  header p{margin:2px 0 0;font-size:13px;opacity:.9}
+  header .accent{height:4px;background:var(--psas-orange)}
+  .info-btn{margin-left:auto;flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;display:grid;place-items:center;transition:.15s}
+  .info-btn:hover{background:rgba(255,255,255,.26);border-color:#fff}
+  .info-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,28,23,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:60;opacity:0;animation:fade .18s ease forwards}
+  .modal-overlay[hidden]{display:none}
+  @keyframes fade{to{opacity:1}}
+  .modal{background:#fff;border-radius:16px;max-width:440px;width:100%;padding:26px 24px 22px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.28);max-height:90vh;overflow:auto}
+  .modal h3{margin:0 0 10px;font-size:19px;color:var(--psas-green-dark);font-weight:700}
+  .modal-bar{height:3px;border-radius:99px;background:linear-gradient(90deg,var(--psas-green) 0 62%,var(--psas-orange) 62% 100%);margin:0 0 16px}
+  .modal-head{margin:0 0 8px;font-size:15px;font-weight:700;color:var(--psas-green-dark)}
+  .modal-org{margin:0 0 14px;font-size:13.5px;color:var(--ink)}
+  .modal-p{margin:0 0 12px;font-size:13.5px;color:#2a332f;line-height:1.55}
+  .modal-facts{background:#f0f8f3;border:1px solid #cfe8d9;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--psas-green-dark)}
+  .modal-facts b{font-weight:700}
+  .modal-facts a{color:var(--psas-green-dark);text-decoration:underline}
+  .modal-facts a:hover{color:var(--psas-green)}
+  .modal-actions{display:flex;justify-content:flex-end;margin-top:18px}
+  .modal-actions .btn{background:var(--psas-green);border-color:var(--psas-green);color:#fff;padding:10px 24px;font-size:14px}
+  .modal-actions .btn:hover{background:var(--psas-green-dark);border-color:var(--psas-green-dark)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:20px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:700}
+  .card .sub{margin:0 0 16px;font-size:13px;color:var(--muted)}
+
+  .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:34px 20px;text-align:center;transition:.15s;cursor:pointer;background:#fafbfa}
+  .drop.hot{border-color:var(--psas-green);background:#f0f8f3}
+  .drop svg{width:38px;height:38px;color:var(--psas-green);margin-bottom:8px}
+  .drop strong{display:block;font-size:15px}
+  .drop small{color:var(--muted)}
+
+  .pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:8px}
+  .page{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .page .thumb{aspect-ratio:3/4;background:#f1f3f2;display:grid;place-items:center;overflow:hidden}
+  .page .thumb canvas{max-width:100%;max-height:100%;display:block}
+  .page .meta{padding:6px 8px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line)}
+  .page .tools{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-top:1px solid var(--line)}
+  .page .tools button{flex:1 1 auto;min-width:0}
+
+  .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:6px;justify-content:center}
+  .btn:hover{background:#f4f6f5}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.icon{padding:6px 8px;font-size:14px;line-height:1}
+  .btn.danger{color:var(--danger);border-color:#f0c9c4}
+  .btn.danger:hover{background:#fdf1ef}
+  .btn.primary{background:var(--psas-orange);border-color:var(--psas-orange);color:#fff;padding:12px 22px;font-size:15px}
+  .btn.primary:hover{background:var(--psas-orange-dark);border-color:var(--psas-orange-dark)}
+  .btn.ghost{background:transparent}
+
+  .row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+  select,.check{font-size:14px}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:160px}
+  .check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:8px 0}
+  .check input{width:17px;height:17px;accent-color:var(--psas-green)}
+
+  .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
+  .actions .hint{font-size:12px;color:var(--muted)}
+
+  .progress{margin-top:16px;display:none}
+  .progress.on{display:block}
+  .progress .track{height:9px;background:#eef1ef;border-radius:99px;overflow:hidden}
+  .progress .fill{height:100%;width:0;background:var(--psas-green);transition:width .2s}
+  .progress .label{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .result{display:none;margin-top:16px;padding:16px;border:1px solid #cfe8d9;background:#f0f8f3;border-radius:10px}
+  .result.on{display:block}
+  .result strong{color:var(--psas-green-dark)}
+
+  .note{font-size:12px;color:var(--muted);background:#fff8ef;border:1px solid #f6dfbc;border-radius:10px;padding:12px 14px;margin-top:16px}
+  .note b{color:var(--psas-orange-dark)}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:90vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  footer{text-align:center;font-size:12px;color:var(--muted);margin-top:28px}
+  @media (max-width:600px){ .btn.primary{width:100%} .actions{flex-direction:column;align-items:stretch} }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="mark"><span>PS</span></div>
+    <div>
+      <h1>OCR → PDF</h1>
+      <p>Rozpoznání dokumentu a uložení do PDF se správnou orientací</p>
+    </div>
+    <button class="info-btn" id="infoBtn" title="O nástroji" aria-label="O nástroji">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11.5" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/></svg>
+    </button>
+  </div>
+  <div class="accent"></div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>1 · Přidej stránky dokumentu</h2>
+    <p class="sub">Fotky, skeny nebo PDF (JPG, PNG, WEBP, PDF). Můžeš přidat víc souborů i stránek — vznikne jedno PDF.</p>
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Přidat soubory">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      <strong>Přetáhni sem soubory nebo klikni</strong>
+      <small>Fotky, skeny nebo PDF · na telefonu můžeš rovnou vyfotit</small>
+    </div>
+    <input type="file" id="file" accept="image/*,application/pdf" multiple hidden>
+    <div class="pages" id="pages"></div>
+  </div>
+
+  <div class="card" id="cfgCard" style="display:none">
+    <h2>2 · Nastavení</h2>
+    <p class="sub">Zkontroluj orientaci u náhledů výše (tlačítka ↺ ↻). Náhled = přesně tak se stránka uloží.</p>
+    <div class="row">
+      <div class="field">
+        <label for="lang">Jazyk rozpoznávání</label>
+        <select id="lang">
+          <option value="ces" selected>Čeština</option>
+          <option value="ces+eng">Čeština + angličtina</option>
+          <option value="eng">Angličtina</option>
+          <option value="ces+slk">Čeština + slovenština</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Rozpoznat text</label>
+        <label class="check"><input type="checkbox" id="doOcr" checked> Vyhledatelné PDF (text lze označit/hledat)</label>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="run">Vytvořit PDF</button>
+      <span class="hint" id="runHint">Vyhledatelné PDF, orientace podle náhledů</span>
+    </div>
+
+    <div class="progress" id="prog">
+      <div class="track"><div class="fill" id="progFill"></div></div>
+      <div class="label" id="progLabel">Připravuji…</div>
+    </div>
+
+    <div class="result" id="result">
+      <strong>Hotovo.</strong> PDF je stažené. <button class="btn ghost" id="again" style="margin-left:8px">Stáhnout znovu</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>První spuštění potřebuje internet.</b> OCR engine a jazyková databáze se jednou stáhnou (pár MB) a prohlížeč si je uloží — příště je to rychlé. Zpracování běží celé u tebe v prohlížeči, nic se nikam neposílá. Pro plně offline verzi řekni Petrovi… tedy mně. 🙂
+  </div>
+
+  <footer>Interní nástroj · Pražské služby a.s. · zpracování probíhá lokálně v prohlížeči</footer>
+</div>
+
+<div class="modal-overlay" id="infoModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <h3 id="infoTitle">O nástroji</h3>
+    <div class="modal-bar"></div>
+
+    <p class="modal-head">OCR → PDF — rozpoznávací nástroj</p>
+    <p class="modal-org">Interní nástroj Oddělení správy nemovitostí, <strong>Pražské služby, a.s.</strong></p>
+
+    <p class="modal-p">Slouží k rozpoznání textu z fotografií, skenů a PDF a k jeho uložení do jednoho vyhledatelného PDF. Přijímá JPG, PNG, WEBP i PDF na vstupu; vícestránkové PDF se automaticky rozloží na jednotlivé strany. Na výstupu je vždy PDF, kde je nad obrázkem dokumentu neviditelná textová vrstva — text lze označit i vyhledat (Ctrl+F).</p>
+
+    <p class="modal-p">Orientaci každé stránky lze srovnat ručně (otočení 0/90/180/270°) i automaticky; náhled vždy odpovídá tomu, jak se stránka uloží. Zpracování probíhá lokálně v prohlížeči — žádný soubor se nikam neodesílá.</p>
+
+    <p class="modal-p">Při prvním spuštění se z internetu jednou stáhne OCR engine a jazyková databáze (pár MB); prohlížeč si je uloží, takže příště je nástroj rychlejší.</p>
+
+    <div class="modal-facts">
+      <div><b>Verze:</b> 1.0 · srpen 2026</div>
+      <div><b>Autor:</b> Oddělení správy nemovitostí, Pražské služby, a.s.</div>
+      <div><b>Vývoj podpořen:</b> AI asistentem Claude od <a href="https://claude.com" target="_blank" rel="noopener">Anthropicu</a> (claude.com)</div>
+      <div><b>Použité knihovny:</b> tesseract.js (Apache 2.0), pdf.js (Apache 2.0), pdf-lib (MIT)</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="infoClose">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var pages = [];        // { id, bitmap, rotation, name }
+  var seq = 0;
+  var lastPdfBytes = null;
+  var lastName = "dokument.pdf";
+  var libsOk = (typeof Tesseract !== "undefined") && (typeof PDFLib !== "undefined");
+
+  if (typeof pdfjsLib !== "undefined"){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+
+  var el = function(id){ return document.getElementById(id); };
+  var drop = el("drop"), fileInput = el("file"), pagesBox = el("pages"),
+      cfgCard = el("cfgCard"), runBtn = el("run"), runHint = el("runHint"),
+      prog = el("prog"), progFill = el("progFill"), progLabel = el("progLabel"),
+      result = el("result"), toastEl = el("toast");
+
+  /* ---------- helpers ---------- */
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ toastEl.classList.remove("on"); }, 3200);
+  }
+
+  function fileToBitmap(file){
+    // respect EXIF orientation from phone photos
+    return createImageBitmap(file, { imageOrientation: "from-image" })
+      .catch(function(){ return createImageBitmap(file); });
+  }
+
+  function renderCanvas(bitmap, rotation, maxSide){
+    var w = bitmap.width, h = bitmap.height, scale = 1;
+    if (maxSide){
+      var big = Math.max(w, h);
+      if (big > maxSide) scale = maxSide / big;
+    }
+    var sw = Math.round(w * scale), sh = Math.round(h * scale);
+    var swap = (rotation % 180) !== 0;
+    var cw = swap ? sh : sw, ch = swap ? sw : sh;
+    var c = document.createElement("canvas");
+    c.width = cw; c.height = ch;
+    var ctx = c.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.translate(cw / 2, ch / 2);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.drawImage(bitmap, -sw / 2, -sh / 2, sw, sh);
+    return c;
+  }
+
+  /* ---------- page list ---------- */
+  function isPdf(f){ return f.type === "application/pdf" || /\.pdf$/i.test(f.name); }
+
+  function dropBusy(on, msg){
+    var s = drop.querySelector("strong");
+    if (on){
+      drop.style.pointerEvents = "none";
+      drop.style.opacity = ".6";
+      if (s) s.textContent = msg || "Načítám…";
+    } else {
+      drop.style.pointerEvents = "";
+      drop.style.opacity = "";
+      if (s) s.textContent = "Přetáhni sem soubory nebo klikni";
+    }
+  }
+
+  function addFiles(fileList){
+    var arr = Array.prototype.slice.call(fileList).filter(function(f){
+      return /^image\//.test(f.type) || isPdf(f);
+    });
+    if (!arr.length){ toast("Vyber prosím obrázky nebo PDF."); return; }
+    if (arr.some(isPdf)) dropBusy(true, "Načítám PDF…");
+    var chain = Promise.resolve();
+    arr.forEach(function(f){
+      chain = chain.then(function(){
+        if (isPdf(f)) return addPdf(f);
+        return fileToBitmap(f).then(function(bmp){
+          pages.push({ id: ++seq, bitmap: bmp, rotation: 0, name: f.name });
+        });
+      }).catch(function(err){
+        console.error(err);
+        toast("Soubor „" + f.name + "\" se nepodařilo načíst.");
+      });
+    });
+    chain.then(function(){ dropBusy(false); renderPages(); });
+  }
+
+  function addPdf(file){
+    if (typeof pdfjsLib === "undefined"){
+      toast("PDF knihovna se nenačetla (potřebuje internet).");
+      return Promise.resolve();
+    }
+    return file.arrayBuffer().then(function(buf){
+      return pdfjsLib.getDocument({ data: buf }).promise;
+    }).then(function(pdf){
+      var total = pdf.numPages;
+      var chain = Promise.resolve();
+      var loadPage = function(pageNum){
+        chain = chain.then(function(){
+          dropBusy(true, "Načítám PDF – strana " + pageNum + " / " + total + "…");
+          return pdf.getPage(pageNum).then(function(page){
+            var base = page.getViewport({ scale: 1 });
+            var scale = Math.max(1, Math.min(3, 2200 / Math.max(base.width, base.height)));
+            var vp = page.getViewport({ scale: scale });
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.round(vp.width);
+            canvas.height = Math.round(vp.height);
+            var ctx = canvas.getContext("2d");
+            return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function(){
+              return createImageBitmap(canvas);
+            }).then(function(bmp){
+              pages.push({ id: ++seq, bitmap: bmp, rotation: 0, name: file.name + " · str. " + pageNum });
+            });
+          });
+        });
+      };
+      for (var i = 1; i <= total; i++) loadPage(i);
+      return chain;
+    });
+  }
+
+  function renderPages(){
+    pagesBox.innerHTML = "";
+    pages.forEach(function(p, i){
+      var card = document.createElement("div");
+      card.className = "page";
+
+      var thumb = document.createElement("div");
+      thumb.className = "thumb";
+      thumb.appendChild(renderCanvas(p.bitmap, p.rotation, 320));
+      card.appendChild(thumb);
+
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = "<span>Strana " + (i + 1) + "</span><span>" + p.rotation + "°</span>";
+      card.appendChild(meta);
+
+      var tools = document.createElement("div");
+      tools.className = "tools";
+      tools.appendChild(mkBtn("↺", "Otočit vlevo", function(){ rotate(p, -90); }));
+      tools.appendChild(mkBtn("↻", "Otočit vpravo", function(){ rotate(p, 90); }));
+      tools.appendChild(mkBtn("⇅", "Auto (zkušební)", function(ev){ autoRotate(p, ev.target); }));
+      if (i > 0) tools.appendChild(mkBtn("←", "Posunout dopředu", function(){ move(i, -1); }));
+      if (i < pages.length - 1) tools.appendChild(mkBtn("→", "Posunout dozadu", function(){ move(i, 1); }));
+      var del = mkBtn("✕", "Odebrat", function(){ pages.splice(i, 1); renderPages(); });
+      del.classList.add("danger");
+      tools.appendChild(del);
+      card.appendChild(tools);
+
+      pagesBox.appendChild(card);
+    });
+    cfgCard.style.display = pages.length ? "block" : "none";
+    hideResult();
+  }
+
+  function mkBtn(label, title, fn){
+    var b = document.createElement("button");
+    b.className = "btn icon";
+    b.textContent = label;
+    b.title = title;
+    b.setAttribute("aria-label", title);
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  function rotate(p, delta){ p.rotation = ((p.rotation + delta) % 360 + 360) % 360; renderPages(); }
+  function move(i, dir){ var j = i + dir; var t = pages[i]; pages[i] = pages[j]; pages[j] = t; renderPages(); }
+
+  /* ---------- auto orientation (best effort via Tesseract OSD) ---------- */
+  function autoRotate(p, btn){
+    if (!libsOk){ toast("Knihovny se nenačetly — otoč prosím ručně."); return; }
+    var old = btn.textContent; btn.textContent = "…"; btn.disabled = true;
+    Tesseract.createWorker("osd", 0)
+      .then(function(worker){
+        var canvas = renderCanvas(p.bitmap, p.rotation, 1400);
+        return worker.detect(canvas).then(function(res){
+          return worker.terminate().then(function(){ return res; });
+        });
+      })
+      .then(function(res){
+        var deg = (res && res.data && res.data.orientation_degrees) || 0;
+        if (deg){ p.rotation = ((p.rotation + deg) % 360 + 360) % 360; renderPages(); toast("Orientace upravena o " + deg + "° — zkontroluj náhled."); }
+        else { toast("Automatika nenašla otočení — vypadá to rovně."); }
+      })
+      .catch(function(){ toast("Automatické narovnání selhalo. Otoč prosím ručně (↺ ↻)."); })
+      .then(function(){ btn.textContent = old; btn.disabled = false; });
+  }
+
+  /* ---------- build PDF ---------- */
+  function setProgress(pct, label){
+    prog.classList.add("on");
+    progFill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    if (label) progLabel.textContent = label;
+  }
+  function hideProgress(){ prog.classList.remove("on"); progFill.style.width = "0%"; }
+  function showResult(){ result.classList.add("on"); }
+  function hideResult(){ result.classList.remove("on"); lastPdfBytes = null; }
+
+  function download(bytes, name){
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  }
+
+  runBtn.addEventListener("click", function(){
+    if (!pages.length) return;
+    if (!libsOk){ toast("Knihovny se nenačetly — zkontroluj připojení a načti stránku znovu."); return; }
+    var lang = el("lang").value;
+    var doOcr = el("doOcr").checked;
+    runBtn.disabled = true; hideResult();
+    lastName = "dokument-" + new Date().toISOString().slice(0,10) + ".pdf";
+
+    (doOcr ? buildSearchable(lang) : buildImageOnly())
+      .then(function(bytes){
+        lastPdfBytes = bytes;
+        download(bytes, lastName);
+        hideProgress(); showResult();
+        toast("PDF vytvořeno.");
+      })
+      .catch(function(err){
+        console.error(err);
+        hideProgress();
+        toast("Něco se pokazilo: " + (err && err.message ? err.message : "neznámá chyba"));
+      })
+      .then(function(){ runBtn.disabled = false; });
+  });
+
+  function buildSearchable(lang){
+    setProgress(2, "Načítám OCR engine (" + lang + ")…");
+    var worker;
+    return Tesseract.createWorker(lang, 1, {
+      logger: function(m){
+        if (m && m.status === "recognizing text"){
+          // per-page progress is blended in the loop below
+        }
+      }
+    }).then(function(w){
+      worker = w;
+      var pageBytes = [];
+      var chain = Promise.resolve();
+      pages.forEach(function(p, i){
+        chain = chain.then(function(){
+          setProgress(5 + (i / pages.length) * 85, "Rozpoznávám stranu " + (i + 1) + " / " + pages.length + "…");
+          var canvas = renderCanvas(p.bitmap, p.rotation);
+          return worker.recognize(canvas, {}, { pdf: true }).then(function(out){
+            var pdf = out && out.data && out.data.pdf;
+            if (!pdf) throw new Error("OCR nevrátilo PDF");
+            pageBytes.push(new Uint8Array(pdf));
+          });
+        });
+      });
+      return chain.then(function(){ return worker.terminate(); }).then(function(){ return pageBytes; });
+    }).then(function(pageBytes){
+      setProgress(94, "Spojuji stránky do PDF…");
+      return mergePdfs(pageBytes);
+    });
+  }
+
+  function buildImageOnly(){
+    setProgress(10, "Skládám PDF z obrázků…");
+    var PDFDocument = PDFLib.PDFDocument;
+    return PDFDocument.create().then(function(doc){
+      var chain = Promise.resolve();
+      pages.forEach(function(p, i){
+        chain = chain.then(function(){
+          setProgress(10 + (i / pages.length) * 85, "Přidávám stranu " + (i + 1) + " / " + pages.length + "…");
+          var canvas = renderCanvas(p.bitmap, p.rotation);
+          var dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+          return doc.embedJpg(dataUrl).then(function(img){
+            var page = doc.addPage([img.width, img.height]);
+            page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+          });
+        });
+      });
+      return chain.then(function(){ return doc.save(); });
+    });
+  }
+
+  function mergePdfs(list){
+    var PDFDocument = PDFLib.PDFDocument;
+    return PDFDocument.create().then(function(merged){
+      var chain = Promise.resolve();
+      list.forEach(function(bytes){
+        chain = chain.then(function(){
+          return PDFDocument.load(bytes).then(function(src){
+            return merged.copyPages(src, src.getPageIndices()).then(function(copied){
+              copied.forEach(function(pg){ merged.addPage(pg); });
+            });
+          });
+        });
+      });
+      return chain.then(function(){ return merged.save(); });
+    });
+  }
+
+  el("again").addEventListener("click", function(){
+    if (lastPdfBytes) download(lastPdfBytes, lastName);
+  });
+
+  el("doOcr").addEventListener("change", function(){
+    runHint.textContent = this.checked
+      ? "Vyhledatelné PDF, orientace podle náhledů"
+      : "PDF z obrázků (bez rozpoznání textu), orientace podle náhledů";
+  });
+
+  /* ---------- input wiring ---------- */
+  drop.addEventListener("click", function(){ fileInput.click(); });
+  drop.addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " "){ e.preventDefault(); fileInput.click(); } });
+  fileInput.addEventListener("change", function(){ addFiles(this.files); this.value = ""; });
+
+  ["dragenter","dragover"].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add("hot"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove("hot"); });
+  });
+  drop.addEventListener("drop", function(e){ if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+
+  window.addEventListener("dragover", function(e){ e.preventDefault(); });
+  window.addEventListener("drop", function(e){ e.preventDefault(); });
+
+  /* ---------- about modal ---------- */
+  var infoModal = el("infoModal");
+  el("infoBtn").addEventListener("click", function(){ infoModal.hidden = false; });
+  el("infoClose").addEventListener("click", function(){ infoModal.hidden = true; });
+  infoModal.addEventListener("click", function(e){ if (e.target === infoModal) infoModal.hidden = true; });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") infoModal.hidden = true; });
+
+  if (!libsOk){
+    toast("Nepodařilo se načíst knihovny — bez internetu OCR nepoběží.");
+  }
+})();
+</script>
+</body>
+</html>
