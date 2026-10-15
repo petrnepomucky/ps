@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Porovnání dokumentů | Pražské služby</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<style>
+:root{
+  --green:#009645;--green-dark:#007a38;--green-50:#80cba2;--green-15:#d9efe3;
+  --orange:#F27D00;--orange-15:#fdecd9;--orange-dark:#9A5200;
+  --ink:#1d1d1d;--muted:#5A5A5A;--line:#e3e3e3;--bg:#f4f6f5;--card:#fff;
+  --ins:#0a7a3a;--ins-bg:#d6f2e1;--del:#c0392b;--del-bg:#fbe0dc;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header.top{background:var(--green);color:#fff;display:flex;align-items:center;gap:14px;padding:12px 20px}
+.logo{width:40px;height:40px;border-radius:8px;background:#fff;color:var(--green);font-weight:900;display:grid;place-items:center;font-size:17px;letter-spacing:-1px}
+.top h1{margin:0;font-size:18px}
+.top .sub{font-size:12px;opacity:.9}
+.top .sp{flex:1}
+.top button{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px}
+.stripe{height:5px;background:var(--orange)}
+main{max-width:1400px;margin:0 auto;padding:18px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:15px;color:var(--green);display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--orange);color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-size:12px}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.inputs{grid-template-columns:1fr}}
+.drop{border:2px dashed var(--green-50);border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:#fbfdfc;transition:.15s}
+.drop.over{background:var(--green-15);border-color:var(--green)}
+.drop .lbl{font-weight:bold;color:var(--green);font-size:15px}
+.drop .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-bottom:6px;color:#fff}
+.tagA{background:var(--muted)}.tagB{background:var(--orange)}
+.drop .hint{color:var(--muted);font-size:12px;margin-top:4px}
+.drop .fname{margin-top:8px;font-weight:bold;word-break:break-all}
+.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px;display:none}
+.prog div{height:100%;width:0;background:var(--orange);transition:width .2s}
+.status{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+details.txt{margin-top:8px;text-align:left}
+details.txt summary{cursor:pointer;color:var(--green-dark);font-size:12px}
+details.txt textarea{width:100%;height:160px;font-family:Arial;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:6px}
+.opts{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:14px}
+.opts label{display:flex;gap:6px;align-items:center;font-size:13px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:10px 18px;font-size:14px;font-weight:bold;cursor:pointer}
+.btn:hover{background:var(--green-dark)}
+.btn:disabled{background:#b8c9bf;cursor:not-allowed}
+.btn.or{background:var(--orange)}.btn.or:hover{background:#d96f00}
+.btn.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
+.btn.sm{padding:6px 10px;font-size:12px}
+input[type=text]{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
+#result{display:none}
+.resgrid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+@media(max-width:1000px){.resgrid{grid-template-columns:1fr}}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.pill{font-size:12px;padding:4px 10px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.pill b{margin-left:4px}
+.pill.p{background:var(--orange-15);border-color:#f6c38a}
+.pill.a{background:var(--green-15);border-color:var(--green-50)}
+.pill.r{background:#eee}
+.doc{white-space:pre-wrap;line-height:1.7;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:22px 26px;background:#fff;max-height:70vh;overflow:auto}
+.chg{border-radius:3px;cursor:pointer;padding:1px 0;outline-offset:1px}
+.chg del{color:var(--del);background:var(--del-bg);text-decoration:line-through}
+.chg ins{color:var(--ins);background:var(--ins-bg);text-decoration:underline;text-decoration-thickness:1px}
+.chg.pending{outline:1px dashed var(--orange)}
+.chg.accepted del{display:none}.chg.accepted ins{background:var(--green-15);color:var(--ink);text-decoration:none;border-bottom:2px solid var(--green)}
+.chg.rejected ins{display:none}.chg.rejected del{background:#eee;color:var(--ink);text-decoration:none;border-bottom:2px solid #999}
+.chg.active{outline:2px solid var(--orange);box-shadow:0 0 0 4px rgba(242,125,0,.18)}
+.doc.showall .chg.accepted del,.doc.showall .chg.rejected ins{display:inline;opacity:.45}
+.side{position:sticky;top:12px;align-self:start}
+.list{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.item{padding:9px 11px;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px}
+.item:hover{background:#fafafa}
+.item.active{background:var(--orange-15)}
+.item .h{display:flex;justify-content:space-between;margin-bottom:4px}
+.item .ty{font-weight:bold}
+.st{font-size:11px;padding:1px 7px;border-radius:9px}
+.st.pending{background:var(--orange-15);color:var(--orange-dark)}
+.st.accepted{background:var(--green-15);color:var(--green-dark)}
+.st.rejected{background:#eee;color:#666}
+.item .x del{color:var(--del);background:var(--del-bg)}.item .x ins{color:var(--ins);background:var(--ins-bg);text-decoration:none}
+.item .x{word-break:break-word;max-height:3.6em;overflow:hidden}
+.pop{position:absolute;z-index:20;background:#fff;border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.15);border-radius:8px;padding:6px;display:none;gap:6px}
+.pop button{border:0;border-radius:5px;padding:6px 10px;font-size:12px;font-weight:bold;cursor:pointer}
+.pop .ok{background:var(--green);color:#fff}.pop .no{background:#eee}.pop .re{background:#fff;border:1px solid var(--line)}
+.legend{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.8}
+.legend ins{color:var(--ins);background:var(--ins-bg)}.legend del{color:var(--del);background:var(--del-bg)}
+.exports{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.note{font-size:11px;color:var(--muted);line-height:1.5}
+kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px solid #ccc}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:50}
+.modal{background:#fff;border-radius:12px;max-width:520px;width:92%;padding:22px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 8px;color:var(--green)}
+.modal .bar{height:4px;background:linear-gradient(90deg,var(--green) 60%,var(--orange) 60%);border-radius:2px;margin-bottom:14px}
+.modal .box{background:var(--green-15);border:1px solid var(--green-50);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin:12px 0}
+.modal p{font-size:13px;line-height:1.6}
+/* print */
+#print{display:none}
+@media print{
+  body{background:#fff}
+  header.top,.stripe,main,.modal-bg,.pop{display:none!important}
+  #print{display:block;font-size:10.5pt}
+  @page{margin:14mm 14mm 16mm}
+  .pb{display:grid;grid-template-columns:70px 1fr 160px;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pb>div{padding:10px}
+  .pb .g{background:#009848}.pb .o{background:#F27D00;text-align:right;font-size:9pt}
+  .pb .t1{font-size:15pt;font-weight:bold}.pb .t2{font-size:10pt}
+  .ptitle{font-size:20pt;font-weight:200;margin:16px 0 4px}
+  .prule{height:2px;background:#F27D00;margin-bottom:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pmeta{width:100%;border-collapse:collapse;margin-bottom:12px}
+  .pmeta td{padding:4px 8px;border-bottom:1px solid #e3e3e3;font-size:9.5pt}
+  .pmeta td:first-child{width:170px;color:#5A5A5A}
+  .ph{color:#009645;font-size:12pt;font-weight:bold;border-bottom:1px solid #009645;margin:16px 0 8px;padding-bottom:3px}
+  .pdoc{white-space:pre-wrap;line-height:1.55}
+  .pdoc del{color:#c0392b;background:#fbe0dc;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pdoc ins{color:#0a7a3a;background:#d6f2e1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ptab{width:100%;border-collapse:collapse;font-size:9pt}
+  .ptab th{background:#009645;color:#fff;text-align:left;padding:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ptab td{padding:5px;border-bottom:1px solid #e3e3e3;vertical-align:top;word-break:break-word}
+  .ptab tr:nth-child(even) td{background:#f2f8f4;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .psig{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;page-break-inside:avoid}
+  .psig div{padding:12px;min-height:80px;font-size:9.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .psig .l{background:#DCEEE4}.psig .r{background:#FDE9D2}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">PS</div>
+  <div><h1>Porovnání dokumentů</h1><div class="sub">Pražské služby a.s. · DOCX / PDF / foto · vše lokálně v prohlížeči</div></div>
+  <div class="sp"></div>
+  <button onclick="openInfo()">ⓘ O nástroji</button>
+</header>
+<div class="stripe"></div>
+
+<main>
+  <section class="card">
+    <h2><span class="n">1</span>Nahrajte dva dokumenty</h2>
+    <div class="inputs">
+      <div>
+        <div class="drop" id="dropA">
+          <span class="tag tagA">PŮVODNÍ VERZE</span>
+          <div class="lbl">Přetáhněte soubor nebo klikněte</div>
+          <div class="hint">DOCX, PDF, JPG, PNG, WEBP, TXT</div>
+          <div class="fname" id="nameA"></div>
+          <div class="prog" id="progA"><div></div></div>
+          <div class="status" id="statA"></div>
+          <input type="file" id="fileA" hidden accept=".docx,.pdf,.png,.jpg,.jpeg,.webp,.txt">
+        </div>
+        <details class="txt"><summary>Zobrazit / opravit rozpoznaný text</summary><textarea id="txtA" placeholder="Zde se objeví text původní verze…"></textarea></details>
+      </div>
+      <div>
+        <div class="drop" id="dropB">
+          <span class="tag tagB">NOVÁ VERZE</span>
+          <div class="lbl">Přetáhněte soubor nebo klikněte</div>
+          <div class="hint">DOCX, PDF, JPG, PNG, WEBP, TXT</div>
+          <div class="fname" id="nameB"></div>
+          <div class="prog" id="progB"><div></div></div>
+          <div class="status" id="statB"></div>
+          <input type="file" id="fileB" hidden accept=".docx,.pdf,.png,.jpg,.jpeg,.webp,.txt">
+        </div>
+        <details class="txt"><summary>Zobrazit / opravit rozpoznaný text</summary><textarea id="txtB" placeholder="Zde se objeví text nové verze…"></textarea></details>
+      </div>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="optCase"> Ignorovat velikost písmen</label>
+      <label><input type="checkbox" id="optLines"> Sloučit zalomené řádky do odstavců <span class="note">(doporučeno u PDF a fotek)</span></label>
+      <label>Autor revizí: <input type="text" id="author" value="Petr Nepomucký" size="18"></label>
+      <div style="flex:1"></div>
+      <button class="btn or" id="btnCompare" disabled onclick="compare()">Porovnat dokumenty</button>
+    </div>
+  </section>
+
+  <section class="card" id="result">
+    <h2><span class="n">2</span>Rozdíly a schvalování</h2>
+    <div class="resgrid">
+      <div>
+        <div class="toolbar">
+          <button class="btn sm ghost" onclick="nav(-1)">◀ Předchozí</button>
+          <button class="btn sm ghost" onclick="nav(1)">Další ▶</button>
+          <label style="font-size:12px;display:flex;gap:5px;align-items:center"><input type="checkbox" id="optShowAll" onchange="doc.classList.toggle('showall',this.checked)"> Ukázat i vyřešené původní texty</label>
+          <div class="stats">
+            <span class="pill">Změn<b id="sAll">0</b></span>
+            <span class="pill p">Čeká<b id="sP">0</b></span>
+            <span class="pill a">Přijato<b id="sA">0</b></span>
+            <span class="pill r">Odmítnuto<b id="sR">0</b></span>
+          </div>
+        </div>
+        <div class="doc" id="doc"></div>
+        <div class="legend"><ins>vložený text</ins> · <del>smazaný text</del> · klikněte na změnu pro schválení · klávesy <kbd>A</kbd> přijmout, <kbd>R</kbd> odmítnout, <kbd>J</kbd>/<kbd>K</kbd> další/předchozí</div>
+      </div>
+      <div class="side">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button class="btn sm" style="flex:1" onclick="setAll('accepted')">✓ Přijmout vše</button>
+          <button class="btn sm ghost" style="flex:1" onclick="setAll('rejected')">✕ Odmítnout vše</button>
+        </div>
+        <div class="list" id="list"></div>
+        <div class="exports">
+          <button class="btn" onclick="exportDocx(false)">⬇ DOCX – čistá verze</button>
+          <button class="btn ghost" onclick="exportDocx(true)">⬇ DOCX se sledovanými změnami</button>
+          <button class="btn or" onclick="printProtocol()">🖨 PDF protokol porovnání</button>
+          <div class="note">Čistá verze: přijaté změny zapracované, odmítnuté a dosud nerozhodnuté zůstávají v původním znění.<br>Sledované změny: rozhodnuté zapracované, nerozhodnuté zůstávají jako revize ke schválení ve Wordu.<br>Výstup obsahuje text po odstavcích; původní formátování (tabulky, styly, obrázky) se nepřenáší.<br>PDF protokol se uloží přes tiskový dialog → „Uložit jako PDF".</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="pop" id="pop">
+  <button class="ok" onclick="decide('accepted')">✓ Přijmout</button>
+  <button class="no" onclick="decide('rejected')">✕ Odmítnout</button>
+  <button class="re" onclick="decide('pending')">↺</button>
+</div>
+
+<div class="modal-bg" id="info" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <h3>O nástroji</h3>
+    <div class="bar"></div>
+    <p>Porovná dvě verze dokumentu (DOCX, PDF, fotografie nebo sken) a po slovech vyznačí vložený, smazaný a změněný text. Každou změnu lze přijmout nebo odmítnout a výsledek uložit jako čistý DOCX, DOCX se sledovanými změnami pro Word nebo jako PDF protokol porovnání. Text z fotografií a skenovaných PDF se rozpoznává pomocí OCR (čeština, angličtina, slovenština).</p>
+    <p>Veškeré zpracování probíhá lokálně v prohlížeči – žádný soubor se nikam neodesílá.</p>
+    <div class="box">
+      <b>Verze:</b> 1.0 · říjen 2026<br>
+      <b>Autor:</b> Oddělení správy nemovitostí, Pražské služby a.s.<br>
+      <b>Vývoj:</b> s pomocí AI asistenta Claude (Anthropic)
+    </div>
+    <p style="font-size:11px;color:#5A5A5A">Použité knihovny: mammoth.js (BSD-2), jsdiff (BSD-3), PDF.js (Apache 2.0), Tesseract.js (Apache 2.0), docx (MIT).</p>
+    <button class="btn" onclick="document.getElementById('info').style.display='none'">Zavřít</button>
+  </div>
+</div>
+
+<div id="print"></div>
+
+<script>
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const $ = id => document.getElementById(id);
+const doc = $('doc');
+const files = { A: null, B: null };
+let items = [], changes = [], activeIdx = -1;
+
+function openInfo(){ $('info').style.display='grid'; }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- vstupy ---------- */
+['A','B'].forEach(k => {
+  const drop = $('drop'+k), input = $('file'+k);
+  drop.onclick = () => input.click();
+  input.onchange = () => input.files[0] && load(k, input.files[0]);
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+  drop.ondragleave = () => drop.classList.remove('over');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); e.dataTransfer.files[0] && load(k, e.dataTransfer.files[0]); };
+  $('txt'+k).oninput = updateBtn;
+});
+
+function setProg(k, p, msg){
+  const bar = $('prog'+k);
+  bar.style.display = p == null ? 'none' : 'block';
+  if (p != null) bar.firstElementChild.style.width = Math.round(p*100)+'%';
+  if (msg != null) $('stat'+k).textContent = msg;
+}
+function updateBtn(){ $('btnCompare').disabled = !($('txtA').value.trim() && $('txtB').value.trim()); }
+
+async function load(k, file){
+  files[k] = file;
+  $('name'+k).textContent = file.name;
+  $('txt'+k).value = '';
+  updateBtn();
+  try {
+    setProg(k, 0, 'Načítám…');
+    const ext = file.name.split('.').pop().toLowerCase();
+    let text;
+    if (ext === 'docx') text = await readDocx(file);
+    else if (ext === 'pdf') text = await readPdf(k, file);
+    else if (ext === 'txt') text = await file.text();
+    else if (['png','jpg','jpeg','webp'].includes(ext)) { text = await ocr(k, file, 0, 1); }
+    else throw new Error('Nepodporovaný formát');
+    $('txt'+k).value = text.trim();
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    setProg(k, null, '✓ Načteno · ' + words + ' slov');
+    if (ext !== 'docx' && ext !== 'txt') $('optLines').checked = true;
+  } catch(e){
+    console.error(e);
+    setProg(k, null, '✕ Chyba: ' + e.message);
+  }
+  updateBtn();
+}
+
+async function readDocx(file){
+  const r = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return r.value;
+}
+
+async function readPdf(k, file){
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const out = [];
+  for (let i = 1; i <= pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    let t = '';
+    tc.items.forEach(it => { t += it.str; if (it.hasEOL) t += '\n'; });
+    if (t.replace(/\s/g,'').length < 25){
+      // skenovaná stránka → OCR
+      const vp = page.getViewport({ scale: 2.2 });
+      const c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height;
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      t = await ocr(k, c, (i-1)/pdf.numPages, 1/pdf.numPages, `OCR stránky ${i}/${pdf.numPages}`);
+    } else {
+      setProg(k, i/pdf.numPages, `Čtu text stránky ${i}/${pdf.numPages}`);
+    }
+    out.push(t.trim());
+  }
+  return out.join('\n');
+}
+
+let worker = null, ocrCb = null;
+async function getWorker(k){
+  if (!worker){
+    setProg(k, 0, 'Načítám OCR (čeština)… první spuštění může chvíli trvat');
+    worker = await Tesseract.createWorker('ces+eng+slk', 1, {
+      logger: m => { if (ocrCb && m.status === 'recognizing text') ocrCb(m.progress); }
+    });
+  }
+  return worker;
+}
+async function ocr(k, img, base, span, label){
+  const w = await getWorker(k);
+  ocrCb = p => setProg(k, base + p*span, (label || 'Rozpoznávám text') + ' · ' + Math.round(p*100) + ' %');
+  const { data } = await w.recognize(img);
+  ocrCb = null;
+  return data.text;
+}
+
+/* ---------- porovnání ---------- */
+function normalize(t){
+  let lines = t.replace(/\r/g,'').split('\n').map(l => l.replace(/[ \t\u00a0]+/g,' ').trim()).filter(Boolean);
+  if ($('optLines').checked){
+    const merged = [];
+    lines.forEach(l => {
+      const prev = merged[merged.length-1];
+      if (prev !== undefined && !/[.:;!?]$/.test(prev) && !/^([-–•*]|\d+[.)]|[a-z]\))\s/.test(l)){
+        merged[merged.length-1] = prev.endsWith('-') ? prev.slice(0,-1) + l : prev + ' ' + l;
+      } else merged.push(l);
+    });
+    lines = merged;
+  }
+  return lines.join('\n');
+}
+
+function compare(){
+  const a = normalize($('txtA').value), b = normalize($('txtB').value);
+  const parts = Diff.diffWordsWithSpace(a, b, { ignoreCase: $('optCase').checked });
+  items = []; changes = [];
+  let cur = null;
+  parts.forEach(p => {
+    if (!p.added && !p.removed){
+      // malá mezera mezi dvěma změnami → spojit do jedné změny
+      if (cur && /^[ ]{1,2}$/.test(p.value)){ cur._gap = p.value; return; }
+      cur = null; items.push({ t:'eq', text:p.value }); return;
+    }
+    if (!cur){ cur = { t:'chg', id:changes.length, del:'', ins:'', status:'pending' }; items.push(cur); changes.push(cur); }
+    else if (cur._gap){ cur.del += cur._gap; cur.ins += cur._gap; cur._gap = null; }
+    if (p.removed) cur.del += p.value; else cur.ins += p.value;
+  });
+  // vrátit nevyužité mezery
+  const fixed = [];
+  items.forEach(it => { fixed.push(it); if (it._gap){ fixed.push({t:'eq', text:it._gap}); it._gap = null; } });
+  items = fixed;
+  render();
+  $('result').style.display = 'block';
+  $('result').scrollIntoView({ behavior:'smooth' });
+  activeIdx = -1;
+  if (!changes.length) doc.insertAdjacentHTML('afterbegin','<div style="color:var(--green);font-weight:bold;margin-bottom:10px">✓ Dokumenty jsou textově shodné.</div>');
+}
+
+function typeOf(c){ return c.del.trim() && c.ins.trim() ? 'Změněno' : c.ins.trim() ? 'Vloženo' : c.del.trim() ? 'Smazáno' : 'Mezery'; }
+
+function render(){
+  doc.innerHTML = items.map(it => it.t === 'eq' ? esc(it.text) :
+    `<span class="chg ${it.status}" data-id="${it.id}">${it.del?'<del>'+esc(it.del)+'</del>':''}${it.ins?'<ins>'+esc(it.ins)+'</ins>':''}</span>`).join('');
+  $('list').innerHTML = changes.map(c => `<div class="item" data-id="${c.id}">
+      <div class="h"><span class="ty">${c.id+1}. ${typeOf(c)}</span><span class="st ${c.status}">${stLabel(c.status)}</span></div>
+      <div class="x">${c.del?'<del>'+esc(c.del.slice(0,140))+'</del> ':''}${c.ins?'<ins>'+esc(c.ins.slice(0,140))+'</ins>':''}</div></div>`).join('')
+    || '<div class="item">Žádné rozdíly.</div>';
+  stats();
+}
+function stLabel(s){ return { pending:'čeká', accepted:'přijato', rejected:'odmítnuto' }[s]; }
+function stats(){
+  $('sAll').textContent = changes.length;
+  $('sP').textContent = changes.filter(c=>c.status==='pending').length;
+  $('sA').textContent = changes.filter(c=>c.status==='accepted').length;
+  $('sR').textContent = changes.filter(c=>c.status==='rejected').length;
+}
+function refresh(c){
+  const el = doc.querySelector(`.chg[data-id="${c.id}"]`);
+  el.className = 'chg ' + c.status + (c.id === activeIdx ? ' active' : '');
+  const st = $('list').querySelector(`.item[data-id="${c.id}"] .st`);
+  st.className = 'st ' + c.status; st.textContent = stLabel(c.status);
+  stats();
+}
+
+doc.addEventListener('click', e => {
+  const el = e.target.closest('.chg'); if (!el) { hidePop(); return; }
+  select(+el.dataset.id, false);
+});
+$('list').addEventListener('click', e => {
+  const el = e.target.closest('.item[data-id]'); if (el) select(+el.dataset.id, true);
+});
+
+function select(id, scroll){
+  doc.querySelectorAll('.chg.active').forEach(x => x.classList.remove('active'));
+  $('list').querySelectorAll('.item.active').forEach(x => x.classList.remove('active'));
+  activeIdx = id;
+  const el = doc.querySelector(`.chg[data-id="${id}"]`);
+  const li = $('list').querySelector(`.item[data-id="${id}"]`);
+  el.classList.add('active'); li.classList.add('active');
+  li.scrollIntoView({ block:'nearest' });
+  if (scroll) el.scrollIntoView({ block:'center', behavior:'smooth' });
+  setTimeout(() => showPop(el), scroll ? 300 : 0);
+}
+function showPop(el){
+  const r = el.getBoundingClientRect(), pop = $('pop');
+  pop.style.display = 'flex';
+  pop.style.left = (window.scrollX + Math.max(8, r.left)) + 'px';
+  pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
+}
+function hidePop(){ $('pop').style.display = 'none'; }
+doc.addEventListener('scroll', hidePop);
+
+function decide(s){
+  if (activeIdx < 0) return;
+  changes[activeIdx].status = s; refresh(changes[activeIdx]);
+  if (s !== 'pending') { const n = changes.findIndex((c,i) => i > activeIdx && c.status === 'pending'); n >= 0 ? select(n, true) : hidePop(); }
+}
+function nav(d){
+  if (!changes.length) return;
+  let n = activeIdx + d;
+  if (n < 0) n = changes.length - 1; if (n >= changes.length) n = 0;
+  select(n, true);
+}
+function setAll(s){ changes.forEach(c => { c.status = s; refresh(c); }); }
+
+document.addEventListener('keydown', e => {
+  if (['TEXTAREA','INPUT'].includes(document.activeElement.tagName) || $('result').style.display !== 'block') return;
+  const k = e.key.toLowerCase();
+  if (k === 'a') decide('accepted'); else if (k === 'r') decide('rejected');
+  else if (k === 'j') nav(1); else if (k === 'k') nav(-1);
+  else if (k === 'escape') hidePop();
+});
+
+/* ---------- export DOCX ---------- */
+function stem(){ const n = (files.B || files.A || {name:'dokument'}).name; return n.replace(/\.[^.]+$/,''); }
+function download(blob, name){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000); }
+
+async function exportDocx(tracked){
+  const D = window.docx;
+  const author = $('author').value.trim() || 'Pražské služby';
+  const date = new Date().toISOString();
+  const font = 'Arial', size = 22;
+  let rid = 1;
+  const paras = [[]];
+  const push = (text, kind) => {
+    text.split('\n').forEach((piece, i) => {
+      if (i > 0) paras.push([]);
+      if (!piece) return;
+      const cur = paras[paras.length-1];
+      if (kind === 'ins') cur.push(new D.InsertedTextRun({ text:piece, id:rid++, author, date, font, size }));
+      else if (kind === 'del') cur.push(new D.DeletedTextRun({ text:piece, id:rid++, author, date, font, size }));
+      else cur.push(new D.TextRun({ text:piece, font, size }));
+    });
+  };
+  items.forEach(it => {
+    if (it.t === 'eq') return push(it.text);
+    if (it.status === 'accepted') return push(it.ins);
+    if (it.status === 'rejected' || !tracked) return push(it.del);
+    if (it.del) push(it.del, 'del');
+    if (it.ins) push(it.ins, 'ins');
+  });
+  const document_ = new D.Document({
+    creator: author,
+    title: stem(),
+    styles: { default: { document: { run: { font, size } } } },
+    sections: [{ children: paras.map(runs => new D.Paragraph({ children: runs, spacing: { after: 120 } })) }]
+  });
+  const blob = await D.Packer.toBlob(document_);
+  download(blob, stem() + (tracked ? '_sledovane_zmeny.docx' : '_cista_verze.docx'));
+}
+
+/* ---------- PDF protokol ---------- */
+function printProtocol(){
+  const now = new Date();
+  const n = s => changes.filter(c => c.status === s).length;
+  const body = items.map(it => it.t === 'eq' ? esc(it.text) :
+    (it.status !== 'accepted' && it.del ? '<del>'+esc(it.del)+'</del>' : '') + (it.status !== 'rejected' && it.ins ? '<ins>'+esc(it.ins)+'</ins>' : '')).join('');
+  $('print').innerHTML = `
+    <div class="pb"><div class="g" style="font-weight:900;font-size:18pt">PS</div>
+      <div class="g"><div class="t1">PRAŽSKÉ SLUŽBY a.s.</div><div class="t2">Protokol porovnání dokumentů</div></div>
+      <div class="o">${esc(files.B ? files.B.name : '')}</div></div>
+    <div class="ptitle">PROTOKOL POROVNÁNÍ</div><div class="prule"></div>
+    <table class="pmeta">
+      <tr><td>Původní verze</td><td>${esc(files.A ? files.A.name : 'vložený text')}</td></tr>
+      <tr><td>Nová verze</td><td>${esc(files.B ? files.B.name : 'vložený text')}</td></tr>
+      <tr><td>Datum porovnání</td><td>${now.toLocaleString('cs-CZ')}</td></tr>
+      <tr><td>Počet změn</td><td>${changes.length} (přijato ${n('accepted')}, odmítnuto ${n('rejected')}, nerozhodnuto ${n('pending')})</td></tr>
+    </table>
+    <div class="ph">1. Přehled změn</div>
+    <table class="ptab"><tr><th style="width:30px">Č.</th><th style="width:70px">Typ</th><th>Původní text</th><th>Nový text</th><th style="width:75px">Stav</th></tr>
+      ${changes.map(c => `<tr><td>${c.id+1}</td><td>${typeOf(c)}</td><td>${esc(c.del)}</td><td>${esc(c.ins)}</td><td>${stLabel(c.status)}</td></tr>`).join('') || '<tr><td colspan="5">Dokumenty jsou textově shodné.</td></tr>'}
+    </table>
+    <div class="ph">2. Výsledný text s vyznačením</div>
+    <div class="pdoc">${body}</div>
+    <div class="psig"><div class="l"><b>Zpracoval:</b><br>${esc($('author').value)}<br>Technik správy nemovitostí<br>${now.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})}</div>
+      <div class="r"><b>Schválil / razítko:</b></div></div>`;
+  window.print();
+}
+</script>
+</body>
+</html>
