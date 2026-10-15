@@ -9,6 +9,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{
   --green:#009645;--green-dark:#007a38;--green-50:#80cba2;--green-15:#d9efe3;
@@ -63,7 +65,7 @@ input[type=text]{border:1px solid var(--line);border-radius:6px;padding:7px 9px;
 .pill.p{background:var(--orange-15);border-color:#f6c38a}
 .pill.a{background:var(--green-15);border-color:var(--green-50)}
 .pill.r{background:#eee}
-.doc{white-space:pre-wrap;line-height:1.7;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:22px 26px;background:#fff;max-height:70vh;overflow:auto}
+.doc{tab-size:4;white-space:pre-wrap;line-height:1.7;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:22px 26px;background:#fff;max-height:70vh;overflow:auto}
 .chg{border-radius:3px;cursor:pointer;padding:1px 0;outline-offset:1px}
 .chg del{color:var(--del);background:var(--del-bg);text-decoration:line-through}
 .chg ins{color:var(--ins);background:var(--ins-bg);text-decoration:underline;text-decoration-thickness:1px}
@@ -147,11 +149,11 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
         <div class="drop" id="dropA">
           <span class="tag tagA">PŮVODNÍ VERZE</span>
           <div class="lbl">Přetáhněte soubor nebo klikněte</div>
-          <div class="hint">DOCX, PDF, JPG, PNG, WEBP, TXT</div>
+          <div class="hint">DOCX, PDF, XLSX/XLS/ODS/CSV, PPTX, ODT, foto, TXT</div>
           <div class="fname" id="nameA"></div>
           <div class="prog" id="progA"><div></div></div>
           <div class="status" id="statA"></div>
-          <input type="file" id="fileA" hidden accept=".docx,.pdf,.png,.jpg,.jpeg,.webp,.txt">
+          <input type="file" id="fileA" hidden accept=".docx,.pdf,.png,.jpg,.jpeg,.webp,.txt,.xlsx,.xlsm,.xls,.ods,.csv,.pptx,.odt,.rtf,.html,.htm,.md">
         </div>
         <details class="txt"><summary>Zobrazit / opravit rozpoznaný text</summary><textarea id="txtA" placeholder="Zde se objeví text původní verze…"></textarea></details>
       </div>
@@ -159,11 +161,11 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
         <div class="drop" id="dropB">
           <span class="tag tagB">NOVÁ VERZE</span>
           <div class="lbl">Přetáhněte soubor nebo klikněte</div>
-          <div class="hint">DOCX, PDF, JPG, PNG, WEBP, TXT</div>
+          <div class="hint">DOCX, PDF, XLSX/XLS/ODS/CSV, PPTX, ODT, foto, TXT</div>
           <div class="fname" id="nameB"></div>
           <div class="prog" id="progB"><div></div></div>
           <div class="status" id="statB"></div>
-          <input type="file" id="fileB" hidden accept=".docx,.pdf,.png,.jpg,.jpeg,.webp,.txt">
+          <input type="file" id="fileB" hidden accept=".docx,.pdf,.png,.jpg,.jpeg,.webp,.txt,.xlsx,.xlsm,.xls,.ods,.csv,.pptx,.odt,.rtf,.html,.htm,.md">
         </div>
         <details class="txt"><summary>Zobrazit / opravit rozpoznaný text</summary><textarea id="txtB" placeholder="Zde se objeví text nové verze…"></textarea></details>
       </div>
@@ -204,8 +206,9 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
         <div class="exports">
           <button class="btn" onclick="exportDocx(false)">⬇ DOCX – čistá verze</button>
           <button class="btn ghost" onclick="exportDocx(true)">⬇ DOCX se sledovanými změnami</button>
+          <button class="btn ghost" id="btnXlsx" style="display:none" onclick="exportXlsx()">⬇ XLSX – výsledná tabulka</button>
           <button class="btn or" onclick="printProtocol()">🖨 PDF protokol porovnání</button>
-          <div class="note">Čistá verze: přijaté změny zapracované, odmítnuté a dosud nerozhodnuté zůstávají v původním znění.<br>Sledované změny: rozhodnuté zapracované, nerozhodnuté zůstávají jako revize ke schválení ve Wordu.<br>Výstup obsahuje text po odstavcích; původní formátování (tabulky, styly, obrázky) se nepřenáší.<br>PDF protokol se uloží přes tiskový dialog → „Uložit jako PDF".</div>
+          <div class="note">U tabulek se porovnává každý list zvlášť (nadpis „### List:“), buňky jsou oddělené tabulátorem. XLSX výstup obnoví listy a hodnoty, ne formátování a vzorce.<br>Čistá verze: přijaté změny zapracované, odmítnuté a dosud nerozhodnuté zůstávají v původním znění.<br>Sledované změny: rozhodnuté zapracované, nerozhodnuté zůstávají jako revize ke schválení ve Wordu.<br>Výstup obsahuje text po odstavcích; původní formátování (tabulky, styly, obrázky) se nepřenáší.<br>PDF protokol se uloží přes tiskový dialog → „Uložit jako PDF".</div>
         </div>
       </div>
     </div>
@@ -222,14 +225,14 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
   <div class="modal">
     <h3>O nástroji</h3>
     <div class="bar"></div>
-    <p>Porovná dvě verze dokumentu (DOCX, PDF, fotografie nebo sken) a po slovech vyznačí vložený, smazaný a změněný text. Každou změnu lze přijmout nebo odmítnout a výsledek uložit jako čistý DOCX, DOCX se sledovanými změnami pro Word nebo jako PDF protokol porovnání. Text z fotografií a skenovaných PDF se rozpoznává pomocí OCR (čeština, angličtina, slovenština).</p>
+    <p>Porovná dvě verze dokumentu (DOCX, ODT, PDF, Excel/ODS/CSV s více listy, PowerPoint, RTF, HTML, fotografie nebo sken) a po slovech vyznačí vložený, smazaný a změněný text. Každou změnu lze přijmout nebo odmítnout a výsledek uložit jako čistý DOCX, DOCX se sledovanými změnami pro Word nebo jako PDF protokol porovnání. Text z fotografií a skenovaných PDF se rozpoznává pomocí OCR (čeština, angličtina, slovenština).</p>
     <p>Veškeré zpracování probíhá lokálně v prohlížeči – žádný soubor se nikam neodesílá.</p>
     <div class="box">
-      <b>Verze:</b> 1.0 · říjen 2026<br>
+      <b>Verze:</b> 1.1 · říjen 2026<br>
       <b>Autor:</b> Oddělení správy nemovitostí, Pražské služby a.s.<br>
       <b>Vývoj:</b> s pomocí AI asistenta Claude (Anthropic)
     </div>
-    <p style="font-size:11px;color:#5A5A5A">Použité knihovny: mammoth.js (BSD-2), jsdiff (BSD-3), PDF.js (Apache 2.0), Tesseract.js (Apache 2.0), docx (MIT).</p>
+    <p style="font-size:11px;color:#5A5A5A">Použité knihovny: mammoth.js (BSD-2), jsdiff (BSD-3), PDF.js (Apache 2.0), Tesseract.js (Apache 2.0), docx (MIT), SheetJS (Apache 2.0), JSZip (MIT).</p>
     <button class="btn" onclick="document.getElementById('info').style.display='none'">Zavřít</button>
   </div>
 </div>
@@ -277,13 +280,20 @@ async function load(k, file){
     let text;
     if (ext === 'docx') text = await readDocx(file);
     else if (ext === 'pdf') text = await readPdf(k, file);
-    else if (ext === 'txt') text = await file.text();
+    else if (['txt','md','csv'].includes(ext) && ext !== 'csv') text = await file.text();
+    else if (['xlsx','xlsm','xls','ods','csv'].includes(ext)) text = await readSheet(file);
+    else if (ext === 'pptx') text = await readPptx(file);
+    else if (ext === 'odt') text = await readOdt(file);
+    else if (ext === 'rtf') text = readRtf(await file.text());
+    else if (ext === 'html' || ext === 'htm') text = readHtml(await file.text());
     else if (['png','jpg','jpeg','webp'].includes(ext)) { text = await ocr(k, file, 0, 1); }
     else throw new Error('Nepodporovaný formát');
     $('txt'+k).value = text.trim();
     const words = text.trim().split(/\s+/).filter(Boolean).length;
     setProg(k, null, '✓ Načteno · ' + words + ' slov');
-    if (ext !== 'docx' && ext !== 'txt') $('optLines').checked = true;
+    if (['pdf','png','jpg','jpeg','webp'].includes(ext)) $('optLines').checked = true;
+    files[k].isSheet = ['xlsx','xlsm','xls','ods','csv'].includes(ext);
+    $('btnXlsx').style.display = (files.A && files.A.isSheet) || (files.B && files.B.isSheet) ? '' : 'none';
   } catch(e){
     console.error(e);
     setProg(k, null, '✕ Chyba: ' + e.message);
@@ -294,6 +304,49 @@ async function load(k, file){
 async function readDocx(file){
   const r = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
   return r.value;
+}
+
+/* tabulky: každý list = nadpis + řádky, buňky oddělené tabulátorem */
+const SHEET = '### List: ';
+async function readSheet(file){
+  const wb = XLSX.read(await file.arrayBuffer(), { type:'array' });
+  return wb.SheetNames.map(n => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:false, defval:'', blankrows:false });
+    const lines = rows.map(r => { let x = r.map(c => String(c).replace(/[\t\n\r]+/g,' ').trim()); while (x.length && x[x.length-1]==='') x.pop(); return x.join('\t'); }).filter(l => l.trim());
+    return SHEET + n + '\n' + lines.join('\n');
+  }).join('\n');
+}
+function xmlText(xml, paraTag){
+  const d = new DOMParser().parseFromString(xml, 'application/xml');
+  return [...d.getElementsByTagName(paraTag)].map(p => p.textContent.trim()).filter(Boolean).join('\n');
+}
+async function readPptx(file){
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const slides = Object.keys(zip.files).filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f)).sort((a,b) => +a.match(/\d+/)[0] - +b.match(/\d+/)[0]);
+  const out = [];
+  for (let i = 0; i < slides.length; i++) out.push('### Snímek ' + (i+1) + '\n' + xmlText(await zip.file(slides[i]).async('string'), 'a:p'));
+  return out.join('\n');
+}
+async function readOdt(file){
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const xml = await zip.file('content.xml').async('string');
+  const d = new DOMParser().parseFromString(xml, 'application/xml');
+  const ns = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0';
+  return [...d.getElementsByTagNameNS(ns,'p'), ...d.getElementsByTagNameNS(ns,'h')]
+    .sort((a,b) => a.compareDocumentPosition(b) & 4 ? -1 : 1).map(p => p.textContent.trim()).filter(Boolean).join('\n');
+}
+function readHtml(h){
+  const d = new DOMParser().parseFromString(h, 'text/html');
+  d.querySelectorAll('script,style').forEach(x => x.remove());
+  d.querySelectorAll('br').forEach(x => x.replaceWith('\n'));
+  d.querySelectorAll('p,div,li,h1,h2,h3,h4,h5,h6,tr').forEach(x => x.append('\n'));
+  d.querySelectorAll('td,th').forEach(x => x.append('\t'));
+  return d.body.textContent;
+}
+function readRtf(t){
+  return t.replace(/\\'([0-9a-f]{2})/gi, (m,h) => new TextDecoder('windows-1250').decode(new Uint8Array([parseInt(h,16)])))
+    .replace(/\\u(-?\d+)\??/g, (m,n) => String.fromCharCode(n < 0 ? +n + 65536 : +n))
+    .replace(/\\par[d]?\b/g, '\n').replace(/\{\\\*[^{}]*\}/g,'').replace(/\\[a-z]+-?\d* ?/gi,'').replace(/[{}]/g,'');
 }
 
 async function readPdf(k, file){
@@ -339,12 +392,12 @@ async function ocr(k, img, base, span, label){
 
 /* ---------- porovnání ---------- */
 function normalize(t){
-  let lines = t.replace(/\r/g,'').split('\n').map(l => l.replace(/[ \t\u00a0]+/g,' ').trim()).filter(Boolean);
+  let lines = t.replace(/\r/g,'').split('\n').map(l => l.replace(/[ \u00a0]+/g,' ').replace(/ *\t */g,'\t').trim()).filter(Boolean);
   if ($('optLines').checked){
     const merged = [];
     lines.forEach(l => {
       const prev = merged[merged.length-1];
-      if (prev !== undefined && !/[.:;!?]$/.test(prev) && !/^([-–•*]|\d+[.)]|[a-z]\))\s/.test(l)){
+      if (prev !== undefined && !prev.includes('\t') && !l.includes('\t') && !prev.startsWith('### ') && !l.startsWith('### ') && !/[.:;!?]$/.test(prev) && !/^([-–•*]|\d+[.)]|[a-z]\))\s/.test(l)){
         merged[merged.length-1] = prev.endsWith('-') ? prev.slice(0,-1) + l : prev + ' ' + l;
       } else merged.push(l);
     });
@@ -490,6 +543,26 @@ async function exportDocx(tracked){
   });
   const blob = await D.Packer.toBlob(document_);
   download(blob, stem() + (tracked ? '_sledovane_zmeny.docx' : '_cista_verze.docx'));
+}
+
+/* ---------- export XLSX ---------- */
+function finalText(){ return items.map(it => it.t === 'eq' ? it.text : it.status === 'accepted' ? it.ins : it.del).join(''); }
+function exportXlsx(){
+  const wb = XLSX.utils.book_new(), used = new Set();
+  let name = 'List1', rows = [];
+  const flush = () => {
+    if (!rows.length && name === 'List1') return;
+    let n = name.slice(0,31) || 'List', i = 2; while (used.has(n)) n = name.slice(0,28) + ' ' + i++;
+    used.add(n);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows.map(r => r.split('\t').map(v => { const x = v.trim(); return /^-?\d+([.,]\d+)?$/.test(x) ? +x.replace(',','.') : x; }))), n);
+  };
+  finalText().split('\n').forEach(l => {
+    if (l.startsWith(SHEET)) { flush(); name = l.slice(SHEET.length).trim(); rows = []; }
+    else if (l.trim()) rows.push(l);
+  });
+  flush();
+  if (!wb.SheetNames.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([]), 'List1');
+  XLSX.writeFile(wb, stem() + '_vysledek.xlsx');
 }
 
 /* ---------- PDF protokol ---------- */
