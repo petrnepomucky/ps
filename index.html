@@ -266,7 +266,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     <h1>Aplikace pro <em>správu nemovitostí</em><br>přímo v prohlížeči</h1>
     <p>Soubor interních nástrojů vyvinutých Oddělením správy nemovitostí. Webové nástroje běží lokálně v prohlížeči – žádná data se nikam neodesílají. Funguje i na mobilu.</p>
     <div class="hero-stats">
-      <div><div class="hstat-n">5</div><div class="hstat-l">Nástrojů</div></div>
+      <div><div class="hstat-n">6</div><div class="hstat-l">Nástrojů</div></div>
       <div><div class="hstat-n">100<span>%</span></div><div class="hstat-l">Lokálně v prohlížeči</div></div>
       <div><div class="hstat-n">0</div><div class="hstat-l">Odeslaných dat</div></div>
     </div>
@@ -280,8 +280,48 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     <div class="sec-sub">Tlačítko otevře nástroj na celé obrazovce · QR kód pro mobil</div>
   </div>
 
+  <!-- 0. redigovani.html -->
+  <div class="tool-row" data-url="https://ps.yey.cz/redigovani.html" data-name="Redigování dokumentů">
+    <div class="tool-info">
+      <div class="tool-cat cat-sign">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="6" y="10" width="9" height="4" fill="currentColor"/></svg>
+        Anonymizace
+      </div>
+      <div class="tool-title">Redigování dokumentů</div>
+      <div class="tool-desc">Bezpečné začernění osobních a citlivých údajů před zveřejněním nebo předáním dokumentu (žádosti dle zák. 106/1999 Sb., registr smluv, podklady pro dodavatele). Oblasti označíte tažením myši nebo je nástroj sám najde. Výsledné PDF je „vypálené" – začerněný text v něm fyzicky neexistuje.</div>
+      <ul class="tool-features">
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vstup PDF / JPG / PNG / WEBP – výstup vždy PDF</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Automatické hledání jmen, rodných čísel, účtů, e-mailů, telefonů</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>OCR pro skeny a fotky, černé i bílé začernění s popiskem</li>
+        <li><div class="fd fd-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vše probíhá lokálně – žádný soubor se nikam neodesílá</li>
+      </ul>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/redigovani.html" class="btn-open" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+    <div class="tool-phone">
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-bar" style="background:var(--green)"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-content">
+            <iframe src="https://ps.yey.cz/redigovani.html" title="Redigování dokumentů" loading="lazy"></iframe>
+          </div>
+          <div class="phone-home-bar"><div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 1. CP.html -->
-  <div class="tool-row" data-url="https://ps.yey.cz/cp.html" data-name="Podací arch">
+  <div class="tool-row rev" data-url="https://ps.yey.cz/cp.html" data-name="Podací arch">
     <div class="tool-info">
       <div class="tool-cat cat-sign">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -321,7 +361,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 2. SIG.html -->
-  <div class="tool-row rev" data-url="https://ps.yey.cz/sig.html" data-name="Podpis na protokol">
+  <div class="tool-row" data-url="https://ps.yey.cz/sig.html" data-name="Podpis na protokol">
     <div class="tool-info">
       <div class="tool-cat cat-sign">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -361,7 +401,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 3. OCR.html -->
-  <div class="tool-row" data-url="https://ps.yey.cz/ocr.html" data-name="OCR → PDF">
+  <div class="tool-row rev" data-url="https://ps.yey.cz/ocr.html" data-name="OCR → PDF">
     <div class="tool-info">
       <div class="tool-cat cat-ocr">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -401,7 +441,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 4. porovnani.html -->
-  <div class="tool-row rev" data-url="https://ps.yey.cz/porovnani.html" data-name="Porovnání dokumentů">
+  <div class="tool-row" data-url="https://ps.yey.cz/porovnani.html" data-name="Porovnání dokumentů">
     <div class="tool-info">
       <div class="tool-cat cat-ocr">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -441,7 +481,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 5. Správa budov PS (AppSheet) -->
-  <div class="tool-row" data-url="https://www.appsheet.com/start/ee96b005-5ad2-4eee-8afe-b1715ffff77b#appName=Spr%C3%A1vabudovPS-437802722&amp;view=Provozovny" data-name="Správa budov PS">
+  <div class="tool-row rev" data-url="https://www.appsheet.com/start/ee96b005-5ad2-4eee-8afe-b1715ffff77b#appName=Spr%C3%A1vabudovPS-437802722&amp;view=Provozovny" data-name="Správa budov PS">
     <div class="tool-info">
       <div class="tool-cat cat-tel">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
@@ -489,7 +529,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 6. Provozovny (Google Apps Script) -->
-  <div class="tool-row rev" data-url="https://script.google.com/macros/s/AKfycbxx6JKJ7tp-dc7RVVPJEfd_TMafqVQg5FENkwJBowtyRdaHz-xGKhv56goTXdum8KNbmg/exec" data-name="Provozovny">
+  <div class="tool-row" data-url="https://script.google.com/macros/s/AKfycbxx6JKJ7tp-dc7RVVPJEfd_TMafqVQg5FENkwJBowtyRdaHz-xGKhv56goTXdum8KNbmg/exec" data-name="Provozovny">
     <div class="tool-info">
       <div class="tool-cat cat-sign">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -536,7 +576,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 7. 2048.html (easter egg) -->
-  <div class="tool-row" data-url="https://ps.yey.cz/2048.html" data-name="2048">
+  <div class="tool-row rev" data-url="https://ps.yey.cz/2048.html" data-name="2048">
     <div class="tool-info">
       <div class="tool-cat cat-fun">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -576,7 +616,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
   </div>
 
   <!-- 8. HAD.html (easter egg, nepočítá se mezi nástroje) -->
-  <div class="tool-row rev" data-url="https://ps.yey.cz/had.html" data-name="Had Nokia">
+  <div class="tool-row" data-url="https://ps.yey.cz/had.html" data-name="Had Nokia">
     <div class="tool-info">
       <div class="tool-cat cat-fun">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>

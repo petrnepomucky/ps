@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redigování dokumentů | Pražské služby</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+:root{
+  --green:#009645;--green-dark:#007a38;--green-50:#80cba2;--green-15:#d9efe3;
+  --orange:#F27D00;--orange-15:#fdecd9;--orange-dark:#9A5200;
+  --ink:#1d1d1d;--muted:#5A5A5A;--line:#e3e3e3;--bg:#f4f6f5;--card:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header.top{background:var(--green);color:#fff;display:flex;align-items:center;gap:14px;padding:12px 20px}
+.logo{width:40px;height:40px;border-radius:8px;background:#fff;color:var(--green);font-weight:900;display:grid;place-items:center;font-size:17px;letter-spacing:-1px}
+.top h1{margin:0;font-size:18px}
+.top .sub{font-size:12px;opacity:.9}
+.top .sp{flex:1}
+.top button{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px}
+.stripe{height:5px;background:var(--orange)}
+main{max-width:1400px;margin:0 auto;padding:18px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:15px;color:var(--green);display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--orange);color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-size:12px}
+.drop{border:2px dashed var(--green-50);border-radius:10px;padding:22px;text-align:center;cursor:pointer;background:#fbfdfc;transition:.15s}
+.drop.over{background:var(--green-15);border-color:var(--green)}
+.drop .lbl{font-weight:bold;color:var(--green);font-size:15px}
+.drop .hint{color:var(--muted);font-size:12px;margin-top:4px}
+.drop .fname{margin-top:8px;font-weight:bold;word-break:break-all}
+.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:8px;display:none}
+.prog div{height:100%;width:0;background:var(--orange);transition:width .2s}
+.status{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+.btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:10px 16px;font-size:14px;font-weight:bold;cursor:pointer}
+.btn:hover{background:var(--green-dark)}
+.btn:disabled{background:#b8c9bf;cursor:not-allowed}
+.btn.or{background:var(--orange)}.btn.or:hover{background:#d96f00}
+.btn.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
+.btn.ghost.on{background:var(--green);color:#fff}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btn.full{width:100%}
+input[type=text],select{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px;font-family:inherit}
+#work{display:none}
+.wgrid{display:grid;grid-template-columns:1fr 330px;gap:16px}
+@media(max-width:1000px){.wgrid{grid-template-columns:1fr}.side{position:static!important}}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.pill{font-size:12px;padding:4px 10px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.pill b{margin-left:4px}
+.pill.p{background:var(--orange-15);border-color:#f6c38a}
+.pill.k{background:#222;color:#fff;border-color:#222}
+.pages{background:#e9ecea;border:1px solid var(--line);border-radius:8px;padding:18px;max-height:78vh;overflow:auto}
+.page{position:relative;margin:0 auto 18px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);user-select:none;-webkit-user-select:none}
+.page canvas{display:block;width:100%;height:auto}
+.page .ov{position:absolute;inset:0;touch-action:none}
+.page.draw .ov{cursor:crosshair}
+.page .pno{position:absolute;top:-14px;left:0;font-size:11px;color:var(--muted)}
+.page .ocrb{position:absolute;top:6px;right:6px;z-index:3}
+.box{position:absolute;background:#000;border:1px solid #000}
+.box.white{background:#fff;border:1px solid #999}
+.box.prop{background:rgba(242,125,0,.25);border:2px dashed var(--orange)}
+.box.sel{outline:2px solid var(--orange);outline-offset:2px}
+.box .lab{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:9px;font-weight:bold;letter-spacing:.5px;overflow:hidden;white-space:nowrap}
+.box.white .lab{color:#555}
+.box.prop .lab{display:none}
+.box .x{position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:var(--orange);color:#fff;border:2px solid #fff;font-size:12px;line-height:15px;text-align:center;cursor:pointer;display:none;z-index:2}
+.box.sel .x{display:block}
+.box .ok{position:absolute;top:-10px;right:14px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;border:2px solid #fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;display:none;z-index:2}
+.box.prop.sel .ok{display:block}
+.temp{position:absolute;border:2px solid var(--orange);background:rgba(0,0,0,.35)}
+.side{position:sticky;top:12px;align-self:start;display:flex;flex-direction:column;gap:12px}
+.panel{border:1px solid var(--line);border-radius:8px;padding:12px}
+.panel h3{margin:0 0 8px;font-size:13px;color:var(--green)}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12px;margin:8px 0}
+.presets label{display:flex;gap:5px;align-items:center}
+.row{display:flex;gap:6px;align-items:center}
+.row input[type=text]{flex:1;min-width:0}
+.list{max-height:30vh;overflow:auto;border:1px solid var(--line);border-radius:6px;margin-top:8px;display:none}
+.item{padding:6px 9px;border-bottom:1px solid var(--line);font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer}
+.item:hover{background:#fafafa}
+.item .t{flex:1;word-break:break-all}
+.item .pg{color:var(--muted);font-size:11px}
+.item.done{opacity:.5}
+.note{font-size:11px;color:var(--muted);line-height:1.5}
+.opt{display:flex;gap:6px;align-items:center;font-size:12px;margin:5px 0}
+.legend{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.8}
+kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px solid #ccc}
+.warn{background:var(--orange-15);border:1px solid #f6c38a;color:var(--orange-dark);border-radius:6px;padding:8px;font-size:12px;line-height:1.5;display:none}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:50}
+.modal{background:#fff;border-radius:12px;max-width:540px;width:92%;padding:22px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 8px;color:var(--green)}
+.modal .bar{height:4px;background:linear-gradient(90deg,var(--green) 60%,var(--orange) 60%);border-radius:2px;margin-bottom:14px}
+.modal .box2{background:var(--green-15);border:1px solid var(--green-50);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin:12px 0}
+.modal p,.modal li{font-size:13px;line-height:1.6}
+.busy{position:fixed;inset:0;background:rgba(255,255,255,.75);display:none;place-items:center;z-index:60;font-weight:bold;color:var(--green)}
+.busy .in{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 24px;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:260px;text-align:center}
+.busy .prog{display:block}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">PS</div>
+  <div><h1>Redigování dokumentů</h1><div class="sub">Pražské služby a.s. · začernění osobních údajů v PDF a skenech · vše lokálně v prohlížeči</div></div>
+  <div class="sp"></div>
+  <button onclick="openInfo()">ⓘ O nástroji</button>
+</header>
+<div class="stripe"></div>
+
+<main>
+  <section class="card">
+    <h2><span class="n">1</span>Nahrajte dokument</h2>
+    <div class="drop" id="drop">
+      <div class="lbl">Přetáhněte soubor nebo klikněte</div>
+      <div class="hint">PDF, JPG, PNG, WEBP · lze vybrat i více fotek najednou (každá = jedna strana)</div>
+      <div class="fname" id="fname"></div>
+      <div class="prog" id="prog"><div></div></div>
+      <div class="status" id="stat"></div>
+      <input type="file" id="file" hidden multiple accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*">
+    </div>
+  </section>
+
+  <section class="card" id="work">
+    <h2><span class="n">2</span>Označte, co se má začernit</h2>
+    <div class="wgrid">
+      <div>
+        <div class="toolbar">
+          <button class="btn sm ghost on" id="mDraw" onclick="setMode('draw')">▭ Kreslit obdélník</button>
+          <button class="btn sm ghost" id="mSel" onclick="setMode('sel')">↖ Vybrat / mazat</button>
+          <button class="btn sm ghost" onclick="undo()">↶ Zpět</button>
+          <select id="zoom" onchange="relayout()">
+            <option value="0.6">60 %</option><option value="0.8">80 %</option><option value="1" selected>100 %</option><option value="1.3">130 %</option><option value="1.6">160 %</option>
+          </select>
+          <div class="stats">
+            <span class="pill">Stran<b id="sPg">0</b></span>
+            <span class="pill p">Návrhů<b id="sP">0</b></span>
+            <span class="pill k">Začerněno<b id="sK">0</b></span>
+          </div>
+        </div>
+        <div class="pages" id="pages"></div>
+        <div class="legend">Táhněte myší nebo prstem přes text, který chcete skrýt · <span style="background:rgba(242,125,0,.25);border:1px dashed var(--orange);padding:0 4px">oranžově</span> = návrh z vyhledávání (potvrďte) · <kbd>Del</kbd> smazat vybrané · <kbd>Ctrl+Z</kbd> zpět</div>
+      </div>
+
+      <div class="side">
+        <div class="panel">
+          <h3>🔍 Najít a začernit</h3>
+          <div class="row"><input type="text" id="q" placeholder="Jméno, adresa, číslo smlouvy…" onkeydown="if(event.key==='Enter')search()"><button class="btn sm" onclick="search()">Najít</button></div>
+          <div class="presets">
+            <label><input type="checkbox" value="email"> E-maily</label>
+            <label><input type="checkbox" value="tel"> Telefony</label>
+            <label><input type="checkbox" value="rc"> Rodná čísla</label>
+            <label><input type="checkbox" value="ucet"> Čísla účtů</label>
+            <label><input type="checkbox" value="iban"> IBAN</label>
+            <label><input type="checkbox" value="datum"> Data (dd.mm.rrrr)</label>
+            <label><input type="checkbox" value="op"> Čísla OP</label>
+            <label><input type="checkbox" value="spz"> SPZ</label>
+          </div>
+          <label class="opt"><input type="checkbox" id="optCase"> Rozlišovat velikost písmen</label>
+          <button class="btn sm ghost full" onclick="search(true)">Vyhledat podle zaškrtnutých vzorů</button>
+          <div class="list" id="hits"></div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn sm full" onclick="acceptAll()">✔ Potvrdit všechny návrhy</button>
+            <button class="btn sm ghost" onclick="clearProps()" title="Zrušit návrhy">✕</button>
+          </div>
+          <div class="note" id="textNote" style="margin-top:6px"></div>
+        </div>
+
+        <div class="panel">
+          <h3>⚙ Vzhled začernění</h3>
+          <label class="opt">Barva: <select id="optColor" onchange="refreshBoxes()"><option value="black">černá</option><option value="white">bílá (vymazání)</option></select></label>
+          <label class="opt"><input type="checkbox" id="optLabel" onchange="refreshBoxes()"> Vepsat do pole text <input type="text" id="labText" value="ANONYMIZOVÁNO" size="14" oninput="refreshBoxes()"></label>
+          <label class="opt">Kvalita výstupu: <select id="optDpi"><option value="150">150 DPI (menší soubor)</option><option value="200" selected>200 DPI</option><option value="300">300 DPI (tisk)</option></select></label>
+        </div>
+
+        <div class="panel">
+          <h3>💾 Uložit</h3>
+          <div class="warn" id="warnProp">Máte nepotvrzené návrhy – do výstupu se nezapočítají.</div>
+          <button class="btn or full" id="btnSave" onclick="exportPdf()" style="margin-top:6px">Uložit redigované PDF</button>
+          <div class="note" style="margin-top:8px">Výstup je „vypálené" PDF: stránky se převedou na obrázek, takže začerněný text <b>nelze</b> zkopírovat, vyhledat ani obnovit. Odstraní se i metadata, komentáře a skryté vrstvy. Pokud potřebujete výsledek prohledávat, pusťte ho přes nástroj <a href="https://ps.yey.cz/ocr.html" target="_blank" rel="noopener">OCR → PDF</a>.</div>
+          <button class="btn sm ghost full" style="margin-top:8px" onclick="resetAll()">Začít znovu s jiným souborem</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="busy" id="busy"><div class="in"><div id="busyT">Pracuji…</div><div class="prog"><div id="busyP"></div></div></div></div>
+
+<div class="modal-bg" id="info" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <h3>Redigování dokumentů</h3>
+    <div class="bar"></div>
+    <p>Nástroj slouží k bezpečnému začernění (anonymizaci) osobních a citlivých údajů před zveřejněním nebo předáním dokumentu – např. odpovědi na žádosti dle zákona č. 106/1999 Sb., smlouvy do registru smluv, předávací protokoly nebo podklady pro dodavatele.</p>
+    <ol>
+      <li>Nahrajte PDF nebo fotky / skeny.</li>
+      <li>Táhnutím myši označte oblasti, nebo vyhledejte text (jména, rodná čísla, účty…). U skenů nejdřív klikněte na <b>Rozpoznat text</b>.</li>
+      <li>Potvrďte návrhy a uložte redigované PDF.</li>
+    </ol>
+    <div class="box2"><b>Proč to je bezpečné:</b> obyčejný černý obdélník ve Wordu nebo v PDF editoru text jen překryje – pod ním zůstává a dá se zkopírovat. Tento nástroj stránky „vypálí" do obrázku, takže začerněný text ve výsledném souboru fyzicky neexistuje.</div>
+    <p class="note">Vše běží lokálně v prohlížeči, žádný soubor se nikam neodesílá. Automatické vyhledávání je pomůcka – výsledek vždy zkontrolujte očima.</p>
+    <p class="note">Oddělení správy nemovitostí · Pražské služby, a.s.</p>
+    <button class="btn" onclick="$('info').style.display='none'">Rozumím</button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const $=id=>document.getElementById(id);
+let pages=[];      // {kind:'pdf'|'img', pdfPage, img, w, h (pt), runs:[], boxes:[], el, canvas, ov}
+let baseName='dokument';
+let mode='draw';
+let history=[];    // pro undo: {page, box, action}
+let selected=null;
+
+/* ---------- NAHRÁNÍ ---------- */
+const drop=$('drop'),fileIn=$('file');
+drop.onclick=()=>fileIn.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};
+drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');loadFiles([...e.dataTransfer.files])};
+fileIn.onchange=()=>loadFiles([...fileIn.files]);
+
+async function loadFiles(files){
+  if(!files.length)return;
+  pages=[];history=[];selected=null;
+  baseName=files[0].name.replace(/\.[^.]+$/,'');
+  $('fname').textContent=files.map(f=>f.name).join(', ');
+  $('prog').style.display='block';
+  try{
+    for(const f of files){
+      if(/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)){
+        const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+        for(let i=1;i<=pdf.numPages;i++){
+          setStat(`Načítám ${f.name} – strana ${i}/${pdf.numPages}`,i/pdf.numPages);
+          const p=await pdf.getPage(i);
+          const vp=p.getViewport({scale:1});
+          const pg={kind:'pdf',pdfPage:p,w:vp.width,h:vp.height,runs:[],boxes:[]};
+          await extractPdfText(pg);
+          pages.push(pg);
+        }
+      }else if(/^image\//.test(f.type)||/\.(jpe?g|png|webp)$/i.test(f.name)){
+        setStat('Načítám '+f.name,1);
+        const img=await loadImg(f);
+        // obrázek na šířku A4 (595 pt)
+        const w=595,h=img.naturalHeight/img.naturalWidth*595;
+        pages.push({kind:'img',img,w,h,runs:[],boxes:[]});
+      }
+    }
+  }catch(err){setStat('Chyba při načítání: '+err.message,0);return}
+  if(!pages.length){setStat('Nepodporovaný formát souboru.',0);return}
+  setStat(`Načteno ${pages.length} stran.`,1);
+  $('work').style.display='block';
+  const noText=pages.filter(p=>!p.runs.length).length;
+  $('textNote').textContent=noText?`${noText} ${noText===1?'strana nemá':'stran nemá'} textovou vrstvu (sken/foto) – pro vyhledávání na nich klikněte na „Rozpoznat text".`:'';
+  buildPages();
+  $('work').scrollIntoView({behavior:'smooth'});
+}
+function setStat(t,p){$('stat').textContent=t;$('prog').firstElementChild.style.width=(p*100)+'%'}
+function loadImg(f){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('obrázek nelze načíst'));i.src=URL.createObjectURL(f)})}
+
+/* ---------- TEXT (souřadnice v rozsahu 0–1) ---------- */
+async function extractPdfText(pg){
+  const vp=pg.pdfPage.getViewport({scale:1});
+  const tc=await pg.pdfPage.getTextContent();
+  for(const it of tc.items){
+    if(!it.str||!it.str.trim())continue;
+    const t=pdfjsLib.Util.transform(vp.transform,it.transform);
+    const fh=Math.hypot(t[2],t[3])||Math.abs(it.height)||8;
+    const w=it.width||fh*it.str.length*.5;
+    pg.runs.push({str:it.str,x:t[4]/vp.width,y:(t[5]-fh*.95)/vp.height,w:w/vp.width,h:fh*1.25/vp.height});
+  }
+}
+async function ocrPage(i){
+  const pg=pages[i];
+  showBusy('Rozpoznávám text na straně '+(i+1)+'…',0);
+  try{
+    const c=await renderPage(pg,2);
+    const r=await Tesseract.recognize(c,'ces+eng',{logger:m=>{if(m.status==='recognizing text')showBusy('Rozpoznávám text na straně '+(i+1)+'…',m.progress)}});
+    pg.runs=[];
+    for(const wd of r.data.words){
+      const b=wd.bbox;
+      pg.runs.push({str:wd.text,x:b.x0/c.width,y:b.y0/c.height,w:(b.x1-b.x0)/c.width,h:(b.y1-b.y0)/c.height,word:true});
+    }
+    pg.ocrBtn.textContent='✔ Text rozpoznán ('+pg.runs.length+' slov)';pg.ocrBtn.disabled=true;
+  }catch(e){alert('OCR se nepodařilo: '+e.message)}
+  hideBusy();
+}
+async function ocrAll(){for(let i=0;i<pages.length;i++)if(!pages[i].runs.length)await ocrPage(i)}
+
+/* ---------- VYKRESLENÍ STRAN ---------- */
+async function renderPage(pg,scale){
+  const c=document.createElement('canvas');
+  c.width=Math.round(pg.w*scale);c.height=Math.round(pg.h*scale);
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+  if(pg.kind==='pdf'){
+    await pg.pdfPage.render({canvasContext:ctx,viewport:pg.pdfPage.getViewport({scale})}).promise;
+  }else ctx.drawImage(pg.img,0,0,c.width,c.height);
+  return c;
+}
+function baseWidth(){return Math.min(900,$('pages').clientWidth-40)}
+async function buildPages(){
+  const box=$('pages');box.innerHTML='';
+  pages.forEach((pg,i)=>{
+    const el=document.createElement('div');el.className='page '+(mode==='draw'?'draw':'');
+    el.innerHTML=`<div class="pno">Strana ${i+1}</div>`;
+    const cv=document.createElement('canvas');el.appendChild(cv);
+    const ov=document.createElement('div');ov.className='ov';el.appendChild(ov);
+    if(!pg.runs.length){
+      const b=document.createElement('button');b.className='btn sm or ocrb';b.textContent='Rozpoznat text (OCR)';
+      b.onclick=e=>{e.stopPropagation();ocrPage(i)};el.appendChild(b);pg.ocrBtn=b;
+    }
+    pg.el=el;pg.canvas=cv;pg.ov=ov;
+    bindDraw(pg,i);
+    box.appendChild(el);
+  });
+  await relayout();
+}
+async function relayout(){
+  const z=+$('zoom').value;
+  for(const pg of pages){
+    const dw=baseWidth()*z*(pg.w>pg.h?1:Math.min(1,pg.w/595));
+    pg.el.style.width=dw+'px';
+    const sc=dw/pg.w*(window.devicePixelRatio||1);
+    const c=await renderPage(pg,sc);
+    pg.canvas.width=c.width;pg.canvas.height=c.height;
+    pg.canvas.getContext('2d').drawImage(c,0,0);
+  }
+  refreshBoxes();
+}
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>pages.length&&relayout(),250)});
+
+/* ---------- OBDÉLNÍKY ---------- */
+function refreshBoxes(){
+  const col=$('optColor').value,lab=$('optLabel').checked?$('labText').value:'';
+  let nP=0,nK=0;
+  pages.forEach((pg,pi)=>{
+    if(!pg.ov)return;
+    pg.ov.querySelectorAll('.box').forEach(n=>n.remove());
+    pg.boxes.forEach(b=>{
+      b.prop?nP++:nK++;
+      const d=document.createElement('div');
+      d.className='box'+(b.prop?' prop':'')+(col==='white'?' white':'')+(selected===b?' sel':'');
+      Object.assign(d.style,{left:b.x*100+'%',top:b.y*100+'%',width:b.w*100+'%',height:b.h*100+'%'});
+      d.innerHTML=`<div class="lab">${esc(lab)}</div><div class="x" title="Smazat">×</div><div class="ok" title="Potvrdit">✔</div>`;
+      d.onpointerdown=e=>{if(mode==='sel'||b.prop){e.stopPropagation();selected=b;refreshBoxes()}};
+      d.querySelector('.x').onpointerdown=e=>{e.stopPropagation();removeBox(pg,b)};
+      d.querySelector('.ok').onpointerdown=e=>{e.stopPropagation();b.prop=false;selected=null;history.push({pg,b,a:'accept'});refreshBoxes();refreshHits()};
+      pg.ov.appendChild(d);
+    });
+  });
+  $('sPg').textContent=pages.length;$('sP').textContent=nP;$('sK').textContent=nK;
+  $('warnProp').style.display=nP?'block':'none';
+}
+function addBox(pg,b,record=true){pg.boxes.push(b);if(record)history.push({pg,b,a:'add'})}
+function removeBox(pg,b){pg.boxes=pg.boxes.filter(x=>x!==b);history.push({pg,b,a:'del'});if(selected===b)selected=null;refreshBoxes();refreshHits()}
+function undo(){
+  const h=history.pop();if(!h)return;
+  if(h.a==='add')h.pg.boxes=h.pg.boxes.filter(x=>x!==h.b);
+  else if(h.a==='del')h.pg.boxes.push(h.b);
+  else if(h.a==='accept')h.b.prop=true;
+  else if(h.a==='batch')h.items.forEach(([pg,b])=>pg.boxes=pg.boxes.filter(x=>x!==b));
+  else if(h.a==='acceptAll')h.items.forEach(b=>b.prop=true);
+  selected=null;refreshBoxes();refreshHits();
+}
+function setMode(m){
+  mode=m;selected=null;
+  $('mDraw').classList.toggle('on',m==='draw');$('mSel').classList.toggle('on',m==='sel');
+  pages.forEach(p=>p.el&&p.el.classList.toggle('draw',m==='draw'));refreshBoxes();
+}
+function bindDraw(pg){
+  const ov=pg.ov;let start=null,tmp=null;
+  ov.addEventListener('pointerdown',e=>{
+    if(e.target!==ov)return;
+    if(mode!=='draw'){selected=null;refreshBoxes();return}
+    const r=ov.getBoundingClientRect();
+    start={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
+    tmp=document.createElement('div');tmp.className='temp';ov.appendChild(tmp);
+    ov.setPointerCapture(e.pointerId);e.preventDefault();
+  });
+  ov.addEventListener('pointermove',e=>{
+    if(!start)return;
+    const r=ov.getBoundingClientRect();
+    const x=clamp((e.clientX-r.left)/r.width),y=clamp((e.clientY-r.top)/r.height);
+    const b=norm(start,{x,y});
+    Object.assign(tmp.style,{left:b.x*100+'%',top:b.y*100+'%',width:b.w*100+'%',height:b.h*100+'%'});
+    tmp._b=b;
+  });
+  const end=()=>{
+    if(!start)return;
+    const b=tmp._b;tmp.remove();start=null;
+    if(b&&b.w>.004&&b.h>.003){addBox(pg,{...b,prop:false});refreshBoxes()}
+  };
+  ov.addEventListener('pointerup',end);ov.addEventListener('pointercancel',end);
+}
+const clamp=v=>Math.max(0,Math.min(1,v));
+function norm(a,b){return{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)}}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}
+  if((e.key==='Delete'||e.key==='Backspace')&&selected){const pg=pages.find(p=>p.boxes.includes(selected));if(pg)removeBox(pg,selected)}
+});
+
+/* ---------- VYHLEDÁVÁNÍ ---------- */
+const PRESETS={
+  email:/[\w.+-]+@[\w-]+(\.[\w-]+)+/g,
+  tel:/(\+|00)?(420|421)?\s?\b[1-9]\d{2}\s?\d{3}\s?\d{3}\b/g,
+  rc:/\b\d{2}[0-35-8]\d[0-3]\d\s?\/?\s?\d{3,4}\b/g,
+  ucet:/\b(\d{1,6}\s?-\s?)?\d{2,10}\s?\/\s?\d{4}\b/g,
+  iban:/\b[A-Z]{2}\d{2}(\s?\d{4}){4,6}\b/g,
+  datum:/\b\d{1,2}\.\s?\d{1,2}\.\s?\d{4}\b/g,
+  op:/\b\d{9}\b/g,
+  spz:/\b\d[A-Z]\d\s?\d{4}\b|\b\d[A-Z]{2}\s?\d{4}\b/g
+};
+let hits=[];
+function pageText(pg){
+  // spojí běhy do jednoho řetězce s mapou znak → (běh, index)
+  let s='',map=[];
+  pg.runs.forEach((r,ri)=>{
+    if(s.length){
+      const prev=pg.runs[ri-1];
+      const sameLine=Math.abs(prev.y-r.y)<prev.h*.6;
+      const gap=sameLine?r.x-(prev.x+prev.w):1;
+      if(!sameLine||gap>prev.h*.15||r.word){s+=' ';map.push(null)}
+    }
+    for(let k=0;k<r.str.length;k++){s+=r.str[k];map.push([ri,k])}
+  });
+  return{s,map};
+}
+const mctx=document.createElement('canvas').getContext('2d');mctx.font='20px Arial, Helvetica, sans-serif';
+function rectsFor(pg,map,a,b){
+  const by=new Map();
+  for(let i=a;i<b;i++){const m=map[i];if(!m)continue;if(!by.has(m[0]))by.set(m[0],[m[1],m[1]]);else by.get(m[0])[1]=m[1]}
+  const out=[];
+  by.forEach(([k0,k1],ri)=>{
+    const r=pg.runs[ri];
+    // poměrné šířky znaků změřené proporcionálním písmem
+    const full=mctx.measureText(r.str).width||1;
+    const x0=mctx.measureText(r.str.slice(0,k0)).width/full*r.w;
+    const x1=mctx.measureText(r.str.slice(0,k1+1)).width/full*r.w;
+    const pad=Math.min(.004,r.h*.15);
+    out.push({x:Math.max(0,r.x+x0-pad),y:r.y,w:x1-x0+pad*2,h:r.h});
+  });
+  return out;
+}
+function search(usePresets){
+  const regs=[];
+  if(usePresets){
+    document.querySelectorAll('.presets input:checked').forEach(c=>regs.push(new RegExp(PRESETS[c.value].source,'g')));
+    if(!regs.length){alert('Zaškrtněte aspoň jeden vzor.');return}
+  }else{
+    const q=$('q').value.trim();if(!q)return;
+    const flags=$('optCase').checked?'g':'gi';
+    q.split(/\s*[;|]\s*/).filter(Boolean).forEach(t=>regs.push(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s*'),flags)));
+  }
+  if(!pages.some(p=>p.runs.length)){
+    if(confirm('Dokument nemá žádný rozpoznaný text. Spustit rozpoznání textu (OCR) na všech stranách?'))ocrAll().then(()=>search(usePresets));
+    return;
+  }
+  let n=0;
+  pages.forEach((pg,pi)=>{
+    const {s,map}=pageText(pg);
+    const seen=[];
+    for(const re of regs){
+      re.lastIndex=0;let m;
+      while((m=re.exec(s))){
+        if(!m[0].length){re.lastIndex++;continue}
+        const a=m.index,b=a+m[0].length;
+        if(seen.some(([x,y])=>a<y&&b>x))continue;seen.push([a,b]);
+        const rs=rectsFor(pg,map,a,b);
+        const boxes=rs.map(r=>({...r,prop:true}));
+        boxes.forEach(bx=>addBox(pg,bx,false));
+        hits.push({pg,pi,text:m[0].trim(),boxes});n++;
+      }
+    }
+  });
+  refreshBoxes();refreshHits();
+  $('textNote').textContent=n?`Nalezeno ${n} výskytů – zkontrolujte oranžové návrhy a potvrďte.`:'Nic nenalezeno.'+(pages.some(p=>!p.runs.length)?' Některé strany ještě nemají rozpoznaný text.':'');
+}
+function refreshHits(){
+  hits=hits.filter(h=>h.boxes.some(b=>h.pg.boxes.includes(b)));
+  const l=$('hits');l.style.display=hits.length?'block':'none';l.innerHTML='';
+  hits.forEach(h=>{
+    const done=h.boxes.every(b=>!b.prop);
+    const d=document.createElement('div');d.className='item'+(done?' done':'');
+    d.innerHTML=`<span class="t">${esc(h.text)}</span><span class="pg">str. ${h.pi+1}</span>`+(done?'✔':`<button class="btn sm" title="Potvrdit">✔</button><button class="btn sm ghost" title="Zrušit">✕</button>`);
+    d.onclick=()=>{h.pg.el.scrollIntoView({behavior:'smooth',block:'center'});selected=h.boxes[0];refreshBoxes()};
+    const bs=d.querySelectorAll('button');
+    if(bs.length){
+      bs[0].onclick=e=>{e.stopPropagation();h.boxes.forEach(b=>b.prop=false);history.push({a:'acceptAll',items:h.boxes});refreshBoxes();refreshHits()};
+      bs[1].onclick=e=>{e.stopPropagation();h.pg.boxes=h.pg.boxes.filter(b=>!h.boxes.includes(b));refreshBoxes();refreshHits()};
+    }
+    l.appendChild(d);
+  });
+}
+function acceptAll(){
+  const items=[];pages.forEach(p=>p.boxes.forEach(b=>{if(b.prop){b.prop=false;items.push(b)}}));
+  if(items.length)history.push({a:'acceptAll',items});
+  refreshBoxes();refreshHits();
+}
+function clearProps(){pages.forEach(p=>p.boxes=p.boxes.filter(b=>!b.prop));selected=null;refreshBoxes();refreshHits()}
+
+/* ---------- EXPORT ---------- */
+async function exportPdf(){
+  const fin=pages.reduce((a,p)=>a+p.boxes.filter(b=>!b.prop).length,0);
+  if(!fin&&!confirm('Není začerněno nic. Přesto uložit (obsah se jen „vypálí" do obrázku)?'))return;
+  const scale=+$('optDpi').value/72;
+  const col=$('optColor').value==='white'?'#fff':'#000';
+  const lab=$('optLabel').checked?$('labText').value:'';
+  const {jsPDF}=window.jspdf;
+  let doc=null;
+  try{
+    for(let i=0;i<pages.length;i++){
+      showBusy(`Vypaluji stranu ${i+1}/${pages.length}…`,i/pages.length);
+      const pg=pages[i];
+      const c=await renderPage(pg,scale);
+      const ctx=c.getContext('2d');
+      for(const b of pg.boxes){
+        if(b.prop)continue;
+        const x=b.x*c.width,y=b.y*c.height,w=b.w*c.width,h=b.h*c.height;
+        ctx.fillStyle=col;ctx.fillRect(x,y,w,h);
+        if(col==='#fff'){ctx.strokeStyle='#999';ctx.lineWidth=scale*.5;ctx.strokeRect(x,y,w,h)}
+        if(lab){
+          const fs=Math.min(h*.7,9*scale);
+          ctx.font=`bold ${fs}px Arial`;ctx.fillStyle=col==='#fff'?'#555':'#fff';
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.fillText(lab,x+w/2,y+h/2);ctx.restore();
+        }
+      }
+      const data=c.toDataURL('image/jpeg',.9);
+      const orient=pg.w>pg.h?'l':'p';
+      if(!doc)doc=new jsPDF({unit:'pt',format:[pg.w,pg.h],orientation:orient,compress:true});
+      else doc.addPage([pg.w,pg.h],orient);
+      doc.addImage(data,'JPEG',0,0,pg.w,pg.h,undefined,'FAST');
+      await new Promise(r=>setTimeout(r));
+    }
+    doc.setProperties({title:baseName+' – redigováno',creator:'Pražské služby a.s. – Redigování dokumentů',author:'',subject:'',keywords:''});
+    doc.save(baseName+'_redigovano.pdf');
+  }catch(e){alert('Uložení se nepodařilo: '+e.message)}
+  hideBusy();
+}
+
+/* ---------- POMOCNÉ ---------- */
+function showBusy(t,p){$('busy').style.display='grid';$('busyT').textContent=t;$('busyP').style.width=(p*100)+'%'}
+function hideBusy(){$('busy').style.display='none'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function openInfo(){$('info').style.display='grid'}
+function resetAll(){
+  if(pages.some(p=>p.boxes.length)&&!confirm('Zahodit rozpracované začernění?'))return;
+  pages=[];hits=[];history=[];$('pages').innerHTML='';$('hits').innerHTML='';
+  $('work').style.display='none';$('fname').textContent='';setStat('',0);$('prog').style.display='none';fileIn.value='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
