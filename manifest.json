@@ -20,6 +20,7 @@
     { "name": "Podpis", "url": "/sig.html" },
     { "name": "Porovnání dokumentů", "url": "/porovnani.html" },
     { "name": "Redigování", "url": "/redigovani.html" },
-    { "name": "Prohlížeč výkresů", "url": "/vykresy.html" }
+    { "name": "Prohlížeč výkresů", "url": "/vykresy.html" },
+    { "name": "Plány podlaží", "url": "/plany.html" }
   ]
 }
