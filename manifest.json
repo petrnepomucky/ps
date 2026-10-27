@@ -21,6 +21,7 @@
     { "name": "Porovnání dokumentů", "url": "/porovnani.html" },
     { "name": "Redigování", "url": "/redigovani.html" },
     { "name": "Prohlížeč výkresů", "url": "/vykresy.html" },
+    { "name": "Komprimace", "url": "/komprimace.html" },
     { "name": "Plány podlaží", "url": "/plany.html" }
   ]
 }

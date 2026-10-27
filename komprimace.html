@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Komprimace souborů – Pražské služby</title>
+<link rel="manifest" href="/manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.7.52/dist/zip-full.min.js"></script>
+<style>
+/* Layout: zelený/oranžový banner PSAS, pod ním dvě karty (Zabalit / Rozbalit) v jednom sloupci */
+:root{
+  --green:#009645; --green-dk:#00753a; --green-lt:#DCEEE4; --green-xlt:#F1F8F4;
+  --orange:#F27D00; --orange-lt:#FDE9D2;
+  --bg:#F5F7F6; --card:#FFFFFF; --fg:#1d2420; --muted:#5A5A5A; --line:#E3E6E4;
+  --danger:#C62828; --danger-lt:#FDECEA;
+  --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141816; --card:#1d2320; --fg:#E6EBE8; --muted:#A3ADA8; --line:#2E3632;
+    --green-lt:#163525; --green-xlt:#18241e; --orange-lt:#3a2814; --danger-lt:#3a1b1b; color-scheme:dark }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--fg);font-size:14px;line-height:1.45}
+header{background:#43964F;border-bottom:6px solid var(--orange);color:#fff}
+.hb{max-width:920px;margin:0 auto;padding:22px 16px;display:flex;align-items:center;gap:18px}
+.hb-logo{flex:none;width:60px;height:60px;border-radius:12px;background:#fff;color:#43964F;display:grid;place-items:center;font-weight:bold;font-size:24px}
+.hb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hb-main b{font-size:28px;line-height:1.1}
+.hb-main span{font-size:15px;opacity:.95}
+.hb-info{flex:none;width:52px;height:52px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;display:grid;place-items:center}
+.hb-info:hover{background:rgba(255,255,255,.22)}
+.hb-info:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+@media (max-width:520px){.hb{gap:12px}.hb-logo{width:48px;height:48px;font-size:19px}.hb-main b{font-size:22px}.hb-main span{font-size:13px}.hb-info{width:42px;height:42px}}
+main{max-width:920px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:20px}
+.tabs{display:flex;gap:6px;border-bottom:2px solid var(--green)}
+.tab{border:0;background:var(--card);color:var(--fg);padding:10px 20px;font:bold 14px var(--font);cursor:pointer;border-radius:6px 6px 0 0;border:1px solid var(--line);border-bottom:0}
+.tab[aria-selected="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:18px}
+h2{margin:0;font-size:16px;color:var(--green);border-bottom:1px solid var(--green);padding-bottom:6px}
+.drop{border:2px dashed var(--green);background:var(--green-xlt);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;transition:background .15s}
+.drop.over{background:var(--green-lt)}
+.drop strong{display:block;font-size:15px;margin-bottom:4px}
+.drop small{color:var(--muted)}
+.drop .btns{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn{border:1px solid var(--green);background:var(--card);color:var(--green);padding:8px 14px;border-radius:5px;font:bold 13px var(--font);cursor:pointer}
+.btn:hover{background:var(--green-xlt)}
+.btn.primary{background:var(--green);color:#fff}
+.btn.primary:hover{background:var(--green-dk)}
+.btn.orange{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--green);color:#fff;text-align:left;padding:7px 10px;font-weight:bold}
+td{padding:6px 10px;border-top:1px solid var(--line);word-break:break-all}
+tr:nth-child(even) td{background:var(--green-xlt)}
+td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.act{width:1%;white-space:nowrap}
+.x{border:0;background:none;color:var(--danger);cursor:pointer;font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+label.f{display:flex;flex-direction:column;gap:5px;font-weight:bold;font-size:13px}
+input[type=text],input[type=password],select{font:14px var(--font);padding:8px 10px;border:1px solid var(--line);border-radius:5px;background:var(--card);color:var(--fg);width:100%}
+.pwrow{display:flex;gap:6px}
+.pwrow input{flex:1;min-width:0}
+.check{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:6px;background:var(--green-xlt);border:1px solid var(--line);cursor:pointer}
+.check input{margin-top:2px;width:17px;height:17px;accent-color:var(--green)}
+.check b{display:block}
+.check small{color:var(--muted)}
+.check.disabled{opacity:.5;cursor:not-allowed}
+.meter{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;transition:width .2s,background .2s}
+.hint{font-size:12px;color:var(--muted)}
+.note{background:var(--orange-lt);border-left:4px solid var(--orange);padding:12px 14px;border-radius:4px;font-size:13px}
+.note b{color:#9A5200}
+@media (prefers-color-scheme: dark){.note b{color:var(--orange)}}
+.err{background:var(--danger-lt);border-left:4px solid var(--danger);padding:10px 14px;border-radius:4px;font-size:13px}
+.ok{background:var(--green-lt);border-left:4px solid var(--green);padding:10px 14px;border-radius:4px;font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.status{font-size:13px;color:var(--muted)}
+.summary{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.summary b{color:var(--fg)}
+.lock{display:inline-block;background:var(--orange);color:#fff;font-size:11px;font-weight:bold;padding:2px 7px;border-radius:10px;margin-left:6px}
+footer{text-align:center;font-size:11px;color:var(--muted);letter-spacing:1.5px;padding-bottom:24px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="hb">
+  <div class="hb-logo">PS</div>
+  <div class="hb-main"><b>Komprimace → ZIP</b><span>Zabalení a zaheslování souborů pro bezpečné odeslání e-mailem</span></div>
+  <button class="hb-info" type="button" id="infoBtn" title="Jak to funguje" aria-label="Jak to funguje">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".6" fill="currentColor"/></svg>
+  </button>
+</div></header>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-pack" aria-selected="true">Zabalit soubory</button>
+    <button class="tab" role="tab" id="tab-unpack" aria-selected="false">Rozbalit archiv</button>
+  </div>
+
+  <!-- ZABALIT -->
+  <section class="card" id="view-pack">
+    <h2>1. Vyberte soubory</h2>
+    <div class="drop" id="dropPack" tabindex="0">
+      <strong>Přetáhněte sem soubory nebo celé složky</strong>
+      <small>Vše se zpracuje jen ve vašem prohlížeči, nic se neodesílá na server.</small>
+      <div class="btns">
+        <button class="btn" type="button" id="pickFiles">Vybrat soubory</button>
+        <button class="btn" type="button" id="pickFolder">Vybrat složku</button>
+      </div>
+      <input type="file" id="inFiles" multiple hidden>
+      <input type="file" id="inFolder" webkitdirectory multiple hidden>
+    </div>
+
+    <div id="packListWrap" hidden>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Soubor</th><th class="num">Velikost</th><th></th></tr></thead>
+        <tbody id="packList"></tbody>
+      </table></div>
+      <div class="summary" style="margin-top:8px"><span>Souborů: <b id="sumCount">0</b></span><span>Celkem: <b id="sumSize">0 B</b></span>
+        <button class="btn" type="button" id="clearPack" style="margin-left:auto;padding:4px 10px">Vyprázdnit</button></div>
+    </div>
+
+    <h2>2. Nastavení archivu</h2>
+    <div class="grid">
+      <label class="f">Název archivu
+        <input type="text" id="arcName" value="podklady">
+      </label>
+      <label class="f">Úroveň komprese
+        <select id="level">
+          <option value="9">Maximální (menší soubor)</option>
+          <option value="5" selected>Standardní</option>
+          <option value="1">Rychlá</option>
+          <option value="0">Bez komprese (jen zabalit)</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="check"><input type="checkbox" id="usePw" checked>
+      <span><b>Zaheslovat archiv (AES-256)</b><small>Bez hesla nepůjde soubory otevřít.</small></span></label>
+
+    <div id="autoBox" class="check" style="flex-direction:column;cursor:default">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="autoPw">
+        <span><b>Automaticky vkládat uložené heslo</b><small>Heslo se samo vyplní do každého nového archivu a při rozbalování se zkusí jako první.</small></span></label>
+      <div id="autoFields" class="pwrow" style="width:100%" hidden>
+        <input type="password" id="savedPw" placeholder="Uložené heslo (alespoň 10 znaků)" autocomplete="off">
+        <button class="btn" type="button" id="showSaved">Zobrazit</button>
+        <button class="btn primary" type="button" id="saveSaved">Uložit heslo</button>
+      </div>
+      <span class="hint" id="autoHint" hidden>Heslo se ukládá jen v tomto prohlížeči na tomto počítači. Na sdíleném počítači funkci nepoužívejte.</span>
+    </div>
+
+    <div id="pwBox" class="grid">
+      <label class="f">Heslo
+        <span class="pwrow">
+          <input type="password" id="pw" autocomplete="new-password">
+          <button class="btn" type="button" id="showPw" title="Zobrazit heslo">Zobrazit</button>
+          <button class="btn" type="button" id="genPw" title="Vygenerovat silné heslo">Vygenerovat</button>
+        </span>
+        <span class="meter"><i id="meter"></i></span>
+        <span class="hint" id="pwHint">Zadejte heslo, alespoň 10 znaků.</span>
+      </label>
+      <label class="f">Heslo znovu
+        <span class="pwrow">
+          <input type="password" id="pw2" autocomplete="new-password">
+          <button class="btn" type="button" id="copyPw">Kopírovat</button>
+        </span>
+        <span class="hint" id="pw2Hint"></span>
+      </label>
+    </div>
+
+    <label class="check" id="hideWrap"><input type="checkbox" id="hide" checked>
+      <span><b>Skrýt obsah archivu</b><small>Bez hesla nebude vidět ani seznam a názvy souborů. Uvnitř zaheslovaného archivu je jen neutrální „obsah.zip“.</small></span></label>
+
+    <div class="note"><b>Při odesílání e-mailem:</b> heslo pošlete příjemci jinou cestou než archiv (SMS, telefonem, Teams). Archiv šifrovaný AES otevře 7-Zip, WinRAR, Total Commander nebo tato aplikace. Vestavěné rozbalování ve Windows AES neumí.</div>
+
+    <div id="packMsg"></div>
+    <div class="actions">
+      <button class="btn primary" type="button" id="doPack" disabled>Vytvořit a stáhnout archiv</button>
+      <span class="status" id="packStatus"></span>
+    </div>
+  </section>
+
+  <!-- ROZBALIT -->
+  <section class="card" id="view-unpack" hidden>
+    <h2>1. Vyberte archiv</h2>
+    <div class="drop" id="dropUnpack" tabindex="0">
+      <strong>Přetáhněte sem archiv ZIP</strong>
+      <small>Funguje i pro archivy se skrytým obsahem vytvořené touto aplikací.</small>
+      <div class="btns"><button class="btn" type="button" id="pickZip">Vybrat archiv</button></div>
+      <input type="file" id="inZip" accept=".zip,application/zip" hidden>
+    </div>
+
+    <div id="unpackPwBox" hidden>
+      <h2>2. Archiv je zaheslovaný</h2>
+      <div class="grid" style="margin-top:14px">
+        <label class="f">Heslo
+          <span class="pwrow"><input type="password" id="upw" autocomplete="off">
+          <button class="btn primary" type="button" id="doUnlock">Odemknout</button></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="unpackMsg"></div>
+
+    <div id="unpackListWrap" hidden>
+      <h2>Obsah archivu <span id="arcLabel" class="hint"></span></h2>
+      <div class="tablewrap" style="margin-top:14px"><table>
+        <thead><tr><th>Soubor</th><th class="num">Velikost</th><th></th></tr></thead>
+        <tbody id="unpackList"></tbody>
+      </table></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" type="button" id="dlAll">Stáhnout vše</button>
+        <button class="btn" type="button" id="dlZip">Stáhnout jako nezaheslovaný ZIP</button>
+        <span class="status" id="unpackStatus"></span>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>PRAŽSKÉ SLUŽBY a.s. · KOMPRIMACE SOUBORŮ</footer>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+if (!window.zip) { document.querySelector('main').insertAdjacentHTML('afterbegin','<div class="err">Nepodařilo se načíst knihovnu zip.js. Zkontrolujte připojení k internetu a stránku obnovte.</div>'); return; }
+zip.configure({ useWebWorkers: false });
+const HIDDEN_NAME = 'obsah.zip';
+
+const fmt = b => { if (b < 1024) return b + ' B'; const u=['kB','MB','GB']; let i=-1; do { b/=1024; i++; } while (b>=1024 && i<2); return b.toFixed(b<10?1:0).replace('.',',')+' '+u[i]; };
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const save = (blob, name) => { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},4000); };
+const msg = (el, cls, html) => { $(el).innerHTML = html ? `<div class="${cls}">${html}</div>` : ''; };
+
+/* ---- Záložky ---- */
+function tab(which){
+  $('tab-pack').setAttribute('aria-selected', which==='pack');
+  $('tab-unpack').setAttribute('aria-selected', which==='unpack');
+  $('view-pack').hidden = which!=='pack'; $('view-unpack').hidden = which!=='unpack';
+}
+$('infoBtn').onclick = () => { tab('pack'); const n=document.querySelector('.note'); n.scrollIntoView({behavior:'smooth',block:'center'}); };
+$('tab-pack').onclick = () => tab('pack'); $('tab-unpack').onclick = () => tab('unpack');
+
+/* ---- Výběr souborů k zabalení ---- */
+let files = []; // {path, file}
+function addFiles(list){
+  for (const it of list) if (!files.some(f => f.path===it.path && f.file.size===it.file.size)) files.push(it);
+  renderPack();
+}
+function renderPack(){
+  $('packListWrap').hidden = !files.length;
+  $('packList').innerHTML = files.map((f,i)=>`<tr><td>${esc(f.path)}</td><td class="num">${fmt(f.file.size)}</td><td class="act"><button class="x" data-i="${i}" title="Odebrat">✕</button></td></tr>`).join('');
+  $('sumCount').textContent = files.length;
+  $('sumSize').textContent = fmt(files.reduce((s,f)=>s+f.file.size,0));
+  if (files.length===1 && $('arcName').dataset.touched!=='1') $('arcName').value = files[0].path.split('/')[0].replace(/\.[^.]+$/,'') || 'podklady';
+  validate();
+}
+$('packList').onclick = e => { const b=e.target.closest('.x'); if(b){ files.splice(+b.dataset.i,1); renderPack(); } };
+$('clearPack').onclick = () => { files=[]; renderPack(); };
+$('arcName').oninput = () => $('arcName').dataset.touched='1';
+$('pickFiles').onclick = e => { e.stopPropagation(); $('inFiles').click(); };
+$('pickFolder').onclick = e => { e.stopPropagation(); $('inFolder').click(); };
+$('dropPack').onclick = () => $('inFiles').click();
+$('inFiles').onchange = e => { addFiles([...e.target.files].map(f=>({path:f.name,file:f}))); e.target.value=''; };
+$('inFolder').onchange = e => { addFiles([...e.target.files].map(f=>({path:f.webkitRelativePath||f.name,file:f}))); e.target.value=''; };
+
+function readEntry(entry, base=''){
+  return new Promise(res=>{
+    if (entry.isFile) entry.file(f=>res([{path:base+f.name,file:f}]), ()=>res([]));
+    else if (entry.isDirectory){
+      const r = entry.createReader(); let all=[];
+      const next = () => r.readEntries(async ents=>{
+        if (!ents.length){ const nested = await Promise.all(all.map(en=>readEntry(en, base+entry.name+'/'))); res(nested.flat()); }
+        else { all=all.concat(ents); next(); }
+      }, ()=>res([]));
+      next();
+    } else res([]);
+  });
+}
+function wireDrop(el, onDrop){
+  ['dragenter','dragover'].forEach(t=>el.addEventListener(t,e=>{e.preventDefault(); el.classList.add('over');}));
+  ['dragleave','drop'].forEach(t=>el.addEventListener(t,e=>{e.preventDefault(); el.classList.remove('over');}));
+  el.addEventListener('drop', onDrop);
+  el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); el.click(); }});
+}
+wireDrop($('dropPack'), async e=>{
+  const items=[...(e.dataTransfer.items||[])].map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);
+  if (items.length) addFiles((await Promise.all(items.map(en=>readEntry(en)))).flat());
+  else addFiles([...e.dataTransfer.files].map(f=>({path:f.name,file:f})));
+});
+
+/* ---- Heslo ---- */
+function strength(p){
+  let s=0; if(p.length>=10)s++; if(p.length>=14)s++; if(/[a-z]/.test(p)&&/[A-Z]/.test(p))s++; if(/\d/.test(p))s++; if(/[^A-Za-z0-9]/.test(p))s++;
+  return p.length<8?Math.min(s,1):s;
+}
+function validate(){
+  const use=$('usePw').checked, p=$('pw').value, p2=$('pw2').value;
+  $('pwBox').hidden=!use;
+  $('hide').disabled=!use; $('hideWrap').classList.toggle('disabled',!use); if(!use) $('hide').checked=false;
+  const s=strength(p), cols=['#C62828','#C62828','#F27D00','#F27D00','#009645','#009645'];
+  $('meter').style.width=(p?Math.max(12,s*20):0)+'%'; $('meter').style.background=cols[s];
+  $('pwHint').textContent = !p?'Zadejte heslo, alespoň 10 znaků.': p.length<10?'Heslo je příliš krátké, použijte alespoň 10 znaků.': s>=4?'Silné heslo.':'Heslo projde, silnější bude s číslicemi, velkými písmeny a znaky.';
+  $('pw2Hint').textContent = p2 ? (p===p2?'Hesla se shodují.':'Hesla se neshodují.') : '';
+  const pwOk = !use || (p.length>=10 && p===p2);
+  $('doPack').disabled = !files.length || !pwOk;
+}
+['usePw','pw','pw2','hide'].forEach(id=>$(id).addEventListener('input',validate));
+$('usePw').addEventListener('change',validate);
+$('showPw').onclick=()=>{ const t=$('pw').type==='password'?'text':'password'; $('pw').type=$('pw2').type=t; $('showPw').textContent=t==='text'?'Skrýt':'Zobrazit'; };
+$('genPw').onclick=()=>{
+  const set='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789-_+!?';
+  const r=crypto.getRandomValues(new Uint32Array(16)); const p=[...r].map(n=>set[n%set.length]).join('');
+  $('pw').value=$('pw2').value=p; $('pw').type=$('pw2').type='text'; $('showPw').textContent='Skrýt'; validate();
+};
+$('copyPw').onclick=async()=>{ try{ await navigator.clipboard.writeText($('pw').value); $('copyPw').textContent='Zkopírováno'; }catch{ $('pw').type='text'; $('pw').select(); } setTimeout(()=>$('copyPw').textContent='Kopírovat',1500); };
+
+/* ---- Uložené heslo ---- */
+const LS_ON='psas_zip_autopw', LS_PW='psas_zip_savedpw';
+const ls = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);return true}catch{return false}} };
+const savedPw = () => ls.get(LS_ON)==='1' ? (ls.get(LS_PW)||'') : '';
+function applySaved(){
+  const p=savedPw();
+  if (p){ $('usePw').checked=true; $('pw').value=$('pw2').value=p; }
+  validate();
+}
+function renderAuto(){
+  const on=$('autoPw').checked;
+  $('autoFields').hidden=!on; $('autoHint').hidden=!on;
+}
+$('autoPw').checked = ls.get(LS_ON)==='1';
+$('savedPw').value = ls.get(LS_PW)||'';
+renderAuto();
+$('autoPw').onchange=()=>{
+  const on=$('autoPw').checked; renderAuto();
+  if (on){ if ($('savedPw').value.length>=10){ ls.set(LS_ON,'1'); applySaved(); } else $('savedPw').focus(); }
+  else { ls.set(LS_ON,null); msg('packMsg','ok','Automatické vkládání hesla je vypnuté. Uložené heslo zůstává, dokud ho nesmažete.'); }
+};
+$('showSaved').onclick=()=>{ const t=$('savedPw').type==='password'?'text':'password'; $('savedPw').type=t; $('showSaved').textContent=t==='text'?'Skrýt':'Zobrazit'; };
+$('saveSaved').onclick=()=>{
+  const p=$('savedPw').value;
+  if (p.length<10){ msg('packMsg','err','Uložené heslo musí mít alespoň 10 znaků.'); return; }
+  const ok = ls.set(LS_PW,p) && ls.set(LS_ON,'1');
+  if (!ok){ msg('packMsg','err','Prohlížeč nepovolil uložení. Zkontrolujte, zda nejste v anonymním okně.'); return; }
+  applySaved(); msg('packMsg','ok','Heslo je uložené a bude se automaticky vkládat do nových archivů.');
+};
+
+/* ---- Zabalení ---- */
+$('doPack').onclick = async () => {
+  const use=$('usePw').checked, pw=use?$('pw').value:undefined, hide=use&&$('hide').checked, level=+$('level').value;
+  let name=($('arcName').value.trim()||'archiv').replace(/[\\/:*?"<>|]/g,'_'); if(!/\.zip$/i.test(name)) name+='.zip';
+  const total=files.reduce((s,f)=>s+f.file.size,0); let done=0;
+  $('doPack').disabled=true; msg('packMsg');
+  try{
+    const add = async (writer, opts) => {
+      for (const f of files){
+        $('packStatus').textContent=`Balím ${f.path}… (${Math.round(done/Math.max(total,1)*100)} %)`;
+        await writer.add(f.path, new zip.BlobReader(f.file), {...opts, lastModDate:new Date(f.file.lastModified||Date.now())});
+        done+=f.file.size;
+      }
+    };
+    let blob;
+    if (hide){
+      const inner=new zip.ZipWriter(new zip.BlobWriter('application/zip'),{level});
+      await add(inner,{});
+      const innerBlob=await inner.close();
+      $('packStatus').textContent='Šifruji…';
+      const outer=new zip.ZipWriter(new zip.BlobWriter('application/zip'),{level:0,password:pw,encryptionStrength:3});
+      await outer.add(HIDDEN_NAME,new zip.BlobReader(innerBlob));
+      blob=await outer.close();
+    } else {
+      const w=new zip.ZipWriter(new zip.BlobWriter('application/zip'),{level, ...(use?{password:pw,encryptionStrength:3}:{})});
+      await add(w,{});
+      blob=await w.close();
+    }
+    save(blob,name);
+    $('packStatus').textContent='';
+    msg('packMsg','ok',`Archiv <b>${esc(name)}</b> (${fmt(blob.size)}) je stažený.${use?' Nezapomeňte příjemci poslat heslo jinou cestou.':''}${blob.size>20*1024*1024?'<br>Pozor: archiv má přes 20 MB, většina e-mailových schránek ho nepřijme.':''}`);
+  }catch(err){
+    $('packStatus').textContent='';
+    msg('packMsg','err','Archiv se nepodařilo vytvořit: '+esc(err.message||String(err)));
+  }
+  validate();
+  if (savedPw()) applySaved();
+};
+
+/* ---- Rozbalení ---- */
+let zipFile=null, entries=[], arcName='';
+$('pickZip').onclick=e=>{e.stopPropagation(); $('inZip').click();};
+$('dropUnpack').onclick=()=>$('inZip').click();
+$('inZip').onchange=e=>{ if(e.target.files[0]) openZip(e.target.files[0]); e.target.value=''; };
+wireDrop($('dropUnpack'), e=>{ const f=e.dataTransfer.files[0]; if(f) openZip(f); });
+
+async function openZip(file){
+  zipFile=file; arcName=file.name; entries=[];
+  msg('unpackMsg'); $('unpackListWrap').hidden=true; $('unpackPwBox').hidden=true; $('upw').value='';
+  try{
+    const ents=await new zip.ZipReader(new zip.BlobReader(file)).getEntries();
+    if (ents.some(en=>en.encrypted)){
+      $('unpackPwBox').hidden=false;
+      const p=savedPw();
+      if (p){ $('upw').value=p; await unlock(true); }
+      else $('upw').focus();
+    }
+    else await showEntries(ents,undefined);
+  }catch(err){ msg('unpackMsg','err','Soubor se nepodařilo otevřít jako ZIP archiv. '+esc(err.message||'')); }
+}
+async function unlock(auto){
+  const pw=$('upw').value; if(!pw) return;
+  msg('unpackMsg'); $('doUnlock').disabled=true;
+  try{
+    const ents=await new zip.ZipReader(new zip.BlobReader(zipFile)).getEntries();
+    const files=ents.filter(en=>!en.directory);
+    if (files.length===1 && files[0].filename===HIDDEN_NAME){
+      // archiv se skrytým obsahem: rozšifrovat vnitřní ZIP a otevřít ho
+      const inner=await files[0].getData(new zip.BlobWriter('application/zip'),{password:pw});
+      const innerEnts=await new zip.ZipReader(new zip.BlobReader(inner)).getEntries();
+      await showEntries(innerEnts,undefined,true);
+    } else {
+      // ověření hesla na prvním šifrovaném souboru
+      const test=files.find(en=>en.encrypted); if(test) await test.getData(new zip.BlobWriter(),{password:pw});
+      await showEntries(ents,pw);
+    }
+    $('unpackPwBox').hidden=true;
+  }catch(err){
+    if (auto===true){ $('upw').value=''; $('upw').focus(); msg('unpackMsg','err','Uložené heslo k tomuto archivu nepasuje. Zadejte heslo ručně.'); $('doUnlock').disabled=false; return; }
+    msg('unpackMsg','err', /password/i.test(err.message||'')?'Nesprávné heslo. Zkontrolujte velká a malá písmena.':'Archiv se nepodařilo rozšifrovat: '+esc(err.message||String(err)));
+  }
+  $('doUnlock').disabled=false;
+}
+$('doUnlock').onclick=()=>unlock();
+$('upw').addEventListener('keydown',e=>{ if(e.key==='Enter') unlock(); });
+
+let curPw;
+async function showEntries(ents,pw,wasHidden){
+  entries=ents.filter(en=>!en.directory); curPw=pw;
+  $('arcLabel').textContent=`– ${arcName}, ${entries.length} souborů`;
+  $('unpackList').innerHTML=entries.map((en,i)=>`<tr><td>${esc(en.filename)}${en.encrypted||wasHidden?'<span class="lock">šifrováno</span>':''}</td><td class="num">${fmt(en.uncompressedSize)}</td><td class="act"><button class="btn" style="padding:4px 10px" data-i="${i}">Stáhnout</button></td></tr>`).join('');
+  $('unpackListWrap').hidden=false;
+  if (wasHidden) msg('unpackMsg','ok','Archiv se skrytým obsahem byl úspěšně odemčen.');
+}
+$('unpackList').onclick=async e=>{
+  const b=e.target.closest('button[data-i]'); if(!b) return;
+  const en=entries[+b.dataset.i];
+  try{ save(await en.getData(new zip.BlobWriter(),{password:curPw}), en.filename.split('/').pop()); }
+  catch(err){ msg('unpackMsg','err','Soubor se nepodařilo rozbalit: '+esc(err.message||'')); }
+};
+$('dlAll').onclick=async()=>{
+  for (let i=0;i<entries.length;i++){
+    $('unpackStatus').textContent=`Stahuji ${i+1} / ${entries.length}…`;
+    try{ save(await entries[i].getData(new zip.BlobWriter(),{password:curPw}), entries[i].filename.split('/').pop()); }catch(err){}
+    await new Promise(r=>setTimeout(r,350));
+  }
+  $('unpackStatus').textContent='Hotovo. Prohlížeč se může zeptat, zda povolit stažení více souborů.';
+};
+$('dlZip').onclick=async()=>{
+  $('unpackStatus').textContent='Připravuji ZIP…';
+  try{
+    const w=new zip.ZipWriter(new zip.BlobWriter('application/zip'),{level:5});
+    for (const en of entries) await w.add(en.filename,new zip.BlobReader(await en.getData(new zip.BlobWriter(),{password:curPw})),{lastModDate:en.lastModDate});
+    save(await w.close(), arcName.replace(/\.zip$/i,'')+'_rozbaleno.zip');
+    $('unpackStatus').textContent='';
+  }catch(err){ $('unpackStatus').textContent=''; msg('unpackMsg','err','ZIP se nepodařilo vytvořit: '+esc(err.message||'')); }
+};
+
+applySaved();
+})();
+</script>
+</body>
+</html>
