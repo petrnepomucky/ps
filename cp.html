@@ -5,24 +5,24 @@
 <title>Podací arch ePA</title>
 <style>
   :root {
-    /* Firemní paleta Pražských služeb — kompatibilní s telefonním seznamem */
-    --zelena: #009645;
-    --zelena-tm: #007a38;
-    --zelena-tmm: #00632d;
-    --oranzova: #F27D00;
-    --oranzova-tm: #d96e00;
-    --zelena-15: #e0f1e7;
-    --zelena-30: #c2e4cf;
-    --oranzova-15: #fdeede;
-    --seda: #f2f6f3;
-    --okraj: #d4ded8;
+    /* Barevná paleta */
+    --zelena: #30302E;
+    --zelena-tm: #1F1E1D;
+    --zelena-tmm: #1F1E1D;
+    --oranzova: #D97757;
+    --oranzova-tm: #C15F3C;
+    --zelena-15: #F5F0E8;
+    --zelena-30: #E5DED2;
+    --oranzova-15: #FBEDE6;
+    --seda: #F5F0E8;
+    --okraj: #E5DED2;
 
     --bg: var(--seda);
     --panel: #ffffff;
     --border: var(--okraj);
     --border-strong: #b0bcb2;
-    --text: #1a2a20;
-    --muted: #5d6b63;
+    --text: #1F1E1D;
+    --muted: #6B6862;
     --accent: var(--zelena);
     --accent-hover: var(--zelena-tm);
     --danger: #c0392b;
@@ -394,7 +394,7 @@
   }
   footer.psas-footer .fline1 { margin-bottom: 4px; }
   footer.psas-footer .fdesc {
-    color: var(--text2, #5d6b63);
+    color: var(--text2, #6B6862);
     font-size: 11.5px;
     margin-top: 4px;
     opacity: 0.85;
@@ -549,12 +549,12 @@
   .card-head .svc-warn { color: var(--oranzova-tm); font-weight: bold; }
 </style>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#009645">
+<meta name="theme-color" content="#30302E">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PS nástroje">
+<meta name="apple-mobile-web-app-title" content="Nástroje">
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));</script>
 </head>
 <body>
@@ -563,11 +563,11 @@
   <div class="prouzek"></div>
   <div class="hlavicka-in">
     <div class="znacka">
-      <span class="nm">PRAŽSKÉ SLUŽBY</span>
+      <span class="nm">NÁSTROJE</span>
       <span class="sub">PODACÍ ARCH ČESKÉ POŠTY · ePA</span>
     </div>
     <div class="hlavicka-right">
-      <div class="dept">Oddělení správy nemovitostí</div>
+      <div class="dept">vše lokálně v prohlížeči</div>
       <button class="info-btn" onclick="openAboutModal()" title="O nástroji">i</button>
     </div>
   </div>
@@ -659,10 +659,7 @@
 
 <footer class="psas-footer">
   <div class="fline1">
-    Tuto aplikaci vytvořilo Oddělení správy nemovitostí nad rámec své běžné agendy
-    <span class="sep">·</span> Pražské služby, a.s.
-    <span class="sep">·</span> Pod Šancemi 444/1, 190 00 Praha 9
-    <span class="sep">·</span> <a href="https://www.psas.cz" target="_blank" rel="noopener">www.psas.cz</a>
+    Nástroje · vše běží lokálně v prohlížeči
   </div>
   <div class="fdesc">
     Interní nástroj pro podání zásilek u České pošty · adresář s napovídáním · export elektronického podacího archu (ePA, CSV) a tisk PDF archu
@@ -675,13 +672,13 @@
     <h2>O nástroji</h2>
     <div class="stripe"></div>
     <p><strong>Podací arch — elektronický (ePA) i tištěný</strong></p>
-    <p>Interní nástroj Oddělení správy nemovitostí, <strong>Pražské služby, a.s.</strong></p>
-    <p>Hlavní výstup je <strong>elektronický podací arch (ePA)</strong> ve formátu CSV podle vzoru České pošty (list „ePA“, platnost od 1. 4. 2026): středník jako oddělovač, kódování CP-1250, stejné pořadí sloupců a hlavička jako při uložení vzorového Excelu do CSV. Adresa odesílatele (Pražské služby a.s.) je napevno; jméno, e-mail a telefon odesílatele si každý uživatel může přepsat v horní liště — jeho volba se uloží v jeho prohlížeči. Adresáti se vyplňují ve formuláři nebo z adresáře. Služby se vybírají ze seznamu a do souboru se zapíší jako kódy spojené znakem „+“ (např. 50+34).</p>
+    <p>Samostatný nástroj, vše běží lokálně v prohlížeči.</p>
+    <p>Hlavní výstup je <strong>elektronický podací arch (ePA)</strong> ve formátu CSV podle vzoru České pošty (list „ePA“, platnost od 1. 4. 2026): středník jako oddělovač, kódování CP-1250, stejné pořadí sloupců a hlavička jako při uložení vzorového Excelu do CSV. Adresa odesílatele je napevno; jméno, e-mail a telefon odesílatele si každý uživatel může přepsat v horní liště — jeho volba se uloží v jeho prohlížeči. Adresáti se vyplňují ve formuláři nebo z adresáře. Služby se vybírají ze seznamu a do souboru se zapíší jako kódy spojené znakem „+“ (např. 50+34).</p>
     <p>Tlačítko „Tisk PDF“ dál vyplní oficiální tištěnou šablonu podacího archu (10 zásilek na list, při více zásilkách více listů).</p>
     <p>Adresář se ukládá jen v tomto prohlížeči (localStorage); zálohu uděláš tlačítkem „Export adresáře“.</p>
     <div class="meta">
       <strong>Verze:</strong> 2.0 · září 2026 — přidán export ePA (CSV)<br>
-      <strong>Autor:</strong> Oddělení správy nemovitostí, Pražské služby, a.s.<br>
+      <strong>Autor:</strong> Petr Nepomucký<br>
       <strong>Vývoj podpořen:</strong> AI asistentem Claude od <a href="https://www.anthropic.com" target="_blank" rel="noopener" style="color:var(--zelena-tm);">Anthropicu</a> (claude.com)<br>
       <strong>Použité knihovny:</strong> pdf-lib (MIT), @pdf-lib/fontkit (MIT), font Liberation Sans (SIL OFL 1.1)
     </div>
@@ -1145,7 +1142,7 @@ function applyDefaults(d) {
   renderSender();
 }
 function restoreCompanyDefaults() {
-  if (!confirm('Nahradit hlavičku PDF firemními výchozími hodnotami (Pražské služby, 10800, výplatním strojem)?')) return;
+  if (!confirm('Nahradit hlavičku PDF výchozími hodnotami odesílatele (10800, výplatním strojem)?')) return;
   const keep = { cislo: document.getElementById('cislo-karty').value, sep: document.getElementById('des-sep').value };
   applyDefaults({ ...COMPANY_DEFAULTS, ...keep });
   saveDefaults();
@@ -2036,7 +2033,7 @@ renderCards();
 renderBook();
 document.getElementById('book-count').textContent = book.length;
 </script>
-<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#009645;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
+<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#30302E;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
 <script>if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)document.getElementById('ps-zpet').style.display='block';</script>
 </body>
 </html>

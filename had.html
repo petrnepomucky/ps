@@ -7,8 +7,8 @@
     <style>
         /* === FIREMNÍ STYLY V SOULADU S MANUÁLEM === */
         :root {
-            --brand-green: #009645;
-            --brand-orange: #F27D00;
+            --brand-green: #30302E;
+            --brand-orange: #D97757;
             --brand-black: #000000;
             --brand-white: #FFFFFF;
         }
@@ -232,12 +232,12 @@
         }
     </style>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#009645">
+<meta name="theme-color" content="#30302E">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PS nástroje">
+<meta name="apple-mobile-web-app-title" content="Nástroje">
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));</script>
 </head>
 <body>
@@ -432,12 +432,12 @@
             }
 
             // Jídlo (Oranžová)
-            ctx.fillStyle = "#F27D00";
+            ctx.fillStyle = "#D97757";
             ctx.fillRect(food.x + 1, food.y + 1, gridSize - 2, gridSize - 2);
 
             // Had (Zelená)
             snake.forEach(segment => {
-                ctx.fillStyle = "#009645";
+                ctx.fillStyle = "#30302E";
                 ctx.fillRect(segment.x + 1, segment.y + 1, gridSize - 2, gridSize - 2);
             });
         }
@@ -502,7 +502,7 @@
 
         draw();
     </script>
-<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#009645;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
+<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#30302E;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
 <script>if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)document.getElementById('ps-zpet').style.display='block';</script>
 </body>
 </html>
