@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCR → PDF</title>
+<title>OCR a redigování</title>
 <style>
   :root{
     --psas-green:#009645;
@@ -108,6 +108,20 @@
 
   footer{text-align:center;font-size:12px;color:var(--muted);margin-top:28px}
   @media (max-width:600px){ .btn.primary{width:100%} .actions{flex-direction:column;align-items:stretch} }
+
+  .redact{margin-top:14px;padding:12px 14px;border:1px solid #e2e6e3;border-radius:10px;background:#fafbfa}
+  .redact.on{border-color:#cfe8d9;background:#f0f8f3}
+  .redact .check{font-weight:600}
+  .redact details{margin-top:8px}
+  .redact summary{cursor:pointer;font-size:13px;color:var(--psas-green-dark);font-weight:600}
+  .redact .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 14px;margin:10px 0 8px;font-size:13px}
+  .redact .presets label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .redact input[type=checkbox]{accent-color:var(--psas-green)}
+  .redact .custom label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:6px 0 4px}
+  .redact .custom input{width:100%;padding:8px 10px;border:1px solid #d5dbd7;border-radius:8px;font:inherit;font-size:13px}
+  .redact .rowopt{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:13px}
+  .redact .rowopt label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .redact .note2{font-size:12px;color:var(--muted);margin-top:8px}
 </style>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#009645">
@@ -121,9 +135,9 @@
 <body>
 <header>
   <div class="bar">
-    <div class="mark"><span>PS</span></div>
+    <div class="mark"><span>N</span></div>
     <div>
-      <h1>OCR → PDF</h1>
+      <h1>OCR a redigování</h1>
       <p>Rozpoznání dokumentu a uložení do PDF se správnou orientací</p>
     </div>
     <button class="info-btn" id="infoBtn" title="O nástroji" aria-label="O nástroji">
@@ -163,6 +177,33 @@
       <div class="field">
         <label>Rozpoznat text</label>
         <label class="check"><input type="checkbox" id="doOcr" checked> Vyhledatelné PDF (text lze označit/hledat)</label>
+      </div>
+    </div>
+    <div class="redact" id="redBox">
+      <label class="check"><input type="checkbox" id="doRed"> Začernit osobní údaje (redigovat)</label>
+      <div id="redOpts" hidden>
+        <details>
+          <summary>Co začernit – ve výchozím stavu všechny běžné údaje</summary>
+          <div class="presets" id="redPresets">
+            <label><input type="checkbox" value="email" checked> E-maily</label>
+            <label><input type="checkbox" value="tel" checked> Telefony</label>
+            <label><input type="checkbox" value="rc" checked> Rodná čísla</label>
+            <label><input type="checkbox" value="ucet" checked> Čísla účtů</label>
+            <label><input type="checkbox" value="iban" checked> IBAN</label>
+            <label><input type="checkbox" value="datum" checked> Data (dd.mm.rrrr)</label>
+            <label><input type="checkbox" value="op" checked> Čísla OP</label>
+            <label><input type="checkbox" value="spz" checked> SPZ</label>
+          </div>
+          <div class="custom">
+            <label for="redWords">Další text k začernění (jména, adresy…) – odděl středníkem</label>
+            <input type="text" id="redWords" placeholder="např. Jan Novák; Lítožnická 12">
+          </div>
+          <div class="rowopt">
+            <label><input type="radio" name="redColor" value="black" checked> černé pruhy</label>
+            <label><input type="radio" name="redColor" value="white"> bílé (vymazání)</label>
+          </div>
+        </details>
+        <div class="note2">Začerněné údaje se do PDF vůbec nedostanou – ani do obrázku, ani do textové vrstvy. Automatika nemusí najít vše, výsledek před odesláním zkontroluj. Pro ruční začernění tažením myši otevři <a href="redigovani.html">Redigování dokumentů</a>.</div>
       </div>
     </div>
     <div class="actions">
@@ -437,7 +478,10 @@
     runBtn.disabled = true; hideResult();
     lastName = "dokument-" + new Date().toISOString().slice(0,10) + ".pdf";
 
-    (doOcr ? buildSearchable(lang) : buildImageOnly())
+    var doRed = el("doRed").checked;
+    if (doRed && !redRegs().length){ toast("Vyber, co se má začernit."); runBtn.disabled = false; return; }
+    if (doRed) lastName = lastName.replace(/\.pdf$/, "_redigovano.pdf");
+    (doRed ? buildRedacted(lang, doOcr) : doOcr ? buildSearchable(lang) : buildImageOnly())
       .then(function(bytes){
         lastPdfBytes = bytes;
         download(bytes, lastName);
@@ -482,6 +526,122 @@
       return mergePdfs(pageBytes);
     });
   }
+
+
+  /* ---------- redigování: najít osobní údaje v OCR a začernit je ---------- */
+  var RED_PRESETS = {
+    email: /[\w.+-]+@[\w-]+(\.[\w-]+)+/g,
+    tel: /(\+|00)?(420|421)?\s?\b[1-9]\d{2}\s?\d{3}\s?\d{3}\b/g,
+    rc: /\b\d{2}[0-35-8]\d[0-3]\d\s?\/?\s?\d{3,4}\b/g,
+    ucet: /\b(\d{1,6}\s?-\s?)?\d{2,10}\s?\/\s?\d{4}\b/g,
+    iban: /\b[A-Z]{2}\d{2}(\s?\d{4}){4,6}\b/g,
+    datum: /\b\d{1,2}\.\s?\d{1,2}\.\s?\d{4}\b/g,
+    op: /\b\d{9}\b/g,
+    spz: /\b\d[A-Z]\d\s?\d{4}\b|\b\d[A-Z]{2}\s?\d{4}\b/g
+  };
+  function redRegs(){
+    var regs = [];
+    document.querySelectorAll("#redPresets input:checked").forEach(function(c){ regs.push(new RegExp(RED_PRESETS[c.value].source, "g")); });
+    el("redWords").value.split(/\s*;\s*/).filter(Boolean).forEach(function(t){
+      regs.push(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*"), "gi"));
+    });
+    return regs;
+  }
+  function ocrLines(d){
+    if (d.lines && d.lines.length) return d.lines;
+    var L = [];
+    (d.blocks || []).forEach(function(b){ (b.paragraphs || []).forEach(function(p){ (p.lines || []).forEach(function(l){ L.push(l); }); }); });
+    return L;
+  }
+  function findBoxes(data, regs){
+    var s = "", map = [], lines = ocrLines(data);
+    lines.forEach(function(l, li){
+      (l.words || []).forEach(function(w, wi){
+        if (wi) { s += " "; map.push(null); }
+        for (var k = 0; k < w.text.length; k++) map.push({ li: li, w: w });
+        s += w.text;
+      });
+      s += "\n"; map.push(null);
+    });
+    var boxes = [], seen = [];
+    regs.forEach(function(re){
+      re.lastIndex = 0; var m;
+      while ((m = re.exec(s))){
+        if (!m[0].length){ re.lastIndex++; continue; }
+        var a = m.index, b = a + m[0].length;
+        if (seen.some(function(r){ return a < r[1] && b > r[0]; })) continue;
+        seen.push([a, b]);
+        var perLine = {};
+        for (var i = a; i < b; i++){
+          var c = map[i]; if (!c) continue;
+          var bb = c.w.bbox, r = perLine[c.li];
+          perLine[c.li] = r ? { x0: Math.min(r.x0, bb.x0), y0: Math.min(r.y0, bb.y0), x1: Math.max(r.x1, bb.x1), y1: Math.max(r.y1, bb.y1) } : { x0: bb.x0, y0: bb.y0, x1: bb.x1, y1: bb.y1 };
+        }
+        Object.keys(perLine).forEach(function(k){ boxes.push(perLine[k]); });
+      }
+    });
+    return { boxes: boxes, hits: seen.length };
+  }
+  function paintBoxes(canvas, boxes){
+    var ctx = canvas.getContext("2d"), pad = Math.max(2, Math.round(canvas.width / 600));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    var white = (document.querySelector('input[name="redColor"]:checked') || {}).value === "white";
+    boxes.forEach(function(b){
+      var x = b.x0 - pad, y = b.y0 - pad, w = b.x1 - b.x0 + 2 * pad, hh = b.y1 - b.y0 + 2 * pad;
+      ctx.fillStyle = white ? "#fff" : "#000"; ctx.fillRect(x, y, w, hh);
+      if (white){ ctx.strokeStyle = "#999"; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, hh); }
+    });
+  }
+  function buildRedacted(lang, searchable){
+    var regs = redRegs();
+    setProgress(2, "Načítám OCR engine (" + lang + ")…");
+    var worker, total = 0, parts = [];
+    return Tesseract.createWorker(lang, 1).then(function(w){
+      worker = w;
+      var chain = Promise.resolve();
+      pages.forEach(function(p, i){
+        chain = chain.then(function(){
+          var base = 5 + (i / pages.length) * 85, step = 85 / pages.length;
+          setProgress(base, "Hledám osobní údaje – strana " + (i + 1) + " / " + pages.length + "…");
+          var canvas = renderCanvas(p.bitmap, p.rotation);
+          return worker.recognize(canvas, {}, { blocks: true, pdf: searchable }).then(function(out){
+            var f = findBoxes(out.data, regs);
+            total += f.hits;
+            if (!f.boxes.length){ parts.push(searchable ? { pdf: new Uint8Array(out.data.pdf) } : { canvas: canvas }); return; }
+            paintBoxes(canvas, f.boxes);
+            if (!searchable){ parts.push({ canvas: canvas }); return; }
+            setProgress(base + step / 2, "Rozpoznávám začerněnou stranu " + (i + 1) + " / " + pages.length + "…");
+            return worker.recognize(canvas, {}, { pdf: true }).then(function(o2){ parts.push({ pdf: new Uint8Array(o2.data.pdf) }); });
+          });
+        });
+      });
+      return chain.then(function(){ return worker.terminate(); });
+    }).then(function(){
+      setProgress(94, "Spojuji stránky do PDF…");
+      var PDFDocument = PDFLib.PDFDocument;
+      return PDFDocument.create().then(function(doc){
+        var chain = Promise.resolve();
+        parts.forEach(function(part){
+          chain = chain.then(function(){
+            if (part.pdf) return PDFDocument.load(part.pdf).then(function(src){
+              return doc.copyPages(src, src.getPageIndices()).then(function(cp){ cp.forEach(function(pg){ doc.addPage(pg); }); });
+            });
+            return doc.embedJpg(part.canvas.toDataURL("image/jpeg", 0.9)).then(function(img){
+              doc.addPage([img.width, img.height]).drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+            });
+          });
+        });
+        return chain.then(function(){ return doc.save(); });
+      });
+    }).then(function(bytes){
+      setTimeout(function(){ toast(total ? "Začerněno údajů: " + total + " — zkontroluj výsledek." : "Žádné osobní údaje se nenašly — nic nebylo začerněno."); }, 400);
+      return bytes;
+    });
+  }
+  el("doRed").addEventListener("change", function(){
+    el("redOpts").hidden = !this.checked;
+    el("redBox").classList.toggle("on", this.checked);
+  });
 
   function buildImageOnly(){
     setProgress(10, "Skládám PDF z obrázků…");
@@ -560,5 +720,6 @@
 </script>
 <a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#009645;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
 <script>if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)document.getElementById('ps-zpet').style.display='block';</script>
+<script src="/nav.js" defer></script>
 </body>
 </html>

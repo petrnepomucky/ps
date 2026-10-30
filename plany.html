@@ -22,7 +22,7 @@
 <body>
 <header>
   <div class="bar">
-    <div class="mark"><span>PS</span></div>
+    <div class="mark"><span>N</span></div>
     <div>
       <h1>Plány podlaží</h1>
       <p>Z výkresu DWG/DXF vytvoří plán pro SharePoint (PDF) nebo interaktivní plán (HTML)</p>
@@ -134,5 +134,6 @@
   if((matchMedia('(display-mode: standalone)').matches||navigator.standalone)&&window.self===window.top)document.getElementById('ps-zpet').style.display='block';
   if('serviceWorker' in navigator && window.self===window.top) addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
 </script>
+<script src="/nav.js" defer></script>
 </body>
 </html>
