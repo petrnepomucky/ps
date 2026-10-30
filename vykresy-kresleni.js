@@ -22,7 +22,7 @@
   ];
 
   let shapes = [];         // {type, pts:[{x,y}] (svět), color, w, fs, text}
-  let tool = 'pen', color = COLORS[0][0], wIdx = 1;
+  let tool = 'pen', color = COLORS[0][0], wIdx = 1, frame = true;
   let draft = null, dragging = false, raf = 0, open = false, editor = null;
 
   // ---------- vzhled ----------
@@ -62,6 +62,7 @@
   bar.className = 'annot-bar';
   bar.innerHTML =
     TOOLS.map(([k, n, p]) => `<button class="ab" data-tool="${k}" title="${n}" aria-label="${n}"><svg viewBox="0 0 24 24">${p}</svg></button>`).join('') +
+    '<button class="ab" data-act="frame" title="Rámeček kolem textu (vypnuto = průhledný text bez rámečku)" aria-label="Rámeček kolem textu"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 9.5h6M12 9.5v6"/></svg></button>' +
     '<span class="sep"></span>' +
     COLORS.map(([c, n]) => `<button class="sw" data-color="${c}" title="${n}" aria-label="${n}" style="background:${c}"></button>`).join('') +
     '<span class="sep"></span>' +
@@ -93,12 +94,15 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const mctx = document.createElement('canvas').getContext('2d');
   const FONT = 'Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif';
+  // měřítko: kolik pixelů obrazovky je jedna jednotka výkresu (text se tak zvětšuje se zoomem)
+  function zoom() { const a = toScreen({ x: 0, y: 0 }), b = toScreen({ x: 1000, y: 0 }); return Math.hypot(b.x - a.x, b.y - a.y) / 1000 || 1; }
   function textBox(s) {
     const p = toScreen(s.pts[0]), lines = (s.text || '').split('\n');
-    mctx.font = `600 ${s.fs}px ${FONT}`;
-    const lh = Math.round(s.fs * 1.25), pad = Math.round(s.fs * 0.45);
+    const fs = s.fsW ? s.fsW * zoom() : s.fs;
+    mctx.font = `600 ${fs}px ${FONT}`;
+    const lh = fs * 1.25, pad = s.frame === false ? 0 : fs * 0.45;
     const w = Math.max(...lines.map(l => mctx.measureText(l).width)) + pad * 2;
-    return { x: p.x, y: p.y, w, h: lines.length * lh + pad * 2, lh, pad, lines };
+    return { x: p.x, y: p.y, w, h: lines.length * lh + pad * 2, lh, pad, lines, fs };
   }
   function geom(s) {
     const P = s.pts.map(toScreen);
@@ -119,8 +123,11 @@
     const st = `stroke="${s.color}" stroke-width="${s.w}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
     if (s.type === 'text') {
       const b = textBox(s);
-      let t = `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3" fill="#ffffff" fill-opacity="0.93" stroke="${s.color}" stroke-width="2"/>`;
-      b.lines.forEach((l, i) => { t += `<text x="${b.x + b.pad}" y="${b.y + b.pad + (i + 1) * b.lh - b.lh * 0.25}" fill="${s.color}" font-family="${FONT}" font-size="${s.fs}" font-weight="600" xml:space="preserve">${esc(l)}</text>`; });
+      if (b.fs < 1.5) return '';
+      const boxed = s.frame !== false;
+      let t = boxed ? `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${Math.min(3, b.fs / 5)}" fill="#ffffff" fill-opacity="0.93" stroke="${s.color}" stroke-width="${Math.max(1, Math.min(2, b.fs / 9))}"/>` : '';
+      const halo = boxed ? '' : ` stroke="#ffffff" stroke-width="${Math.max(1, b.fs / 6)}" stroke-opacity="0.85" stroke-linejoin="round" paint-order="stroke"`;
+      b.lines.forEach((l, i) => { t += `<text x="${b.x + b.pad}" y="${b.y + b.pad + (i + 1) * b.lh - b.lh * 0.25}" fill="${s.color}" font-family="${FONT}" font-size="${b.fs}" font-weight="600"${halo} xml:space="preserve">${esc(l)}</text>`; });
       return t;
     }
     const P = geom(s);
@@ -150,6 +157,7 @@
   }
   function setColor(c) { color = c; bar.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === c)); if (editor) editor.el.style.borderColor = editor.el.style.color = c; }
   function setWidth(i) { wIdx = i; bar.querySelectorAll('[data-w]').forEach(b => b.classList.toggle('on', +b.dataset.w === i)); if (editor) editor.el.style.fontSize = WIDTHS[i][1] + 'px'; }
+  function setFrame(v) { frame = v; const b = bar.querySelector('[data-act=frame]'); b.classList.toggle('on', v); b.title = v ? 'Text s rámečkem – kliknutím přepneš na průhledný text bez rámečku' : 'Průhledný text bez rámečku – kliknutím zapneš rámeček'; if (tool !== 'text') setTool('text'); }
   function closeMeasure() { ['measDistBtn', 'measAreaBtn'].forEach(id => { const b = $(id); if (b && b.classList.contains('on')) b.click(); }); }
   function toggle(on) {
     open = on === undefined ? !open : on;
@@ -166,6 +174,7 @@
     if (b.dataset.tool) setTool(b.dataset.tool);
     else if (b.dataset.color) setColor(b.dataset.color);
     else if (b.dataset.w) setWidth(+b.dataset.w);
+    else if (b.dataset.act === 'frame') setFrame(!frame);
     else if (b.dataset.act === 'undo') undo();
     else if (b.dataset.act === 'clear') { if (shapes.length && confirm('Smazat všechny poznámky ve výkresu?')) { shapes = []; kick(); } }
     else if (b.dataset.act) exportView(b.dataset.act);
@@ -240,21 +249,22 @@
     el.placeholder = 'Napiš poznámku…';
     el.style.cssText = `left:${ev.clientX - vr.left}px;top:${ev.clientY - vr.top}px;border-color:${color};color:${color};font-size:${W[1]}px;font-weight:600`;
     viewer.appendChild(el);
-    editor = { el, p };
+    editor = { el, p, frame };
+    if (!frame) { el.style.background = 'rgba(255,255,255,.55)'; el.style.borderStyle = 'dashed'; }
     el.focus(); setTimeout(() => el.focus(), 0);
     el.addEventListener('keydown', k => {
       k.stopPropagation();
       if (k.key === 'Escape') cancelEditor();
       if (k.key === 'Enter' && (k.ctrlKey || k.metaKey)) commitEditor();
     });
-    el.addEventListener('blur', () => setTimeout(commitEditor, 120));
+    el.addEventListener('blur', () => setTimeout(() => { if (editor && editor.el === el) commitEditor(); }, 120));
   }
   function commitEditor() {
     if (!editor) return;
-    const { el, p } = editor; editor = null;
+    const { el, p } = editor; const editor0 = editor; editor = null;
     const t = el.value.replace(/\s+$/, '');
     el.remove();
-    if (t) { shapes.push({ type: 'text', pts: [p], color: el.style.color ? rgbHex(el.style.color) : color, w: 2, fs: parseInt(el.style.fontSize) || WIDTHS[wIdx][1], text: t }); kick(); }
+    if (t) { const fs = parseInt(el.style.fontSize) || WIDTHS[wIdx][1]; shapes.push({ type: 'text', pts: [p], color: el.style.color ? rgbHex(el.style.color) : color, w: 2, fs, fsW: fs / zoom(), frame: editor0.frame, text: t }); kick(); }
   }
   function cancelEditor() { if (!editor) return; editor.el.remove(); editor = null; }
   function rgbHex(c) { const m = c.match(/\d+/g); return m ? '#' + m.slice(0, 3).map(n => (+n).toString(16).padStart(2, '0')).join('') : c; }
@@ -342,5 +352,5 @@
   const fn = $('fileName');
   if (fn) new MutationObserver(() => { shapes = []; draft = null; cancelEditor(); kick(); }).observe(fn, { childList: true, characterData: true, subtree: true });
 
-  setColor(color); setWidth(wIdx); setTool(tool); updateBtn();
+  setColor(color); setWidth(wIdx); setTool(tool); frame = true; bar.querySelector('[data-act=frame]').classList.add('on'); updateBtn();
 })();

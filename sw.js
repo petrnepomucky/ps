@@ -1,5 +1,5 @@
 // Nástroje – service worker. Při větší změně zvyš VERZE.
-const VERZE = 'ps-v8';
+const VERZE = 'ps-v9';
 const ZAKLAD = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', e => {
