@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#262624">
+<meta name="theme-color" content="#009645">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,9 +19,10 @@
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));</script>
 <style>
 :root{
-  --bg:#262624; --panel:#30302E; --panel-2:#3A3A37; --line:#4A4844; --line-soft:#3D3C39;
-  --ink:#F5F0E8; --ink-2:#C9C3B8; --ink-3:#9A948A;
-  --clay:#D97757; --clay-2:#C15F3C; --clay-soft:rgba(217,119,87,.14);
+  --bg:#f5f7f5; --panel:#ffffff; --panel-2:#e6f4ec; --line:#d4ded8; --line-soft:#e0e8e2;
+  --ink:#1a1a1a; --ink-2:#4a4a4a; --ink-3:#7a827d;
+  --clay:#009645; --clay-2:#007a38; --clay-soft:#e6f4ec;
+  --orange:#F27D00;
   --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
   --sans:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
 }
@@ -32,22 +33,22 @@ a{color:inherit}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 
 /* hlavička */
-.top{position:sticky;top:0;z-index:20;background:rgba(38,38,36,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.top{position:sticky;top:0;z-index:20;background:var(--clay);border-bottom:4px solid var(--orange);color:#fff}
 .top .wrap{display:flex;align-items:center;gap:12px;height:60px}
-.mark{width:30px;height:30px;border-radius:9px;background:var(--clay);display:grid;place-items:center;flex:none}
-.mark svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mark{width:30px;height:30px;border-radius:9px;background:#fff;display:grid;place-items:center;flex:none}
+.mark svg{width:17px;height:17px;stroke:var(--clay);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .brand{font-family:var(--serif);font-size:20px;font-weight:500;letter-spacing:-.01em;text-decoration:none}
 .top .sp{flex:1}
-.pill{font-size:12px;color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.pill{font-size:12px;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px;white-space:nowrap}
 
 /* úvod */
-.hero{padding:64px 0 28px}
+.hero{padding:56px 0 24px}
 .hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(32px,5vw,48px);line-height:1.12;letter-spacing:-.02em;margin-bottom:14px}
-.hero h1 em{font-style:normal;color:var(--clay)}
+.hero h1 em{font-style:normal;color:var(--orange)}
 .hero p{color:var(--ink-2);max-width:560px;font-size:16px}
 .facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .fact{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line-soft);border-radius:999px;padding:6px 13px}
-.fact i{width:6px;height:6px;border-radius:50%;background:var(--clay)}
+.fact i{width:6px;height:6px;border-radius:50%;background:var(--orange)}
 
 /* filtr */
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:28px 0 18px}
@@ -61,16 +62,16 @@ a{color:inherit}
 /* dlaždice */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding-bottom:20px}
 .card{position:relative;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line-soft);border-radius:16px;padding:20px;transition:border-color .15s,transform .15s,background .15s}
-.card:hover{border-color:var(--line);background:#33332F}
+.card:hover{border-color:#b3ddc5;box-shadow:0 8px 28px rgba(0,100,50,.09)}
 .card-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.ico{width:44px;height:44px;border-radius:12px;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.ico{width:44px;height:44px;border-radius:12px;background:var(--clay-soft);border:1px solid #cfe8d9;display:grid;place-items:center;flex:none}
 .ico svg{width:22px;height:22px;stroke:var(--clay);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .cat{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .card h2{font-family:var(--serif);font-weight:500;font-size:20px;line-height:1.25;letter-spacing:-.01em}
 .desc{color:var(--ink-2);font-size:14px;margin-bottom:12px}
 .feat{list-style:none;display:grid;gap:5px;margin-bottom:18px}
 .feat li{position:relative;padding-left:16px;font-size:13px;color:var(--ink-3)}
-.feat li::before{content:'';position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--clay)}
+.feat li::before{content:'';position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--orange)}
 .acts{display:flex;gap:8px;margin-top:auto}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 14px;border-radius:10px;font:inherit;font-size:14px;font-weight:500;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink-2)}
 .btn:hover{background:var(--panel-2);color:var(--ink)}
@@ -89,7 +90,7 @@ footer{border-top:1px solid var(--line-soft);margin-top:40px}
 footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;padding:22px 24px 30px;font-size:13px;color:var(--ink-3)}
 
 /* okna */
-.ov{position:fixed;inset:0;z-index:100;background:rgba(10,10,9,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
+.ov{position:fixed;inset:0;z-index:100;background:rgba(18,28,23,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
 .ov.open{display:flex}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;width:100%;max-width:380px;overflow:hidden}
 .modal.wide{max-width:430px}
@@ -386,7 +387,7 @@ let qrName = 'qr';
 function showQR(card){
   qrName = card.dataset.name;
   const box = $('#qr-box'); box.innerHTML = '';
-  new QRCode(box,{text:card.dataset.url,width:600,height:600,colorDark:'#262624',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  new QRCode(box,{text:card.dataset.url,width:600,height:600,colorDark:'#009645',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
   $('#qr-title').textContent = qrName;
   $('#qr-ov').classList.add('open');
 }

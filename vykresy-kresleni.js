@@ -8,7 +8,7 @@
   if (!viewer || !btn) return;
 
   const NS = 'http://www.w3.org/2000/svg';
-  const COLORS = [['#E03131', 'Červená'], ['#D97757', 'Oranžová'], ['#1971C2', 'Modrá'], ['#2F9E44', 'Zelená'], ['#111111', 'Černá']];
+  const COLORS = [['#E03131', 'Červená'], ['#F27D00', 'Oranžová'], ['#1971C2', 'Modrá'], ['#2F9E44', 'Zelená'], ['#111111', 'Černá']];
   const WIDTHS = [[2, 14, 'Tenká'], [4, 18, 'Střední'], [7, 24, 'Silná']];
   const TOOLS = [
     ['pan', 'Ovládání výkresu (bez kreslení)', '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1V4.5a1.5 1.5 0 0 1 3 0V12m0-6.5a1.5 1.5 0 0 1 3 0V13m0-5a1.5 1.5 0 0 1 3 0v6a7 7 0 0 1-7 7h-1a7 7 0 0 1-5.6-2.8L4.6 15a1.5 1.5 0 0 1 2.4-1.8L8 14.5"/>'],
@@ -35,17 +35,17 @@
   .annot-bar{position:absolute;top:12px;left:12px;z-index:5;display:none;flex-wrap:wrap;align-items:center;gap:4px;max-width:calc(100% - 24px);background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 6px 20px #0000002e;font-size:13px}
   .annot-bar.on{display:flex}
   .annot-bar .ab{appearance:none;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink);padding:0}
-  .annot-bar .ab:hover{background:#F5F0E8}
-  .annot-bar .ab.on{background:#F5F0E8;border-color:var(--psas-orange);color:var(--psas-orange-dark)}
+  .annot-bar .ab:hover{background:#f0f8f3}
+  .annot-bar .ab.on{background:#f0f8f3;border-color:var(--psas-orange);color:var(--psas-orange-dark)}
   .annot-bar .ab svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   .annot-bar .sep{width:1px;height:24px;background:var(--line);margin:0 3px}
   .annot-bar .sw{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0003;cursor:pointer;padding:0}
   .annot-bar .sw.on{box-shadow:0 0 0 2px var(--ink)}
   .annot-bar .wd{appearance:none;width:30px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
   .annot-bar .wd i{display:block;width:16px;border-radius:9px;background:var(--ink)}
-  .annot-bar .wd.on{background:#F5F0E8;border-color:var(--psas-orange)}
+  .annot-bar .wd.on{background:#f0f8f3;border-color:var(--psas-orange)}
   .annot-bar .tx{appearance:none;height:34px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;padding:0 10px;font:inherit;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:5px}
-  .annot-bar .tx:hover{background:#F5F0E8}
+  .annot-bar .tx:hover{background:#f0f8f3}
   .annot-bar .tx.pri{background:var(--psas-orange);border-color:var(--psas-orange);color:#fff}
   .annot-bar .tx.pri:hover{background:var(--psas-orange-dark)}
   .annot-edit{position:absolute;z-index:6;min-width:140px;min-height:34px;padding:5px 7px;border:2px solid;border-radius:4px;background:#fffffff2;font:inherit;line-height:1.25;resize:both;outline:none;box-shadow:0 4px 14px #0003}
@@ -288,7 +288,7 @@
     await new Promise((ok, bad) => { img.onload = ok; img.onerror = bad; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(s)); });
     g.drawImage(img, 0, 0, cv.width, cv.height);
     if (footer) {
-      g.fillStyle = '#F5F0E8'; g.fillRect(0, cv.height, out.width, fh);
+      g.fillStyle = '#f0f8f3'; g.fillRect(0, cv.height, out.width, fh);
       g.fillStyle = '#1F1E1D'; g.font = `600 ${Math.round(13 * sx)}px ${FONT}`; g.textBaseline = 'middle';
       g.fillText(($('fileName') && $('fileName').textContent) || 'Výkres', 12 * sx, cv.height + fh / 2);
       const d = new Date().toLocaleString('cs-CZ', { dateStyle: 'medium', timeStyle: 'short' });

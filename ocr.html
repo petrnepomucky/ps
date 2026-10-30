@@ -6,14 +6,14 @@
 <title>OCR → PDF</title>
 <style>
   :root{
-    --psas-green:#30302E;
-    --psas-green-dark:#1F1E1D;
-    --psas-orange:#D97757;
-    --psas-orange-dark:#C15F3C;
-    --ink:#1F1E1D;
-    --muted:#6B6862;
-    --line:#E5DED2;
-    --bg:#F5F0E8;
+    --psas-green:#009645;
+    --psas-green-dark:#00753a;
+    --psas-orange:#F27D00;
+    --psas-orange-dark:#d46e00;
+    --ink:#1c2321;
+    --muted:#6b746f;
+    --line:#e2e6e3;
+    --bg:#f4f6f5;
     --card:#ffffff;
     --danger:#c0392b;
     --radius:12px;
@@ -44,7 +44,7 @@
   .modal-head{margin:0 0 8px;font-size:15px;font-weight:700;color:var(--psas-green-dark)}
   .modal-org{margin:0 0 14px;font-size:13.5px;color:var(--ink)}
   .modal-p{margin:0 0 12px;font-size:13.5px;color:#2a332f;line-height:1.55}
-  .modal-facts{background:#F5F0E8;border:1px solid #E5DED2;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--psas-green-dark)}
+  .modal-facts{background:#f0f8f3;border:1px solid #cfe8d9;border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--psas-green-dark)}
   .modal-facts b{font-weight:700}
   .modal-facts a{color:var(--psas-green-dark);text-decoration:underline}
   .modal-facts a:hover{color:var(--psas-green)}
@@ -57,7 +57,7 @@
   .card .sub{margin:0 0 16px;font-size:13px;color:var(--muted)}
 
   .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:34px 20px;text-align:center;transition:.15s;cursor:pointer;background:#fafbfa}
-  .drop.hot{border-color:var(--psas-green);background:#F5F0E8}
+  .drop.hot{border-color:var(--psas-green);background:#f0f8f3}
   .drop svg{width:38px;height:38px;color:var(--psas-green);margin-bottom:8px}
   .drop strong{display:block;font-size:15px}
   .drop small{color:var(--muted)}
@@ -71,7 +71,7 @@
   .page .tools button{flex:1 1 auto;min-width:0}
 
   .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;display:inline-flex;align-items:center;gap:6px;justify-content:center}
-  .btn:hover{background:#F5F0E8}
+  .btn:hover{background:#f4f6f5}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .btn.icon{padding:6px 8px;font-size:14px;line-height:1}
   .btn.danger{color:var(--danger);border-color:#f0c9c4}
@@ -96,7 +96,7 @@
   .progress .fill{height:100%;width:0;background:var(--psas-green);transition:width .2s}
   .progress .label{font-size:12px;color:var(--muted);margin-top:6px}
 
-  .result{display:none;margin-top:16px;padding:16px;border:1px solid #E5DED2;background:#F5F0E8;border-radius:10px}
+  .result{display:none;margin-top:16px;padding:16px;border:1px solid #cfe8d9;background:#f0f8f3;border-radius:10px}
   .result.on{display:block}
   .result strong{color:var(--psas-green-dark)}
 
@@ -110,7 +110,7 @@
   @media (max-width:600px){ .btn.primary{width:100%} .actions{flex-direction:column;align-items:stretch} }
 </style>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#30302E">
+<meta name="theme-color" content="#009645">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -558,7 +558,7 @@
   }
 })();
 </script>
-<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#30302E;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
+<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#009645;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
 <script>if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)document.getElementById('ps-zpet').style.display='block';</script>
 </body>
 </html>

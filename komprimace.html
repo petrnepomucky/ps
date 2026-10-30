@@ -9,9 +9,9 @@
 <style>
 /* Layout: horní banner, pod ním dvě karty (Zabalit / Rozbalit) v jednom sloupci */
 :root{
-  --green:#30302E; --green-dk:#1F1E1D; --green-lt:#F5F0E8; --green-xlt:#F5F0E8;
-  --orange:#D97757; --orange-lt:#FBEDE6;
-  --bg:#F5F0E8; --card:#FFFFFF; --fg:#1F1E1D; --muted:#5A5A5A; --line:#E5DED2;
+  --green:#009645; --green-dk:#00753a; --green-lt:#DCEEE4; --green-xlt:#F1F8F4;
+  --orange:#F27D00; --orange-lt:#FDE9D2;
+  --bg:#F5F7F6; --card:#FFFFFF; --fg:#1d2420; --muted:#5A5A5A; --line:#E3E6E4;
   --danger:#C62828; --danger-lt:#FDECEA;
   --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
 }
@@ -71,7 +71,7 @@ input[type=text],input[type=password],select{font:14px var(--font);padding:8px 1
 .meter i{display:block;height:100%;width:0;transition:width .2s,background .2s}
 .hint{font-size:12px;color:var(--muted)}
 .note{background:var(--orange-lt);border-left:4px solid var(--orange);padding:12px 14px;border-radius:4px;font-size:13px}
-.note b{color:#8A3F24}
+.note b{color:#9A5200}
 @media (prefers-color-scheme: dark){.note b{color:var(--orange)}}
 .err{background:var(--danger-lt);border-left:4px solid var(--danger);padding:10px 14px;border-radius:4px;font-size:13px}
 .ok{background:var(--green-lt);border-left:4px solid var(--green);padding:10px 14px;border-radius:4px;font-size:13px}
@@ -298,7 +298,7 @@ function validate(){
   const use=$('usePw').checked, p=$('pw').value, p2=$('pw2').value;
   $('pwBox').hidden=!use;
   $('hide').disabled=!use; $('hideWrap').classList.toggle('disabled',!use); if(!use) $('hide').checked=false;
-  const s=strength(p), cols=['#C62828','#C62828','#D97757','#D97757','#30302E','#30302E'];
+  const s=strength(p), cols=['#C62828','#C62828','#F27D00','#F27D00','#009645','#009645'];
   $('meter').style.width=(p?Math.max(12,s*20):0)+'%'; $('meter').style.background=cols[s];
   $('pwHint').textContent = !p?'Zadejte heslo, alespoň 10 znaků.': p.length<10?'Heslo je příliš krátké, použijte alespoň 10 znaků.': s>=4?'Silné heslo.':'Heslo projde, silnější bude s číslicemi, velkými písmeny a znaky.';
   $('pw2Hint').textContent = p2 ? (p===p2?'Hesla se shodují.':'Hesla se neshodují.') : '';

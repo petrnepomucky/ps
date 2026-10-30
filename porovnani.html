@@ -13,10 +13,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{
-  --green:#30302E;--green-dark:#1F1E1D;--green-50:#E8A68C;--green-15:#F5F0E8;
-  --orange:#D97757;--orange-15:#FBEDE6;--orange-dark:#8A3F24;
-  --ink:#1d1d1d;--muted:#5A5A5A;--line:#e3e3e3;--bg:#F5F0E8;--card:#fff;
-  --ins:#1F1E1D;--ins-bg:#E5DED2;--del:#c0392b;--del-bg:#fbe0dc;
+  --green:#009645;--green-dark:#007a38;--green-50:#80cba2;--green-15:#d9efe3;
+  --orange:#F27D00;--orange-15:#fdecd9;--orange-dark:#9A5200;
+  --ink:#1d1d1d;--muted:#5A5A5A;--line:#e3e3e3;--bg:#f4f6f5;--card:#fff;
+  --ins:#0a7a3a;--ins-bg:#d6f2e1;--del:#c0392b;--del-bg:#fbe0dc;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
@@ -33,7 +33,7 @@ main{max-width:1400px;margin:0 auto;padding:18px 16px 40px}
 .card h2 .n{background:var(--orange);color:#fff;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-size:12px}
 .inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:800px){.inputs{grid-template-columns:1fr}}
-.drop{border:2px dashed var(--green-50);border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:#FFFDF9;transition:.15s}
+.drop{border:2px dashed var(--green-50);border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:#fbfdfc;transition:.15s}
 .drop.over{background:var(--green-15);border-color:var(--green)}
 .drop .lbl{font-weight:bold;color:var(--green);font-size:15px}
 .drop .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-bottom:6px;color:#fff}
@@ -50,8 +50,8 @@ details.txt textarea{width:100%;height:160px;font-family:Arial;font-size:12px;bo
 .opts label{display:flex;gap:6px;align-items:center;font-size:13px}
 .btn{background:var(--green);color:#fff;border:0;border-radius:6px;padding:10px 18px;font-size:14px;font-weight:bold;cursor:pointer}
 .btn:hover{background:var(--green-dark)}
-.btn:disabled{background:#D6CEC0;cursor:not-allowed}
-.btn.or{background:var(--orange)}.btn.or:hover{background:#C15F3C}
+.btn:disabled{background:#b8c9bf;cursor:not-allowed}
+.btn.or{background:var(--orange)}.btn.or:hover{background:#d96f00}
 .btn.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
 .btn.sm{padding:6px 10px;font-size:12px}
 input[type=text]{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
@@ -62,7 +62,7 @@ input[type=text]{border:1px solid var(--line);border-radius:6px;padding:7px 9px;
 .stats{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
 .pill{font-size:12px;padding:4px 10px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
 .pill b{margin-left:4px}
-.pill.p{background:var(--orange-15);border-color:#EDB49C}
+.pill.p{background:var(--orange-15);border-color:#f6c38a}
 .pill.a{background:var(--green-15);border-color:var(--green-50)}
 .pill.r{background:#eee}
 .doc{tab-size:4;white-space:pre-wrap;line-height:1.7;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:22px 26px;background:#fff;max-height:70vh;overflow:auto}
@@ -111,28 +111,28 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
   @page{margin:14mm 14mm 16mm}
   .pb{display:grid;grid-template-columns:70px 1fr 160px;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .pb>div{padding:10px}
-  .pb .g{background:#30302E}.pb .o{background:#D97757;text-align:right;font-size:9pt}
+  .pb .g{background:#009848}.pb .o{background:#F27D00;text-align:right;font-size:9pt}
   .pb .t1{font-size:15pt;font-weight:bold}.pb .t2{font-size:10pt}
   .ptitle{font-size:20pt;font-weight:200;margin:16px 0 4px}
-  .prule{height:2px;background:#D97757;margin-bottom:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .prule{height:2px;background:#F27D00;margin-bottom:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .pmeta{width:100%;border-collapse:collapse;margin-bottom:12px}
   .pmeta td{padding:4px 8px;border-bottom:1px solid #e3e3e3;font-size:9.5pt}
   .pmeta td:first-child{width:170px;color:#5A5A5A}
-  .ph{color:#30302E;font-size:12pt;font-weight:bold;border-bottom:1px solid #30302E;margin:16px 0 8px;padding-bottom:3px}
+  .ph{color:#009645;font-size:12pt;font-weight:bold;border-bottom:1px solid #009645;margin:16px 0 8px;padding-bottom:3px}
   .pdoc{white-space:pre-wrap;line-height:1.55}
   .pdoc del{color:#c0392b;background:#fbe0dc;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .pdoc ins{color:#1F1E1D;background:#E5DED2;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pdoc ins{color:#0a7a3a;background:#d6f2e1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ptab{width:100%;border-collapse:collapse;font-size:9pt}
-  .ptab th{background:#30302E;color:#fff;text-align:left;padding:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ptab th{background:#009645;color:#fff;text-align:left;padding:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ptab td{padding:5px;border-bottom:1px solid #e3e3e3;vertical-align:top;word-break:break-word}
   .ptab tr:nth-child(even) td{background:#f2f8f4;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .psig{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;page-break-inside:avoid}
   .psig div{padding:12px;min-height:80px;font-size:9.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .psig .l{background:#F5F0E8}.psig .r{background:#FBEDE6}
+  .psig .l{background:#DCEEE4}.psig .r{background:#FDE9D2}
 }
 </style>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#30302E">
+<meta name="theme-color" content="#009645">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -601,7 +601,7 @@ function printProtocol(){
   window.print();
 }
 </script>
-<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#30302E;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
+<a id="ps-zpet" href="/index.html" title="Zpět na rozcestník" style="display:none;position:fixed;left:12px;bottom:12px;z-index:99999;background:#009645;color:#fff;font:600 13px Arial,sans-serif;padding:9px 14px;border-radius:20px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.25)">&larr; Nástroje</a>
 <script>if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)document.getElementById('ps-zpet').style.display='block';</script>
 </body>
 </html>
