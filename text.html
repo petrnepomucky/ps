@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text z obrazovky</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#009645">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nástroje">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js"></script>
+<style>
+  :root{--g:#009645;--gd:#00753a;--o:#F27D00;--od:#d46e00;--ink:#1c2321;--muted:#6b746f;--line:#e2e6e3;--bg:#f4f6f5;--radius:12px;
+    --shadow:0 1px 3px rgba(0,0,0,.06),0 6px 18px rgba(0,0,0,.05);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:960px;margin:0 auto;padding:0 16px 64px}
+  header{background:var(--g);color:#fff}
+  header .bar{max-width:960px;margin:0 auto;padding:18px 16px;display:flex;align-items:center;gap:14px}
+  header .mark{width:40px;height:40px;border-radius:9px;background:#fff;display:grid;place-items:center;flex:none}
+  header .mark span{color:var(--g);font-weight:800;font-size:20px}
+  header h1{margin:0;font-size:20px;font-weight:700}
+  header p{margin:2px 0 0;font-size:13px;opacity:.9}
+  header .accent{height:4px;background:var(--o)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:20px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:700}
+  .sub{margin:0 0 16px;font-size:13px;color:var(--muted)}
+  .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:10px 16px;font:600 14px inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn:hover{background:#f0f8f3}
+  .btn.primary{background:var(--o);border-color:var(--o);color:#fff}
+  .btn.primary:hover{background:var(--od)}
+  .btn.green{background:var(--g);border-color:var(--g);color:#fff}
+  .btn.green:hover{background:var(--gd)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .or{font-size:13px;color:var(--muted)}
+  .paste{margin-top:14px;border:2px dashed var(--line);border-radius:var(--radius);padding:22px;text-align:center;background:#fafbfa;cursor:pointer;font-size:14px}
+  .paste.hot{border-color:var(--g);background:#f0f8f3}
+  .paste b{display:block;margin-bottom:2px}
+  .paste small{color:var(--muted)}
+  kbd{background:#f0f2f1;border:1px solid #d5dbd7;border-bottom-width:2px;border-radius:5px;padding:1px 6px;font:600 12px ui-monospace,Consolas,monospace}
+  .row{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-top:14px;font-size:13px}
+  .row label{display:flex;align-items:center;gap:6px}
+  select{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit}
+  input[type=checkbox]{accent-color:var(--g)}
+  /* výběr oblasti */
+  .stage{position:relative;display:none;margin-top:6px;border-radius:10px;overflow:auto;max-height:70vh;border:1px solid var(--line);background:#222;user-select:none;touch-action:none}
+  .stage.on{display:block}
+  .stage img{display:block;max-width:none;cursor:crosshair}
+  .stage .sel{position:absolute;border:2px solid var(--o);background:rgba(242,125,0,.12);box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none;display:none}
+  .stage .tip{position:sticky;top:8px;left:8px;display:inline-block;margin:8px;background:rgba(28,35,33,.85);color:#fff;font-size:12.5px;padding:5px 10px;border-radius:7px;z-index:2;pointer-events:none}
+  .result{display:none}
+  .result.on{display:block}
+  textarea{width:100%;min-height:160px;padding:12px;border:1px solid var(--line);border-radius:10px;font:14px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+  .crop{max-width:100%;max-height:160px;border:1px solid var(--line);border-radius:8px;display:block;margin-bottom:10px;background:#fff}
+  .prog{height:6px;background:#e7ece9;border-radius:99px;overflow:hidden;margin:10px 0 4px;display:none}
+  .prog.on{display:block}
+  .prog i{display:block;height:100%;width:0;background:var(--g);transition:width .2s}
+  .status{font-size:13px;color:var(--muted);min-height:20px}
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:70;max-width:90vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="mark"><span>N</span></div>
+    <div><h1>Text z obrazovky</h1><p>Označ rámeček na obrazovce, text se rozpozná a zkopíruje do schránky</p></div>
+  </div>
+  <div class="accent"></div>
+</header>
+
+<div class="wrap">
+  <div class="card" id="srcCard">
+    <h2>1 · Odkud vzít obrázek</h2>
+    <p class="sub">Vyber obrazovku nebo okno, nebo vlož snímek obrazovky ze schránky. Pak v něm tažením myši označíš rámeček s textem.</p>
+    <div class="acts">
+      <button class="btn primary" id="capBtn">🖥 Vybrat obrazovku nebo okno</button>
+      <span class="or">nebo</span>
+      <button class="btn" id="fileBtn">Otevřít obrázek</button>
+    </div>
+    <div class="paste" id="paste" tabindex="0">
+      <b>Vlož snímek obrazovky: <kbd>Ctrl</kbd> + <kbd>V</kbd></b>
+      <small>Tip: <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> udělá výřez obrazovky, pak sem stačí kliknout a vložit. Obrázek jde sem i přetáhnout.</small>
+    </div>
+    <div class="row">
+      <label>Jazyk <select id="lang"><option value="ces" selected>Čeština</option><option value="ces+eng">Čeština + angličtina</option><option value="eng">Angličtina</option><option value="ces+slk">Čeština + slovenština</option></select></label>
+      <label><input type="checkbox" id="lines" checked> Zachovat řádky</label>
+      <label><input type="checkbox" id="auto" checked> Kopírovat hned po rozpoznání</label>
+    </div>
+    <input type="file" id="file" accept="image/*" hidden>
+  </div>
+
+  <div class="card" id="selCard" style="display:none">
+    <h2>2 · Označ rámeček s textem</h2>
+    <p class="sub">Táhni myší (nebo prstem) přes text, který chceš zkopírovat. Kolečkem nebo posuvníky se dá obrázek posouvat.</p>
+    <div class="stage" id="stage"><span class="tip">Táhni přes text, který chceš zkopírovat</span><img id="img" alt="Snímek obrazovky"><div class="sel" id="sel"></div></div>
+    <div class="acts" style="margin-top:12px">
+      <button class="btn" id="allBtn">Rozpoznat celý obrázek</button>
+      <button class="btn" id="newBtn">Nový snímek</button>
+    </div>
+  </div>
+
+  <div class="card result" id="resCard">
+    <h2>3 · Rozpoznaný text</h2>
+    <img class="crop" id="crop" alt="Vybraná oblast">
+    <div class="prog" id="prog"><i></i></div>
+    <div class="status" id="status"></div>
+    <textarea id="out" placeholder="Tady se objeví rozpoznaný text – můžeš ho před kopírováním upravit."></textarea>
+    <div class="acts" style="margin-top:10px">
+      <button class="btn green" id="copyBtn">📋 Kopírovat do schránky</button>
+      <button class="btn" id="againBtn">Vybrat další rámeček</button>
+    </div>
+    <p class="note">Vše běží lokálně v prohlížeči, obrázek se nikam neodesílá. Při prvním použití se jednou stáhne OCR engine a jazyková data (pár MB). Výsledek OCR vždy zkontroluj – hlavně čísla.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var el = function(id){ return document.getElementById(id); };
+  var img = el('img'), stage = el('stage'), sel = el('sel');
+  var shot = null;          // canvas s celým snímkem v plném rozlišení
+  var worker = null, workerLang = null;
+
+  function toast(m){ var t = el('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('on'); }, 2800); }
+
+  /* ---------- zdroj obrázku ---------- */
+  function useCanvas(c){
+    shot = c;
+    img.src = c.toDataURL('image/png');
+    img.onload = function(){
+      var maxW = stage.clientWidth || 900;
+      img.style.width = (c.width > maxW ? maxW : c.width) + 'px';
+      if (c.width / window.devicePixelRatio <= maxW) img.style.width = Math.round(c.width / Math.max(1, window.devicePixelRatio)) + 'px';
+    };
+    el('selCard').style.display = '';
+    stage.classList.add('on');
+    sel.style.display = 'none';
+    setTimeout(function(){ el('selCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+  }
+  function fromBlob(blob){
+    if (!blob || !/^image\//.test(blob.type)) { toast('Tohle není obrázek.'); return; }
+    createImageBitmap(blob).then(function(bm){
+      var c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height;
+      c.getContext('2d').drawImage(bm, 0, 0); useCanvas(c);
+    }).catch(function(){ toast('Obrázek se nepodařilo načíst.'); });
+  }
+  el('capBtn').addEventListener('click', function(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { toast('Tento prohlížeč neumí sdílet obrazovku. Použij Win+Shift+S a Ctrl+V.'); return; }
+    navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'never' }, audio: false }).then(function(stream){
+      var v = document.createElement('video'); v.muted = true; v.srcObject = stream;
+      return v.play().then(function(){ return new Promise(function(r){ setTimeout(r, 350); }); }).then(function(){
+        var c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext('2d').drawImage(v, 0, 0);
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        useCanvas(c);
+      });
+    }).catch(function(e){ if (e && e.name !== 'NotAllowedError') toast('Sdílení obrazovky se nepodařilo: ' + e.message); });
+  });
+  el('fileBtn').addEventListener('click', function(){ el('file').click(); });
+  el('file').addEventListener('change', function(){ if (this.files[0]) fromBlob(this.files[0]); this.value = ''; });
+  var paste = el('paste');
+  paste.addEventListener('click', function(){
+    paste.focus();
+    if (navigator.clipboard && navigator.clipboard.read) navigator.clipboard.read().then(function(items){
+      for (var i = 0; i < items.length; i++){ var t = items[i].types.find(function(x){ return /^image\//.test(x); }); if (t) return items[i].getType(t).then(fromBlob); }
+      toast('Ve schránce není obrázek. Udělej výřez přes Win+Shift+S.');
+    }).catch(function(){ toast('Stiskni Ctrl+V pro vložení obrázku.'); });
+  });
+  document.addEventListener('paste', function(e){
+    var items = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++) if (items[i].type.indexOf('image/') === 0) { e.preventDefault(); fromBlob(items[i].getAsFile()); return; }
+  });
+  ['dragenter','dragover'].forEach(function(t){ document.addEventListener(t, function(e){ e.preventDefault(); paste.classList.add('hot'); }); });
+  ['dragleave','drop'].forEach(function(t){ document.addEventListener(t, function(e){ e.preventDefault(); paste.classList.remove('hot'); }); });
+  document.addEventListener('drop', function(e){ var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) fromBlob(f); });
+  el('newBtn').addEventListener('click', function(){ el('srcCard').scrollIntoView({ behavior: 'smooth' }); });
+
+  /* ---------- výběr rámečku ---------- */
+  var start = null;
+  function pt(e){ var r = img.getBoundingClientRect(); return { x: Math.max(0, Math.min(r.width, e.clientX - r.left)), y: Math.max(0, Math.min(r.height, e.clientY - r.top)) }; }
+  function drawSel(a, b){
+    var x = Math.min(a.x, b.x), y = Math.min(a.y, b.y), w = Math.abs(a.x - b.x), h = Math.abs(a.y - b.y);
+    sel.style.cssText = 'display:block;left:' + (x + img.offsetLeft) + 'px;top:' + (y + img.offsetTop) + 'px;width:' + w + 'px;height:' + h + 'px';
+    return { x: x, y: y, w: w, h: h };
+  }
+  img.addEventListener('dragstart', function(e){ e.preventDefault(); });
+  img.addEventListener('pointerdown', function(e){ if (e.button > 0) return; e.preventDefault(); start = pt(e); img.setPointerCapture(e.pointerId); drawSel(start, start); });
+  img.addEventListener('pointermove', function(e){ if (start) drawSel(start, pt(e)); });
+  img.addEventListener('pointerup', function(e){
+    if (!start) return;
+    var r = drawSel(start, pt(e)); start = null;
+    if (r.w < 6 || r.h < 6) { sel.style.display = 'none'; return; }
+    var k = shot.width / img.getBoundingClientRect().width;
+    recognize({ x: r.x * k, y: r.y * k, w: r.w * k, h: r.h * k });
+  });
+  el('allBtn').addEventListener('click', function(){ if (shot) { sel.style.display = 'none'; recognize({ x: 0, y: 0, w: shot.width, h: shot.height }); } });
+  el('againBtn').addEventListener('click', function(){ el('selCard').scrollIntoView({ behavior: 'smooth' }); });
+
+  /* ---------- OCR ---------- */
+  function cropCanvas(r){
+    // malý text zvětšíme – OCR čte nejlépe písmo kolem 30 px
+    var scale = r.h < 120 ? 3 : r.h < 300 ? 2 : 1;
+    var c = document.createElement('canvas');
+    c.width = Math.round(r.w * scale); c.height = Math.round(r.h * scale);
+    var g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(shot, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+    // tmavé pozadí (tmavý režim) převrátíme, OCR chce tmavé písmo na světlém
+    var d = g.getImageData(0, 0, c.width, c.height), p = d.data, sum = 0, n = 0;
+    for (var i = 0; i < p.length; i += 40) { sum += p[i] * .3 + p[i+1] * .59 + p[i+2] * .11; n++; }
+    if (sum / n < 110) { for (var j = 0; j < p.length; j += 4) { p[j] = 255 - p[j]; p[j+1] = 255 - p[j+1]; p[j+2] = 255 - p[j+2]; } g.putImageData(d, 0, 0); }
+    return c;
+  }
+  function setProg(pct, msg){ el('prog').classList.add('on'); el('prog').firstChild.style.width = pct + '%'; el('status').textContent = msg; }
+  function getWorker(lang){
+    if (worker && workerLang === lang) return Promise.resolve(worker);
+    var old = worker; worker = null;
+    return Promise.resolve(old && old.terminate()).then(function(){
+      return Tesseract.createWorker(lang, 1, { logger: function(m){
+        if (m.status === 'recognizing text') setProg(40 + m.progress * 60, 'Rozpoznávám text…');
+        else if (m.progress != null) setProg(Math.round(m.progress * 40), 'Načítám OCR (' + lang + ')…');
+      } });
+    }).then(function(w){ worker = w; workerLang = lang; return w; });
+  }
+  var busy = false;
+  function recognize(r){
+    if (typeof Tesseract === 'undefined') { toast('OCR knihovna se nenačetla – zkontroluj připojení k internetu.'); return; }
+    if (busy) return; busy = true;
+    var c = cropCanvas(r);
+    el('crop').src = c.toDataURL('image/png');
+    el('resCard').classList.add('on'); el('out').value = '';
+    el('resCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setProg(2, 'Připravuji…');
+    var lang = el('lang').value;
+    getWorker(lang).then(function(w){
+      return w.setParameters({ preserve_interword_spaces: '1' }).then(function(){ return w.recognize(c); });
+    }).then(function(res){
+      var t = (res.data.text || '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+      if (!el('lines').checked) t = t.replace(/-\n(?=\p{Ll})/gu, '').replace(/\s*\n\s*/g, ' ');
+      el('out').value = t;
+      el('prog').classList.remove('on');
+      if (!t) { el('status').textContent = 'V rámečku se nenašel žádný text. Zkus větší rámeček nebo jiný jazyk.'; return; }
+      el('status').textContent = 'Rozpoznáno ' + t.length + ' znaků' + (res.data.confidence ? ' · jistota ' + Math.round(res.data.confidence) + ' %' : '') + '.';
+      if (el('auto').checked) copy(true);
+    }).catch(function(e){ console.error(e); el('prog').classList.remove('on'); el('status').textContent = 'Rozpoznání se nepodařilo: ' + (e && e.message || e); })
+      .then(function(){ busy = false; });
+  }
+  function copy(auto){
+    var t = el('out').value; if (!t) return;
+    var ok = function(){ toast('Text zkopírován do schránky.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok).catch(fallback); else fallback();
+    function fallback(){ var ta = el('out'); ta.focus(); ta.select(); try { document.execCommand('copy') ? ok() : toast(auto ? 'Klikni na „Kopírovat do schránky“.' : 'Kopírování se nepodařilo – použij Ctrl+C.'); } catch (e) { toast('Použij Ctrl+C.'); } }
+  }
+  el('copyBtn').addEventListener('click', function(){ copy(false); });
+})();
+</script>
+<script>
+  if('serviceWorker' in navigator && window.self===window.top) addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
+</script>
+<script src="/nav.js" defer></script>
+</body>
+</html>

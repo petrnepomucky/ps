@@ -7,6 +7,7 @@
     ['index.html', '⌂ Nástroje'],
     ['cp.html', 'Podací arch'],
     ['ocr.html', 'OCR a redigování'],
+    ['text.html', 'Text z obrazovky'],
     ['redigovani.html', 'Ruční redigování'],
     ['sig.html', 'Podpis'],
     ['porovnani.html', 'Porovnání'],

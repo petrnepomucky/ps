@@ -37,6 +37,10 @@
       "url": "/ocr.html"
     },
     {
+      "name": "Text z obrazovky",
+      "url": "/text.html"
+    },
+    {
       "name": "Podpis",
       "url": "/sig.html"
     },
