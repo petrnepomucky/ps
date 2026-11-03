@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hromadný tisk</title>
+<link rel="manifest" href="/manifest.json">
+<script src="/tisk-assets/tisk-pdf.js"></script>
+<style>
+:root{
+  --green:#009645; --green-dk:#00753a; --green-lt:#DCEEE4; --green-xlt:#F1F8F4;
+  --orange:#F27D00; --orange-lt:#FDE9D2;
+  --bg:#F5F7F6; --card:#FFFFFF; --fg:#1d2420; --muted:#5A5A5A; --line:#E3E6E4;
+  --danger:#C62828; --danger-lt:#FDECEA;
+  --font:Arial,"Helvetica Neue",Helvetica,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141816; --card:#1d2320; --fg:#E6EBE8; --muted:#A3ADA8; --line:#2E3632;
+    --green-lt:#163525; --green-xlt:#18241e; --orange-lt:#3a2814; --danger-lt:#3a1b1b; color-scheme:dark }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--fg);font-size:14px;line-height:1.45}
+header{background:#43964F;border-bottom:6px solid var(--orange);color:#fff}
+.hb{max-width:920px;margin:0 auto;padding:22px 16px;display:flex;align-items:center;gap:18px}
+.hb-logo{flex:none;width:60px;height:60px;border-radius:12px;background:#fff;color:#43964F;display:grid;place-items:center}
+.hb-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hb-main b{font-size:28px;line-height:1.1}
+.hb-main span{font-size:15px;opacity:.95}
+.hb-info{flex:none;width:52px;height:52px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;display:grid;place-items:center}
+.hb-info:hover{background:rgba(255,255,255,.22)}
+.hb-info:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+@media (max-width:520px){.hb{gap:12px}.hb-logo{width:48px;height:48px}.hb-logo svg{width:26px;height:26px}.hb-main b{font-size:22px}.hb-main span{font-size:13px}.hb-info{width:42px;height:42px}}
+main{max-width:920px;margin:0 auto;padding:24px 16px 48px;display:flex;flex-direction:column;gap:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:16px}
+h2{margin:0;font-size:16px;color:var(--green);border-bottom:1px solid var(--green);padding-bottom:6px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 small{font-weight:normal;color:var(--muted);font-size:13px}
+.drop{border:2px dashed var(--green);background:var(--green-xlt);border-radius:8px;padding:30px 16px;text-align:center;cursor:pointer;transition:background .15s}
+.drop.over{background:var(--green-lt)}
+.drop strong{display:block;font-size:16px;margin-bottom:4px}
+.drop small{color:var(--muted);display:block}
+.drop .types{margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.drop .types span{font-size:11px;font-weight:bold;letter-spacing:.5px;padding:3px 8px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--muted)}
+.drop .btns{margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn{border:1px solid var(--green);background:var(--card);color:var(--green);padding:8px 14px;border-radius:5px;font:bold 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--green-xlt)}
+.btn.primary{background:var(--green);color:#fff}
+.btn.primary:hover{background:var(--green-dk)}
+.btn.big{padding:12px 22px;font-size:15px}
+.btn.ghost{border-color:var(--line);color:var(--fg)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,.drop:focus-visible,.ib:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar .sp{flex:1}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.row{display:grid;grid-template-columns:22px 26px 34px 1fr auto auto;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid var(--line);background:var(--card)}
+.row:first-child{border-top:0}
+.row:nth-child(even){background:var(--green-xlt)}
+.row.off .nm,.row.off .ico{opacity:.45}
+.row.skip{background:var(--card)}
+.row.dragging{opacity:.4}
+.row.dropbefore{box-shadow:inset 0 3px 0 var(--orange)}
+.row.dropafter{box-shadow:inset 0 -3px 0 var(--orange)}
+.grip{cursor:grab;color:var(--muted);user-select:none;text-align:center;font-size:16px;line-height:1}
+.row input[type=checkbox]{width:18px;height:18px;accent-color:var(--green);margin:0;cursor:pointer}
+.ico{width:34px;height:40px;border-radius:4px;display:grid;place-items:center;font-size:10px;font-weight:bold;color:#fff;letter-spacing:.3px}
+.ico.pdf{background:#C62828}.ico.img{background:#1565C0}.ico.skip{background:#8a8f8c}
+.nm{min-width:0}
+.nm b{display:block;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;font-weight:bold;padding:1px 7px;border-radius:10px;margin-left:4px;vertical-align:1px}
+.tag.o{background:var(--orange-lt);color:#9A5200}
+.tag.g{background:var(--line);color:var(--muted)}
+@media (prefers-color-scheme: dark){.tag.o{color:var(--orange)}}
+.meta{color:var(--muted);font-size:12px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.meta b{color:var(--fg);font-size:13px}
+.acts{display:flex;gap:2px}
+.ib{border:0;background:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:4px;display:grid;place-items:center}
+.ib:hover{background:var(--green-lt);color:var(--fg)}
+.ib.x:hover{background:var(--danger-lt);color:var(--danger)}
+.ib:disabled{opacity:.25;cursor:default;background:none}
+@media (max-width:620px){
+  .row{grid-template-columns:22px 1fr auto;grid-template-areas:"c n m" "c a a";row-gap:4px}
+  .row .grip,.row .ico{display:none}
+  .row input{grid-area:c}.row .nm{grid-area:n}.row .meta{grid-area:m}.row .acts{grid-area:a;justify-content:flex-end}
+}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.check{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:6px;background:var(--green-xlt);border:1px solid var(--line);cursor:pointer}
+.check input{margin-top:2px;width:17px;height:17px;accent-color:var(--green);flex:none}
+.check b{display:block}
+.check small{color:var(--muted)}
+.printbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.status{font-size:13px;color:var(--muted)}
+.status a{color:var(--green);font-weight:bold}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--green);transition:width .15s}
+.note{background:var(--orange-lt);border-left:4px solid var(--orange);padding:12px 14px;border-radius:4px;font-size:13px}
+.note b{color:#9A5200}
+@media (prefers-color-scheme: dark){.note b{color:var(--orange)}}
+.err{background:var(--danger-lt);border-left:4px solid var(--danger);padding:10px 14px;border-radius:4px;font-size:13px}
+.ok{background:var(--green-lt);border-left:4px solid var(--green);padding:10px 14px;border-radius:4px;font-size:13px}
+.empty{color:var(--muted);text-align:center;padding:6px 0 2px;font-size:13px}
+dialog{border:0;border-radius:10px;padding:0;max-width:560px;width:calc(100% - 32px);background:var(--card);color:var(--fg);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .dh{background:var(--green);color:#fff;padding:14px 18px;font-weight:bold;font-size:16px;border-bottom:4px solid var(--orange)}
+dialog .db{padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+dialog .db ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+dialog .df{padding:0 18px 16px;display:flex;justify-content:flex-end}
+footer{text-align:center;font-size:11px;color:var(--muted);letter-spacing:1.5px;padding-bottom:24px}
+#printFrame{position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="hb">
+  <div class="hb-logo">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/><circle cx="17.5" cy="11.8" r=".6" fill="currentColor"/></svg>
+  </div>
+  <div class="hb-main"><b>Hromadný tisk</b><span>Všechny přílohy najednou – jedno PDF, jeden tisk</span></div>
+  <button class="hb-info" type="button" id="infoBtn" title="Jak to funguje" aria-label="Jak to funguje">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".6" fill="currentColor"/></svg>
+  </button>
+</div></header>
+
+<main>
+  <div id="libErr"></div>
+
+  <section class="card">
+    <h2>1. Vložte dokumenty</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Vybrat soubory k tisku">
+      <strong>Přetáhněte sem přílohy, celý e-mail nebo ZIP</strong>
+      <small>Z Outlooku můžete přetáhnout rovnou samotnou zprávu – přílohy se z ní vytáhnou automaticky.</small>
+      <small>Vše se zpracuje jen ve vašem prohlížeči, nic se neodesílá na server.</small>
+      <div class="types"><span>PDF</span><span>JPG · PNG · GIF · WEBP</span><span>ZIP</span><span>E-MAIL .MSG · .EML</span></div>
+      <div class="btns">
+        <button class="btn primary" type="button" id="pick">Vybrat soubory</button>
+      </div>
+      <input type="file" id="inFiles" multiple hidden accept=".pdf,.zip,.msg,.eml,image/*,application/pdf,message/rfc822">
+    </div>
+    <div id="loadMsg"></div>
+  </section>
+
+  <section class="card" id="listCard" hidden>
+    <h2>2. Co se vytiskne <small id="sum"></small></h2>
+    <div class="toolbar">
+      <button class="btn ghost" type="button" id="selAll">Vybrat vše</button>
+      <button class="btn ghost" type="button" id="selNone">Zrušit výběr</button>
+      <button class="btn ghost" type="button" id="sortName">Seřadit podle názvu</button>
+      <span class="sp"></span>
+      <button class="btn ghost" type="button" id="clearAll">Vyprázdnit seznam</button>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="hint status">Pořadí změníte přetažením za úchyt ⋮⋮ nebo šipkami. Odškrtnuté položky se netisknou.</div>
+  </section>
+
+  <section class="card" id="printCard" hidden>
+    <h2>3. Tisk</h2>
+    <div class="opts">
+      <label class="check"><input type="checkbox" id="optDuplex">
+        <span><b>Oboustranný tisk – každý dokument na nový list</b><small>Za dokument s lichým počtem stran se vloží prázdná strana, aby další dokument nezačínal na rubu.</small></span></label>
+      <label class="check"><input type="checkbox" id="optSig" checked>
+        <span><b>Přeskakovat obrázky z podpisů e-mailů</b><small>Loga a malé vložené obrázky ze zpráv se do seznamu přidají odškrtnuté.</small></span></label>
+    </div>
+    <div class="printbar">
+      <button class="btn primary big" type="button" id="doPrint">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>
+        <span id="printLbl">Vytisknout vše</span></button>
+      <button class="btn" type="button" id="doSave">Uložit jako jedno PDF</button>
+      <button class="btn ghost" type="button" id="doOpen">Otevřít v nové kartě</button>
+    </div>
+    <div class="progress" id="prog" hidden><i></i></div>
+    <div class="status" id="status"></div>
+    <div id="printMsg"></div>
+  </section>
+</main>
+<footer>HROMADNÝ TISK</footer>
+
+<dialog id="infoDlg">
+  <div class="dh">Jak hromadný tisk funguje</div>
+  <div class="db">
+    <ol>
+      <li><b>Vložte soubory.</b> Přetáhněte sem všechny přílohy najednou, celý e-mail z Outlooku (.msg), uloženou zprávu (.eml) nebo ZIP z „Stáhnout vše“.</li>
+      <li><b>Zkontrolujte seznam.</b> Odškrtněte, co tisknout nechcete, a případně upravte pořadí.</li>
+      <li><b>Klikněte na Vytisknout vše.</b> Všechny dokumenty se spojí do jednoho PDF a otevře se jediné okno tisku – vyberete tiskárnu a potvrdíte.</li>
+    </ol>
+    <div class="note"><b>Co se netiskne:</b> soubory Word, Excel a jiné formáty prohlížeč neumí věrně převést. V seznamu je uvidíte šedě – ty je potřeba otevřít a vytisknout zvlášť.</div>
+    <div class="status">Chráněná PDF (zákaz úprav) se převedou na obrázek stránky a vytisknou se také. Soubory nikam neodcházejí – vše běží jen v tomto okně prohlížeče.</div>
+  </div>
+  <div class="df"><button class="btn primary" type="button" id="infoClose">Rozumím</button></div>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+if (!window.TiskPdf) { $('libErr').innerHTML = '<div class="err">Nepodařilo se načíst knihovnu pro práci s PDF. Obnovte prosím stránku.</div>'; return; }
+const { PDFDocument, unzipSync } = window.TiskPdf;
+
+const A4 = [595.28, 841.89];
+const SIG_LIMIT = 25 * 1024;           // menší vložené obrázky v e-mailu = loga z podpisu
+const items = [];                       // {id,name,src,kind,bytes,pages,size,on,note,enc,inline,w,h,mime}
+let seq = 0, built = null, busy = false;
+
+const fmt = b => { if (b < 1024) return b + ' B'; const u = ['kB','MB','GB']; let i = -1; do { b /= 1024; i++; } while (b >= 1024 && i < 2); return b.toFixed(b < 10 ? 1 : 0).replace('.', ',') + ' ' + u[i]; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ext = n => (n.match(/\.([a-z0-9]+)$/i) || [,''])[1].toLowerCase();
+const pl = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4 ? b : c);
+const msg = (el, cls, html) => { $(el).innerHTML = html ? `<div class="${cls}">${html}</div>` : ''; };
+const tick = () => new Promise(r => setTimeout(r, 0));
+const u8 = x => x instanceof Uint8Array ? x : new Uint8Array(x);
+const today = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+
+/* ---------- Načítání knihoven na požádání ---------- */
+const loaded = {};
+function loadScript(src) {
+  return loaded[src] || (loaded[src] = new Promise((ok, ko) => {
+    const s = document.createElement('script'); s.src = src; s.onload = ok;
+    s.onerror = () => { delete loaded[src]; ko(new Error('Nepodařilo se načíst ' + src)); };
+    document.head.appendChild(s);
+  }));
+}
+async function mailLib() { await loadScript('/tisk-assets/tisk-mail.js'); return window.TiskMail; }
+async function pdfjsLib() {
+  await loadScript('/tisk-assets/pdfjs.min.js');
+  const lib = window.pdfjsLib;
+  lib.GlobalWorkerOptions.workerSrc = '/tisk-assets/pdfjs.worker.min.js';
+  return lib;
+}
+
+/* ---------- Rozpoznání typu ---------- */
+function sniff(name, b) {
+  const e = ext(name);
+  const h = b.subarray(0, 8);
+  const has = (...sig) => sig.every((v, i) => h[i] === v);
+  if (has(0x25,0x50,0x44,0x46)) return 'pdf';                       // %PDF
+  if (e === 'pdf') { const head = new TextDecoder('latin1').decode(b.subarray(0, 1024)); if (head.includes('%PDF')) return 'pdf'; }
+  if (has(0xFF,0xD8,0xFF)) return 'jpg';
+  if (has(0x89,0x50,0x4E,0x47)) return 'png';
+  if (has(0x47,0x49,0x46,0x38)) return 'gif';
+  if (has(0x52,0x49,0x46,0x46) && b[8] === 0x57 && b[9] === 0x45) return 'webp';
+  if (has(0x42,0x4D)) return 'bmp';
+  if (e === 'msg' && has(0xD0,0xCF,0x11,0xE0)) return 'msg';
+  if (e === 'eml') return 'eml';
+  if (has(0x50,0x4B,0x03,0x04) && e === 'zip') return 'zip';
+  return e || 'neznámý';
+}
+const OTHER = { doc:'Word', docx:'Word', odt:'Dokument', rtf:'Dokument', xls:'Excel', xlsx:'Excel', xlsm:'Excel', ods:'Tabulka', csv:'CSV', ppt:'PowerPoint', pptx:'PowerPoint', txt:'Text', htm:'HTML', html:'HTML', heic:'HEIC foto', tif:'TIFF', tiff:'TIFF', dwg:'Výkres', dxf:'Výkres', p7s:'Podpis', p7m:'Podpis', ics:'Pozvánka', vcf:'Vizitka', xml:'XML', isdoc:'ISDOC' };
+
+/* ---------- Příjem souborů ---------- */
+async function addFiles(files) {
+  if (!files || !files.length) return;
+  msg('loadMsg', '', '');
+  const before = items.length, errs = [];
+  for (const f of files) {
+    try { await ingest(f.name, new Uint8Array(await f.arrayBuffer()), '', {}); }
+    catch (e) { errs.push(esc(f.name) + ': ' + esc(e.message || e)); }
+  }
+  invalidate(); render();
+  const n = items.length - before;
+  if (errs.length) msg('loadMsg', 'err', 'Některé soubory se nepodařilo načíst:<br>' + errs.join('<br>'));
+  else if (n === 0) msg('loadMsg', 'note', '<b>Nic k tisku.</b> Ve vložených souborech nebyly žádné přílohy.');
+}
+
+async function ingest(name, bytes, src, meta, depth = 0) {
+  const kind = sniff(name, bytes);
+  if (kind === 'zip') {
+    if (depth > 3) return;
+    let files;
+    try { files = unzipSync(bytes); } catch (e) { return push({ name, src, kind:'skip', size:bytes.length, note:'ZIP nelze rozbalit (možná je zaheslovaný)' }); }
+    const names = Object.keys(files).filter(n => !n.endsWith('/') && !n.startsWith('__MACOSX') && !n.split('/').pop().startsWith('.')).sort((a, b) => a.localeCompare(b, 'cs', { numeric:true }));
+    for (const n of names) await ingest(n.split('/').pop(), files[n], label(src, name), {}, depth + 1);
+    return;
+  }
+  if (kind === 'eml') return ingestEml(name, bytes, src, depth);
+  if (kind === 'msg') return ingestMsg(name, bytes, src, depth);
+  if (kind === 'pdf') {
+    try {
+      const doc = await PDFDocument.load(bytes, { ignoreEncryption:true, updateMetadata:false });
+      return push({ name, src, kind:'pdf', bytes, size:bytes.length, pages:doc.getPageCount(), enc:doc.isEncrypted });
+    } catch (e) {
+      const it = { name, src, kind:'pdf', bytes, size:bytes.length, pages:0, enc:true };
+      try { const lib = await pdfjsLib(); const d = await lib.getDocument({ data:bytes.slice() }).promise; it.pages = d.numPages; await d.destroy(); }
+      catch (e2) { it.kind = 'skip'; it.note = 'PDF nelze otevřít (poškozené nebo zaheslované)'; }
+      return push(it);
+    }
+  }
+  if (['jpg','png','gif','webp','bmp'].includes(kind)) {
+    const it = { name, src, kind:'img', mime:kind, bytes, size:bytes.length, pages:1, inline:!!meta.inline };
+    try {
+      const bmp = await createImageBitmap(new Blob([bytes]));
+      it.w = bmp.width; it.h = bmp.height; bmp.close && bmp.close();
+    } catch (e) { return push({ name, src, kind:'skip', size:bytes.length, note:'obrázek nelze přečíst' }); }
+    if (src && (it.inline || bytes.length < SIG_LIMIT) && $('optSig').checked) { it.on = false; it.sig = true; }
+    return push(it);
+  }
+  const typ = OTHER[kind] || (kind ? kind.toUpperCase() : 'soubor');
+  push({ name, src, kind:'skip', size:bytes.length, note: typ + ' – nutno vytisknout zvlášť' });
+}
+const label = (src, name) => src ? src + ' › ' + name : name;
+
+async function ingestEml(name, bytes, src, depth) {
+  const { PostalMime } = await mailLib();
+  const mail = await PostalMime.parse(bytes);
+  const here = label(src, name);
+  const atts = mail.attachments || [];
+  for (const a of atts) {
+    const fn = a.filename || ('příloha.' + ((a.mimeType || '').split('/')[1] || 'bin'));
+    const inline = a.disposition === 'inline' || !!a.related || (!a.filename && !!a.contentId);
+    if (/^message\/rfc822/i.test(a.mimeType || '')) { await ingest((a.filename || 'zprava') .replace(/(\.eml)?$/i, '.eml'), u8(a.content), here, {}, depth + 1); continue; }
+    await ingest(fn, u8(a.content), here, { inline }, depth + 1);
+  }
+  if (!atts.length) push({ name, src, kind:'skip', size:bytes.length, note:'e-mail bez příloh' });
+}
+
+async function ingestMsg(name, bytes, src, depth) {
+  const { MsgReader } = await mailLib();
+  const r = new MsgReader(bytes);
+  const info = r.getFileData();
+  if (info.error) throw new Error('soubor .msg nelze přečíst');
+  const here = label(src, name);
+  const atts = info.attachments || [];
+  let n = 0;
+  for (const a of atts) {
+    if (a.innerMsgContent) {
+      push({ name:(a.name || a.fileName || 'Vložená zpráva') + '.msg', src:here, kind:'skip', size:a.contentLength || 0, note:'vložený e-mail – uložte ho a přetáhněte zvlášť' }); n++; continue;
+    }
+    let d;
+    try { d = r.getAttachment(a); } catch (e) { continue; }
+    if (!d || !d.content) continue;
+    const fn = d.fileName || a.fileName || a.fileNameShort || 'příloha';
+    const inline = !!a.attachmentHidden || (!!a.pidContentId && /^image\//i.test(a.attachMimeTag || 'image/'));
+    await ingest(fn, u8(d.content), here, { inline }, depth + 1); n++;
+  }
+  if (!n) push({ name, src, kind:'skip', size:bytes.length, note:'e-mail bez příloh' });
+}
+
+function push(it) {
+  it.id = ++seq;
+  if (it.on === undefined) it.on = it.kind !== 'skip';
+  items.push(it);
+}
+
+/* ---------- Seznam ---------- */
+const ICON_UP = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>';
+const ICON_DN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
+const ICON_EYE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_X = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+function render() {
+  const has = items.length > 0;
+  $('listCard').hidden = !has; $('printCard').hidden = !has;
+  $('list').innerHTML = items.map((it, i) => {
+    const tags = [];
+    if (it.enc) tags.push('<span class="tag o" title="Tisk proběhne přes obrázek stránky">chráněné</span>');
+    if (it.sig) tags.push('<span class="tag g">obrázek z podpisu?</span>');
+    const sub = [it.src ? 'z ' + esc(it.src) : '', it.note && it.kind === 'skip' ? esc(it.note) : (it.note ? esc(it.note) : '')].filter(Boolean).join(' · ');
+    const ic = it.kind === 'pdf' ? 'PDF' : it.kind === 'img' ? (it.mime || 'IMG').toUpperCase() : (ext(it.name) || '?').toUpperCase().slice(0, 4);
+    const meta = it.kind === 'skip' ? `<span>${fmt(it.size)}</span>` :
+      `<b>${it.pages ? it.pages + ' ' + pl(it.pages, 'str.', 'str.', 'str.') : '?'}</b><br>${fmt(it.size)}`;
+    return `<div class="row${it.on ? '' : ' off'}${it.kind === 'skip' ? ' skip' : ''}" data-i="${i}" draggable="true">
+      <span class="grip" title="Přetažením změníte pořadí">⋮⋮</span>
+      <input type="checkbox" data-a="on" ${it.on ? 'checked' : ''} ${it.kind === 'skip' ? 'disabled' : ''} aria-label="Tisknout ${esc(it.name)}">
+      <div class="ico ${it.kind}">${esc(ic)}</div>
+      <div class="nm"><b title="${esc(it.name)}">${esc(it.name)}${tags.join('')}</b>${sub ? `<small title="${sub}">${sub}</small>` : ''}</div>
+      <div class="meta">${meta}</div>
+      <div class="acts">
+        <button class="ib" data-a="up" title="Posunout výš" ${i === 0 ? 'disabled' : ''}>${ICON_UP}</button>
+        <button class="ib" data-a="dn" title="Posunout níž" ${i === items.length - 1 ? 'disabled' : ''}>${ICON_DN}</button>
+        <button class="ib" data-a="view" title="Náhled" ${it.kind === 'skip' ? 'disabled' : ''}>${ICON_EYE}</button>
+        <button class="ib x" data-a="del" title="Odebrat ze seznamu">${ICON_X}</button>
+      </div></div>`;
+  }).join('');
+  const sel = items.filter(i => i.on && i.kind !== 'skip');
+  const pages = sel.reduce((s, i) => s + (i.pages || 0), 0);
+  const skipped = items.filter(i => i.kind === 'skip').length;
+  $('sum').textContent = `${sel.length} ${pl(sel.length, 'dokument', 'dokumenty', 'dokumentů')} · ${pages} ${pl(pages, 'strana', 'strany', 'stran')}` + (skipped ? ` · ${skipped} nelze tisknout` : '');
+  $('printLbl').textContent = sel.length ? `Vytisknout vše (${pages} ${pl(pages, 'strana', 'strany', 'stran')})` : 'Vytisknout vše';
+  ['doPrint', 'doSave', 'doOpen'].forEach(id => $(id).disabled = !sel.length || busy);
+}
+
+function invalidate() { if (built) { URL.revokeObjectURL(built.url); built = null; } msg('printMsg', '', ''); }
+
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const row = b.closest('.row'); const i = +row.dataset.i; const it = items[i];
+  const a = b.dataset.a;
+  if (a === 'on') { it.on = b.checked; }
+  else if (a === 'up' && i > 0) { items.splice(i - 1, 0, items.splice(i, 1)[0]); }
+  else if (a === 'dn' && i < items.length - 1) { items.splice(i + 1, 0, items.splice(i, 1)[0]); }
+  else if (a === 'del') { items.splice(i, 1); }
+  else if (a === 'view') { preview(it); return; }
+  else return;
+  invalidate(); render();
+});
+
+/* přetahování řádků */
+let dragI = null;
+$('list').addEventListener('dragstart', e => {
+  const row = e.target.closest('.row'); if (!row) return;
+  dragI = +row.dataset.i; row.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-tisk', String(dragI));
+});
+$('list').addEventListener('dragend', () => { dragI = null; document.querySelectorAll('.row').forEach(r => r.classList.remove('dragging', 'dropbefore', 'dropafter')); });
+$('list').addEventListener('dragover', e => {
+  if (dragI === null) return;
+  const row = e.target.closest('.row'); if (!row) return;
+  e.preventDefault(); e.stopPropagation();
+  const after = e.clientY > row.getBoundingClientRect().top + row.offsetHeight / 2;
+  document.querySelectorAll('.row').forEach(r => r.classList.remove('dropbefore', 'dropafter'));
+  row.classList.add(after ? 'dropafter' : 'dropbefore');
+});
+$('list').addEventListener('drop', e => {
+  if (dragI === null) return;
+  const row = e.target.closest('.row'); if (!row) return;
+  e.preventDefault(); e.stopPropagation();
+  let to = +row.dataset.i + (row.classList.contains('dropafter') ? 1 : 0);
+  const [m] = items.splice(dragI, 1); if (to > dragI) to--;
+  items.splice(to, 0, m); dragI = null; invalidate(); render();
+});
+
+$('selAll').onclick = () => { items.forEach(i => { if (i.kind !== 'skip') i.on = true; }); invalidate(); render(); };
+$('selNone').onclick = () => { items.forEach(i => i.on = false); invalidate(); render(); };
+$('sortName').onclick = () => { items.sort((a, b) => a.name.localeCompare(b.name, 'cs', { numeric:true, sensitivity:'base' })); invalidate(); render(); };
+$('clearAll').onclick = () => { items.length = 0; invalidate(); msg('loadMsg', '', ''); $('status').textContent = ''; render(); };
+$('optDuplex').onchange = invalidate;
+$('optSig').onchange = () => {
+  const on = $('optSig').checked;
+  items.forEach(i => { if (i.sig) i.on = !on; });
+  invalidate(); render();
+};
+
+function preview(it) {
+  const type = it.kind === 'pdf' ? 'application/pdf' : 'image/' + (it.mime === 'jpg' ? 'jpeg' : it.mime);
+  const url = URL.createObjectURL(new Blob([it.bytes], { type }));
+  const w = window.open(url, '_blank');
+  if (!w) msg('loadMsg', 'note', `<b>Prohlížeč zablokoval nové okno.</b> <a href="${url}" target="_blank" rel="noopener">Otevřít náhled ${esc(it.name)}</a>`);
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+/* ---------- Sestavení jednoho PDF ---------- */
+function setProg(p) { $('prog').hidden = p == null; $('prog').firstElementChild.style.width = ((p || 0) * 100).toFixed(1) + '%'; }
+
+async function imageToEmbeddable(it) {
+  // JPG/PNG přímo; ostatní (a JPG kvůli otočení z fotoaparátu) přes canvas
+  if (it.mime === 'png') return { type:'png', bytes:it.bytes, w:it.w, h:it.h };
+  const bmp = await createImageBitmap(new Blob([it.bytes]), { imageOrientation:'from-image' });
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0);
+  bmp.close && bmp.close();
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+  return { type:'jpg', bytes:new Uint8Array(await blob.arrayBuffer()), w:c.width, h:c.height };
+}
+
+async function addImagePage(out, data) {
+  const img = data.type === 'png' ? await out.embedPng(data.bytes) : await out.embedJpg(data.bytes);
+  const land = data.w > data.h;
+  const [pw, ph] = land ? [A4[1], A4[0]] : A4;
+  const m = 24;
+  const s = Math.min((pw - 2 * m) / data.w, (ph - 2 * m) / data.h);
+  const w = data.w * s, h = data.h * s;
+  const page = out.addPage([pw, ph]);
+  page.drawImage(img, { x:(pw - w) / 2, y:(ph - h) / 2, width:w, height:h });
+  return 1;
+}
+
+async function addRasterPdf(out, it, onPage) {
+  const lib = await pdfjsLib();
+  const doc = await lib.getDocument({ data:it.bytes.slice() }).promise;
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const vp1 = page.getViewport({ scale:1 });
+    const vp = page.getViewport({ scale:2.5 });                    // ~180 dpi
+    const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext:g, viewport:vp }).promise;
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+    const jpg = await out.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+    const pg = out.addPage([vp1.width, vp1.height]);
+    pg.drawImage(jpg, { x:0, y:0, width:vp1.width, height:vp1.height });
+    page.cleanup(); onPage();
+  }
+  const n = doc.numPages; await doc.destroy();
+  if (!it.pages) it.pages = n;
+  return n;
+}
+
+async function build() {
+  if (built) return built;
+  const sel = items.filter(i => i.on && i.kind !== 'skip');
+  const total = Math.max(1, sel.reduce((s, i) => s + (i.pages || 1), 0));
+  const duplex = $('optDuplex').checked;
+  const out = await PDFDocument.create();
+  out.setTitle('Hromadný tisk ' + today()); out.setCreator('Hromadný tisk'); out.setProducer('Hromadný tisk');
+  let done = 0; const errs = [];
+  const step = () => { done++; setProg(Math.min(1, done / total)); };
+  for (let k = 0; k < sel.length; k++) {
+    const it = sel[k];
+    $('status').textContent = `Připravuji ${k + 1} / ${sel.length}: ${it.name}`;
+    await tick();
+    let added = 0;
+    try {
+      if (it.kind === 'img') { added = await addImagePage(out, await imageToEmbeddable(it)); step(); }
+      else if (it.enc) { added = await addRasterPdf(out, it, step); }
+      else {
+        const src = await PDFDocument.load(it.bytes, { ignoreEncryption:true, updateMetadata:false });
+        const pages = await out.copyPages(src, src.getPageIndices());
+        pages.forEach(p => { out.addPage(p); step(); });
+        added = pages.length;
+      }
+    } catch (e) {
+      // poslední pokus: vykreslit stránky jako obrázky
+      if (it.kind === 'pdf' && !it.enc) {
+        try { added = await addRasterPdf(out, it, step); } catch (e2) { errs.push(it.name); }
+      } else errs.push(it.name);
+    }
+    if (duplex && added % 2 === 1 && k < sel.length - 1) {
+      const last = out.getPage(out.getPageCount() - 1).getSize();
+      out.addPage([last.width, last.height]);
+    }
+  }
+  if (!out.getPageCount()) throw new Error('Žádnou stránku se nepodařilo připravit.');
+  const bytes = await out.save();
+  const blob = new Blob([bytes], { type:'application/pdf' });
+  built = { blob, url:URL.createObjectURL(blob), pages:out.getPageCount(), errs };
+  return built;
+}
+
+async function run(action) {
+  if (busy) return;
+  busy = true; render(); msg('printMsg', '', ''); setProg(0);
+  try {
+    const b = await build();
+    $('status').textContent = `Připraveno: ${b.pages} ${pl(b.pages, 'strana', 'strany', 'stran')} (${fmt(b.blob.size)}).`;
+    if (b.errs.length) msg('printMsg', 'err', 'Tyto soubory se nepodařilo zařadit a je potřeba je vytisknout zvlášť:<br>' + b.errs.map(esc).join('<br>'));
+    if (action === 'print') printPdf(b);
+    else if (action === 'save') save(b.blob, `Tisk_${today()}.pdf`);
+    else openTab(b);
+  } catch (e) {
+    $('status').textContent = '';
+    msg('printMsg', 'err', 'Tisk se nepodařilo připravit: ' + esc(e.message || e));
+  } finally { busy = false; setProg(null); render(); }
+}
+
+function save(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+function openTab(b) {
+  const w = window.open(b.url, '_blank');
+  if (!w) msg('printMsg', 'note', `<b>Prohlížeč zablokoval nové okno.</b> <a href="${b.url}" target="_blank" rel="noopener">Otevřít PDF k tisku</a>`);
+}
+const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+function printPdf(b) {
+  if (isSafari || isMobile) { openTab(b); $('status').textContent += ' Tisk spusťte v otevřené kartě.'; return; }
+  let f = $('printFrame'); if (f) f.remove();
+  f = document.createElement('iframe'); f.id = 'printFrame'; f.title = 'Tisk';
+  f.onload = () => setTimeout(() => {
+    try { f.contentWindow.focus(); f.contentWindow.print(); }
+    catch (e) { openTab(b); }
+  }, 400);
+  f.src = b.url;
+  document.body.appendChild(f);
+  msg('printMsg', 'ok', `Otevírá se okno tisku. Pokud se neobjeví, <a href="${b.url}" target="_blank" rel="noopener">otevřete PDF v nové kartě</a> a vytiskněte ho odtud (Ctrl+P).`);
+}
+
+$('doPrint').onclick = () => run('print');
+$('doSave').onclick = () => run('save');
+$('doOpen').onclick = () => run('open');
+
+/* ---------- Vstup: výběr, přetažení, vložení ---------- */
+$('pick').onclick = e => { e.stopPropagation(); $('inFiles').click(); };
+$('drop').onclick = () => $('inFiles').click();
+$('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('inFiles').click(); } };
+$('inFiles').onchange = async e => { await addFiles([...e.target.files]); e.target.value = ''; };
+
+let depthCnt = 0;
+const isFileDrag = e => dragI === null && e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+document.addEventListener('dragenter', e => { if (!isFileDrag(e)) return; e.preventDefault(); depthCnt++; $('drop').classList.add('over'); });
+document.addEventListener('dragleave', e => { if (!isFileDrag(e)) return; if (--depthCnt <= 0) { depthCnt = 0; $('drop').classList.remove('over'); } });
+document.addEventListener('dragover', e => { if (isFileDrag(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+document.addEventListener('drop', async e => {
+  if (!isFileDrag(e)) return;
+  e.preventDefault(); depthCnt = 0; $('drop').classList.remove('over');
+  const files = [...(e.dataTransfer.files || [])];
+  if (!files.length) { msg('loadMsg', 'note', '<b>Nic nedorazilo.</b> Některé verze Outlooku neumí přetáhnout přílohy přímo do prohlížeče – uložte je nejdřív (Uložit všechny přílohy) a pak je sem přetáhněte nebo vyberte.'); return; }
+  await addFiles(files);
+});
+document.addEventListener('paste', async e => {
+  const files = [...(e.clipboardData && e.clipboardData.files || [])];
+  if (files.length) { e.preventDefault(); await addFiles(files); }
+});
+
+$('infoBtn').onclick = () => $('infoDlg').showModal();
+$('infoClose').onclick = () => $('infoDlg').close();
+
+render();
+window.__tisk = { items, build: () => build(), invalidate };   // pro testy
+})();
+if ('serviceWorker' in navigator && window.self === window.top) addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+</script>
+<script src="/nav.js" defer></script>
+</body>
+</html>

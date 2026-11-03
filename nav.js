@@ -12,6 +12,7 @@
     ['sig.html', 'Podpis'],
     ['porovnani.html', 'Porovnání'],
     ['komprimace.html', 'Komprimace'],
+    ['tisk.html', 'Hromadný tisk'],
     ['vykresy.html', 'Výkresy'],
     ['plany.html', 'Plány podlaží']
   ];
