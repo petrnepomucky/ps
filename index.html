@@ -274,7 +274,7 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     <h1>Praktické <em>nástroje</em><br>přímo v prohlížeči</h1>
     <p>Sada nástrojů pro běžnou kancelářskou práci. Webové nástroje běží lokálně v prohlížeči – žádná data se nikam neodesílají. Funguje i na mobilu.</p>
     <div class="hero-stats">
-      <div><div class="hstat-n">10</div><div class="hstat-l">Nástrojů</div></div>
+      <div><div class="hstat-n" id="pocet-nastroju">11</div><div class="hstat-l">Nástrojů</div></div>
       <div><div class="hstat-n">100<span>%</span></div><div class="hstat-l">Lokálně v prohlížeči</div></div>
       <div><div class="hstat-n">0</div><div class="hstat-l">Odeslaných dat</div></div>
     </div>
@@ -968,6 +968,13 @@ function downloadQR() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('qr-overlay').classList.remove('open');
 });
+</script>
+<script>
+// Počet nástrojů se dopočítá sám: řádky na ps.yey.cz bez her (Easter egg) a bez online aplikací
+(function(){var n=0;document.querySelectorAll('.tool-row').forEach(function(r){
+  var c=r.querySelector('.tool-cat');
+  if(/^https:\/\/ps\.yey\.cz\//.test(r.dataset.url||'')&&!(c&&/Easter egg/i.test(c.textContent)))n++;});
+  var e=document.getElementById('pocet-nastroju');if(e&&n)e.textContent=n;})();
 </script>
 </body>
 </html>
