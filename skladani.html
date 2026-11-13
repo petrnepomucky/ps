@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skládání skenů výkresu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/nav.js" defer></script>
+<style>
+:root{
+  --green:#009645;--green-dark:#007a38;--green-50:#80cba2;--green-15:#d9efe3;
+  --orange:#F27D00;--orange-15:#fdecd9;--orange-dark:#9A5200;
+  --ink:#1d1d1d;--muted:#5A5A5A;--line:#e3e3e3;--bg:#f4f6f5;--card:#fff;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Arial,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;display:flex;flex-direction:column}
+header.top{background:var(--green);color:#fff;display:flex;align-items:center;gap:14px;padding:10px 20px}
+.logo{width:40px;height:40px;border-radius:8px;background:#fff;color:var(--green);font-weight:900;display:grid;place-items:center;font-size:17px}
+.top h1{margin:0;font-size:18px}
+.top .sub{font-size:12px;opacity:.9}
+.stripe{height:5px;background:var(--orange);flex:none}
+.bar{background:var(--card);border-bottom:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.grp>span.l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-right:2px}
+button{background:#fff;color:var(--ink);border:1px solid #cfd6d2;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;font-family:inherit}
+button:hover:not(:disabled){border-color:var(--green);color:var(--green-dark)}
+button:disabled{opacity:.45;cursor:default}
+button.pri{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
+button.pri:hover:not(:disabled){background:var(--green-dark);color:#fff}
+input[type=number],select{border:1px solid #cfd6d2;border-radius:6px;padding:5px 6px;font-size:13px;font-family:inherit;width:62px;background:#fff}
+select{width:auto}
+label.chk{display:flex;align-items:center;gap:4px;font-size:13px}
+.work{flex:1;display:flex;min-height:0}
+.side{width:230px;flex:none;background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:10px}
+.side h2{margin:0 0 8px;font-size:13px;color:var(--green)}
+.tile{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:5px 6px;margin-bottom:5px;cursor:pointer;font-size:12px}
+.tile.sel{border-color:var(--orange);background:var(--orange-15)}
+.tile .n{background:var(--green);color:#fff;border-radius:50%;width:20px;height:20px;display:grid;place-items:center;font-size:11px;flex:none}
+.tile .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile button{padding:1px 5px;font-size:11px}
+.hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:10px}
+.hint b{color:var(--ink)}
+.stage{flex:1;position:relative;min-width:0;background:#8d9792}
+canvas#view{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.drop{position:absolute;inset:24px;border:2px dashed #fff;border-radius:14px;display:grid;place-items:center;text-align:center;color:#fff;font-size:16px;line-height:1.6;pointer-events:none;background:rgba(0,0,0,.12)}
+.drop.over{background:rgba(0,150,69,.45)}
+.status{position:absolute;left:10px;bottom:10px;background:rgba(29,29,29,.82);color:#fff;border-radius:6px;padding:5px 9px;font-size:12px;pointer-events:none;max-width:calc(100% - 20px)}
+.busy{position:absolute;inset:0;background:rgba(255,255,255,.7);display:none;place-items:center;font-size:16px;font-weight:700;color:var(--green-dark);z-index:5}
+.busy.on{display:grid}
+@media (max-width:760px){.side{display:none}.top .sub{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo">N</div>
+  <div><h1>Skládání skenů výkresu</h1><div class="sub">Velký výkres naskenovaný po částech A3/A4 složí zpět do jednoho PDF</div></div>
+</header>
+<div class="stripe"></div>
+
+<div class="bar">
+  <div class="grp">
+    <button class="pri" id="bAdd">Přidat skeny…</button>
+    <input type="file" id="file" multiple accept=".pdf,image/*" hidden>
+    <span class="l">DPI</span>
+    <select id="dpi" title="Rozlišení, ve kterém se načtou stránky PDF a počítá výsledná velikost"><option>150</option><option selected>200</option><option>300</option></select>
+  </div>
+  <div class="grp">
+    <span class="l">Rozložení</span>
+    <input type="number" id="cols" min="1" max="20" value="3" title="Počet dílů v řadě">
+    <button id="bGrid" title="Rozloží díly do řad podle pořadí v seznamu">Do mřížky</button>
+    <button id="bFit">Zobrazit vše</button>
+  </div>
+  <div class="grp">
+    <span class="l">Vybraný díl</span>
+    <button id="bRotL" title="Otočit o 90° doleva">⟲ 90°</button>
+    <button id="bRotR" title="Otočit o 90° doprava (R)">⟳ 90°</button>
+    <button id="bFineL" title="Jemně pootočit doleva o 0,05°">↺</button>
+    <button id="bFineR" title="Jemně pootočit doprava o 0,05°">↻</button>
+    <button id="bDeskew" title="Najde čáry výkresu a srovná díl do vodorovna">Narovnat</button>
+    <button id="bSnapL" title="Posune díl svisle tak, aby vodorovné čáry navázaly na díl vlevo">Dorovnat k levému</button>
+    <button id="bSnapT" title="Posune díl vodorovně tak, aby svislé čáry navázaly na díl nad ním">Dorovnat k hornímu</button>
+    <button id="bUncrop" title="Vrátí vybranému dílu oříznuté okraje">Zrušit ořez</button>
+    <button id="bDel" title="Odebrat díl (Delete)">Odebrat</button>
+  </div>
+  <div class="grp">
+    <button id="bDeskewAll">Narovnat vše</button>
+    <button id="bUndo" title="Ctrl+Z">Zpět</button>
+    <span class="l">Stíny okrajů</span>
+    <input type="number" id="clean" min="0" max="150" value="40" title="Šířka pásu (px) u okraje každého dílu, kde se vybělí šedé stíny skeneru. 0 = vypnuto">
+    <label class="chk"><input type="checkbox" id="outl" checked> obrysy</label>
+    <label class="chk" title="Kde mezi sousedními díly zůstala mezera, protáhne přes ni čáry, které na obou stranách končí u okraje"><input type="checkbox" id="bridge"> doplnit čáry v mezerách do</label>
+    <input type="number" id="gap" min="1" max="300" value="60" title="Největší mezera mezi díly (px), přes kterou se čáry ještě doplní"><span class="l">px</span>
+  </div>
+  <div class="grp" style="margin-left:auto">
+    <button class="pri" id="bPdf">Uložit PDF</button>
+    <button id="bJpg">JPG</button>
+    <button id="bPng">PNG</button>
+  </div>
+</div>
+
+<div class="work">
+  <aside class="side">
+    <h2>Díly</h2>
+    <div id="list"></div>
+    <div class="hint">
+      <b>Postup:</b> přidejte skeny, seřaďte je v seznamu po řadách (zleva doprava, shora dolů) a dejte <b>Do mřížky</b>. Pak <b>Narovnat vše</b> a díly dotáhněte myší.<br><br>
+      <b>Ořez:</b> vybraný díl chyťte za okraj a táhněte dovnitř – odříznete tím stín skeneru nebo okraj papíru. Tažením ven se ořez vrací.<br><br>
+      <b>Doplnění čar:</b> když se díly nepřekrývají a v ohybu kus chybí, zaškrtněte „doplnit čáry v mezerách“. Rovné čáry se přes mezeru protáhnou; text a značky doplnit nejdou.<br><br>
+      <b>Šipky</b> posouvají vybraný díl o 1 px, se <b>Shiftem</b> o 10 px. <b>Kolečko</b> přibližuje, tažením za pozadí se posouvá pohled.<br><br>
+      Překryvy se skládají „tmavší vyhrává“, takže čáry obou dílů zůstanou vidět a je poznat, kdy na sebe sedí.<br><br>
+      Vše běží lokálně v prohlížeči – soubory se nikam neodesílají.
+    </div>
+  </aside>
+  <div class="stage" id="stage">
+    <canvas id="view"></canvas>
+    <div class="drop" id="drop"><div>Přetáhněte sem naskenované díly<br>(PDF, JPG, PNG)<br>nebo použijte „Přidat skeny…“</div></div>
+    <div class="status" id="status">Žádné díly</div>
+    <div class="busy" id="busy">Pracuji…</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const $ = id => document.getElementById(id);
+const view = $("view"), vctx = view.getContext("2d");
+let tiles = [], sel = null, nextId = 1;
+let V = {s: 0.1, ox: 0, oy: 0};
+const undo = [];
+
+/* ---------- pomocné ---------- */
+function mk(w, h){ const c = document.createElement("canvas"); c.width = w; c.height = h; return c; }
+async function busy(fn){
+  $("busy").classList.add("on");
+  await new Promise(r => setTimeout(r, 30));
+  try { return await fn(); }
+  catch(e){ console.error(e); alert("Chyba: " + (e && e.message || e)); }
+  finally { $("busy").classList.remove("on"); }
+}
+function snapshot(){
+  undo.push(tiles.map(t => ({t, x: t.x, y: t.y, r: t.rot90, a: t.angle, c: {...t.crop}})));
+  if (undo.length > 100) undo.shift();
+}
+function doUndo(){
+  const s = undo.pop(); if (!s) return;
+  tiles = s.map(o => o.t);
+  for (const o of s){
+    const t = o.t; t.x = o.x; t.y = o.y; t.crop = {...o.c};
+    if (t.rot90 !== o.r || t.angle !== o.a){ t.rot90 = o.r; t.angle = o.a; bake(t); }
+    else applyCrop(t);
+  }
+  if (sel && !tiles.includes(sel)) sel = null;
+  refresh();
+}
+
+/* ---------- načítání ---------- */
+async function addFiles(files){
+  const dpi = +$("dpi").value;
+  const list = [...files].sort((a, b) => a.name.localeCompare(b.name, "cs", {numeric: true}));
+  snapshot();
+  for (const f of list){
+    const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+    if (isPdf){
+      const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise;
+      for (let p = 1; p <= pdf.numPages; p++){
+        const page = await pdf.getPage(p);
+        const vp = page.getViewport({scale: dpi / 72});
+        const c = mk(Math.round(vp.width), Math.round(vp.height));
+        const cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
+        await page.render({canvasContext: cx, viewport: vp}).promise;
+        addTile(c, f.name.replace(/\.pdf$/i, "") + (pdf.numPages > 1 ? " – s. " + p : ""));
+      }
+    } else if (/^image\//.test(f.type) || /\.(jpe?g|png|webp|bmp)$/i.test(f.name)){
+      const bmp = await createImageBitmap(f);
+      const c = mk(bmp.width, bmp.height);
+      const cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(bmp, 0, 0);
+      addTile(c, f.name.replace(/\.[^.]+$/, ""));
+    }
+  }
+  layoutGrid(false);
+  fit();
+}
+function addTile(src, name){
+  const t = {id: nextId++, name, src, rot90: 0, angle: 0, x: 0, y: 0, baked: null, w: 0, h: 0, fw: 0, fh: 0, crop: {l: 0, t: 0, r: 0, b: 0}};
+  bake(t); tiles.push(t);
+}
+
+/* ---------- vykreslení dílu (otočení, čištění okrajů) ---------- */
+function bake(t){
+  const q = ((t.rot90 % 4) + 4) % 4;
+  const sw = t.src.width, sh = t.src.height;
+  const w = q % 2 ? sh : sw, h = q % 2 ? sw : sh;
+  const a = mk(w, h), ax = a.getContext("2d", {willReadFrequently: true});
+  ax.fillStyle = "#fff"; ax.fillRect(0, 0, w, h);
+  ax.translate(w / 2, h / 2); ax.rotate(q * Math.PI / 2); ax.drawImage(t.src, -sw / 2, -sh / 2);
+  ax.setTransform(1, 0, 0, 1, 0, 0);
+  const band = Math.max(0, Math.min(150, +$("clean").value || 0));
+  if (band > 0){
+    const bw = Math.min(band, w >> 2), bh = Math.min(band, h >> 2);
+    const rects = [[0, 0, w, bh], [0, h - bh, w, bh], [0, 0, bw, h], [w - bw, 0, bw, h]];
+    for (const [x, y, rw, rh] of rects){
+      const im = ax.getImageData(x, y, rw, rh), d = im.data;
+      for (let i = 0; i < d.length; i += 4){
+        const px = x + (i / 4) % rw, py = y + Math.floor(i / 4 / rw);
+        const edge = Math.min(px, py, w - 1 - px, h - 1 - py);
+        const mn = Math.min(d[i], d[i + 1], d[i + 2]), mx = Math.max(d[i], d[i + 1], d[i + 2]);
+        // bělí se jen šedé stíny; barevné čáry (červené potrubí, modré hranice) zůstávají
+        if (edge < 4 || (mn > 105 && mx - mn < 45)){ d[i] = d[i + 1] = d[i + 2] = 255; }
+      }
+      ax.putImageData(im, x, y);
+    }
+  }
+  if (t.angle){
+    const b = mk(w, h), bx = b.getContext("2d", {willReadFrequently: true});
+    bx.fillStyle = "#fff"; bx.fillRect(0, 0, w, h);
+    bx.imageSmoothingQuality = "high";
+    bx.translate(w / 2, h / 2); bx.rotate(t.angle * Math.PI / 180); bx.drawImage(a, -w / 2, -h / 2);
+    t.baked = b;
+  } else t.baked = a;
+  t.fw = w; t.fh = h; applyCrop(t);
+}
+// t.baked je vždy celý (neoříznutý) díl; t.w/t.h a t.x/t.y popisují viditelný výřez
+function applyCrop(t){
+  const c = t.crop;
+  c.l = Math.max(0, Math.min(c.l, t.fw - 50)); c.r = Math.max(0, Math.min(c.r, t.fw - 50 - c.l));
+  c.t = Math.max(0, Math.min(c.t, t.fh - 50)); c.b = Math.max(0, Math.min(c.b, t.fh - 50 - c.t));
+  t.w = t.fw - c.l - c.r; t.h = t.fh - c.t - c.b;
+}
+function drawTile(cx, t, x, y){ cx.drawImage(t.baked, t.crop.l, t.crop.t, t.w, t.h, x, y, t.w, t.h); }
+
+/* ---------- doplnění čar přes mezeru mezi díly ---------- */
+const BD = 24;// jak hluboko od okraje dílu se hledají konce čar (px)
+function edgeRuns(t, side){
+  const c = t.crop, cx = t.baked.getContext("2d", {willReadFrequently: true});
+  const vert = side === "left" || side === "right";           // šev svislý → procházíme řádky
+  const n = vert ? t.h : t.w, D = Math.min(BD, vert ? t.w : t.h);
+  const im = vert ? cx.getImageData(side === "left" ? c.l : c.l + t.w - D, c.t, D, t.h)
+                  : cx.getImageData(c.l, side === "top" ? c.t : c.t + t.h - D, t.w, D);
+  const d = im.data, iw = im.width, far = side === "right" || side === "bottom";
+  const at = (u, v) => { const k = far ? D - 1 - v : v; return ((vert ? u * iw + k : k * iw + u)) * 4; };
+  const dark = i => Math.min(d[i], d[i + 1], d[i + 2]) < 185;
+  const tip = new Int16Array(n).fill(-1);
+  for (let u = 0; u < n; u++) for (let v = 0; v < D; v++) if (dark(at(u, v))){ tip[u] = v; break; }
+  const runs = [];
+  for (let u = 0; u < n; u++){
+    if (tip[u] < 0) continue;
+    let u1 = u; while (u1 + 1 < n && tip[u1 + 1] >= 0) u1++;
+    if (u1 - u < 40){                                        // delší = čára rovnoběžná se švem, ne její konec
+      let vmin = D; for (let k = u; k <= u1; k++) vmin = Math.min(vmin, tip[k]);
+      let a = -1, b = -1, r = 0, g = 0, bl = 0, cnt = 0;
+      for (let k = u; k <= u1; k++) if (tip[k] <= vmin + 1){
+        if (a < 0) a = k; b = k;
+        const i = at(k, Math.min(tip[k] + 1, D - 1)), j = dark(i) ? i : at(k, tip[k]);
+        r += d[j]; g += d[j + 1]; bl += d[j + 2]; cnt++;
+      }
+      if (b - a < 14) runs.push({u: (a + b) / 2 + 0.5, v: vmin, th: b - a + 1, col: [r / cnt, g / cnt, bl / cnt]});
+    }
+    u = u1;
+  }
+  return runs;
+}
+let bridges = [];
+function computeBridges(){
+  bridges = [];
+  if (!$("bridge").checked) return;
+  const maxGap = Math.max(1, +$("gap").value || 60), cache = new Map();
+  const runs = (t, s) => { const k = t.id + s; if (!cache.has(k)) cache.set(k, edgeRuns(t, s)); return cache.get(k); };
+  for (const A of tiles) for (const B of tiles){
+    if (A === B) continue;
+    for (const vert of [true, false]){
+      // vert: A vlevo, B vpravo; jinak A nahoře, B dole
+      const gap = vert ? B.x - (A.x + A.w) : B.y - (A.y + A.h);
+      const ov = vert ? Math.min(A.y + A.h, B.y + B.h) - Math.max(A.y, B.y) : Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x, B.x);
+      if (gap < 0 || gap > maxGap || ov < 20) continue;
+      const ra = runs(A, vert ? "right" : "bottom"), rb = runs(B, vert ? "left" : "top");
+      const a0 = vert ? A.y : A.x, b0 = vert ? B.y : B.x;
+      const cand = [];
+      ra.forEach((a, i) => rb.forEach((b, j) => {
+        const span = gap + a.v + b.v, du = Math.abs(a0 + a.u - (b0 + b.u));
+        const dc = Math.abs(a.col[0] - b.col[0]) + Math.abs(a.col[1] - b.col[1]) + Math.abs(a.col[2] - b.col[2]);
+        if (du <= 3 + 1.1 * span && dc < 150 && a.th <= 3 * b.th + 2 && b.th <= 3 * a.th + 2) cand.push({i, j, du});
+      }));
+      cand.sort((p, q) => p.du - q.du);
+      const ua = new Set(), ub = new Set();
+      for (const p of cand){
+        if (ua.has(p.i) || ub.has(p.j)) continue; ua.add(p.i); ub.add(p.j);
+        const a = ra[p.i], b = rb[p.j];
+        const pa = (vert ? A.x + A.w : A.y + A.h) - a.v, pb = (vert ? B.x : B.y) + b.v;   // konce čar napříč švem
+        const ca = a0 + a.u, cb = b0 + b.u;
+        const q = [[pa, ca - a.th / 2], [pb, cb - b.th / 2], [pb, cb + b.th / 2], [pa, ca + a.th / 2]];
+        bridges.push({pts: vert ? q : q.map(([s, u]) => [u, s]), col: a.col.map((v, k) => Math.round((v + b.col[k]) / 2))});
+      }
+    }
+  }
+}
+function drawBridges(cx, ox, oy){
+  for (const b of bridges){
+    cx.fillStyle = "rgb(" + b.col.join(",") + ")";
+    cx.beginPath(); b.pts.forEach(([x, y], i) => i ? cx.lineTo(x - ox, y - oy) : cx.moveTo(x - ox, y - oy)); cx.closePath(); cx.fill();
+  }
+}
+
+/* ---------- automatické narovnání ---------- */
+// Vrací úhel (stupně, po směru hodin), o který je potřeba díl otočit, aby čáry byly vodorovně.
+function estimateSkew(c){
+  const W = Math.min(1400, c.width), sc = W / c.width, H = Math.round(c.height * sc);
+  const s = mk(W, H), sx = s.getContext("2d", {willReadFrequently: true});
+  sx.drawImage(c, 0, 0, W, H);
+  const d = sx.getImageData(0, 0, W, H).data;
+  const n = 40, sw = Math.floor(W / n);
+  const prof = []; const xc = [];
+  for (let i = 0; i < n; i++){
+    const p = new Float32Array(H);
+    for (let y = 0; y < H; y++){
+      let cnt = 0, o = (y * W + i * sw) * 4;
+      for (let x = 0; x < sw; x++, o += 4) if (Math.min(d[o], d[o + 1], d[o + 2]) < 175) cnt++;
+      p[y] = cnt;
+    }
+    prof.push(p); xc.push((i + 0.5) * sw - W / 2);
+  }
+  const m = 30, acc = new Float32Array(H);
+  const score = deg => {
+    const tn = Math.tan(deg * Math.PI / 180); acc.fill(0);
+    for (let i = 0; i < n; i++){
+      const k = Math.round(tn * xc[i]), p = prof[i];
+      for (let y = m; y < H - m; y++){ const yy = y + k; if (yy >= 0 && yy < H) acc[y] += p[yy]; }
+    }
+    let sum = 0; for (let y = m; y < H - m; y++) sum += acc[y] * acc[y];
+    return sum;
+  };
+  let best = 0, bs = -1;
+  for (let a = -3; a <= 3.0001; a += 0.1){ const v = score(a); if (v > bs){ bs = v; best = a; } }
+  const c0 = best;
+  for (let a = c0 - 0.1; a <= c0 + 0.1001; a += 0.02){ const v = score(a); if (v > bs){ bs = v; best = a; } }
+  return -best;   // čáry stoupají/klesají o `best` → otočit obráceně
+}
+function deskew(t){
+  const keep = t.angle; t.angle = 0; bake(t);
+  const a = estimateSkew(t.baked);
+  t.angle = Math.round(a * 100) / 100; if (t.angle || keep) bake(t);
+}
+
+/* ---------- dorovnání k sousedovi ---------- */
+function profile(t, horizontalSeam, fromEnd){
+  // horizontalSeam=false: řádkový profil svislého pásu u levého/pravého okraje; true: sloupcový profil pásu u horního/dolního okraje
+  const cx = t.baked.getContext("2d", {willReadFrequently: true});
+  const w = t.w, h = t.h, inset = 30, depth = 270, cl = t.crop.l, ct = t.crop.t;
+  let im, n, len;
+  if (!horizontalSeam){ const x0 = fromEnd ? w - inset - depth : inset; im = cx.getImageData(cl + x0, ct, depth, h); n = h; len = depth; }
+  else { const y0 = fromEnd ? h - inset - depth : inset; im = cx.getImageData(cl, ct + y0, w, depth); n = w; len = depth; }
+  const d = im.data, p = new Float32Array(n), iw = im.width;
+  for (let i = 0; i < d.length; i += 4){
+    if (Math.min(d[i], d[i + 1], d[i + 2]) < 185){
+      const k = i / 4; p[horizontalSeam ? k % iw : Math.floor(k / iw)] += 1 / len;
+    }
+  }
+  let mean = 0; for (const v of p) mean += v; mean /= n; for (let i = 0; i < n; i++) p[i] -= mean;
+  return p;
+}
+function neighbour(t, side){
+  let best = null, bd = Infinity;
+  for (const o of tiles){
+    if (o === t) continue;
+    if (side === "left"){
+      const ov = Math.min(t.y + t.h, o.y + o.h) - Math.max(t.y, o.y);
+      if (ov < 0.3 * Math.min(t.h, o.h) || o.x + o.w / 2 >= t.x + t.w / 2) continue;
+      const dd = Math.abs(o.x + o.w - t.x); if (dd < bd){ bd = dd; best = o; }
+    } else {
+      const ov = Math.min(t.x + t.w, o.x + o.w) - Math.max(t.x, o.x);
+      if (ov < 0.3 * Math.min(t.w, o.w) || o.y + o.h / 2 >= t.y + t.h / 2) continue;
+      const dd = Math.abs(o.y + o.h - t.y); if (dd < bd){ bd = dd; best = o; }
+    }
+  }
+  return best;
+}
+function snapTo(t, side){
+  const nb = neighbour(t, side);
+  if (!nb){ setStatus(side === "left" ? "Vlevo od vybraného dílu není žádný díl." : "Nad vybraným dílem není žádný díl."); return false; }
+  const hs = side === "top";
+  const pn = profile(nb, hs, true), ps = profile(t, hs, false);
+  const n0 = hs ? nb.x : nb.y, s0 = hs ? t.x : t.y;
+  let best = 0, bv = -Infinity;
+  for (let s = -150; s <= 150; s++){
+    let v = 0; const off = Math.round(s0 + s - n0);       // index v pn = index v ps + off
+    const a = Math.max(0, -off), b = Math.min(ps.length, pn.length - off);
+    for (let i = a; i < b; i++) v += ps[i] * pn[i + off];
+    if (v > bv){ bv = v; best = s; }
+  }
+  if (bv <= 0){ setStatus("Přes šev nevedou žádné čáry, podle kterých by šlo dorovnat."); return false; }
+  if (hs) t.x = Math.round(t.x + best); else t.y = Math.round(t.y + best);
+  setStatus("Díl posunut o " + best + " px podle čar dílu „" + nb.name + "“. Zkontrolujte šev přiblížením.");
+  return true;
+}
+
+/* ---------- rozložení a pohled ---------- */
+function layoutGrid(all){
+  const cols = Math.max(1, +$("cols").value || 3);
+  let x = 0, y = 0, rowH = 0, i = 0;
+  // nové díly (bez pozice) se jen přidají; "Do mřížky" rozloží všechny
+  const todo = all ? tiles : tiles;
+  for (const t of todo){
+    if (i && i % cols === 0){ x = 0; y += rowH; rowH = 0; }
+    t.x = x; t.y = y; x += t.w; rowH = Math.max(rowH, t.h); i++;
+  }
+}
+function bbox(){
+  if (!tiles.length) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const t of tiles){ x0 = Math.min(x0, t.x); y0 = Math.min(y0, t.y); x1 = Math.max(x1, t.x + t.w); y1 = Math.max(y1, t.y + t.h); }
+  return {x: Math.round(x0), y: Math.round(y0), w: Math.round(x1 - x0), h: Math.round(y1 - y0)};
+}
+function fit(){
+  const b = bbox(); resize();
+  if (b){
+    const cw = view.clientWidth, ch = view.clientHeight;
+    V.s = Math.min((cw - 40) / b.w, (ch - 40) / b.h);
+    V.ox = (cw - b.w * V.s) / 2 - b.x * V.s; V.oy = (ch - b.h * V.s) / 2 - b.y * V.s;
+  }
+  refresh();
+}
+function resize(){
+  const dpr = window.devicePixelRatio || 1, w = Math.round(view.clientWidth * dpr), h = Math.round(view.clientHeight * dpr);
+  if (view.width !== w || view.height !== h){ view.width = w; view.height = h; }
+}
+let raf = 0;
+function draw(){
+  raf = 0; resize();
+  const dpr = window.devicePixelRatio || 1;
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  vctx.fillStyle = "#8d9792"; vctx.fillRect(0, 0, view.width, view.height);
+  const b = bbox(); if (!b) return;
+  vctx.setTransform(V.s * dpr, 0, 0, V.s * dpr, V.ox * dpr, V.oy * dpr);
+  vctx.fillStyle = "#fff"; vctx.fillRect(b.x, b.y, b.w, b.h);
+  vctx.imageSmoothingEnabled = V.s < 1; vctx.imageSmoothingQuality = "high";
+  vctx.globalCompositeOperation = "darken";
+  for (const t of tiles) drawTile(vctx, t, t.x, t.y);
+  drawBridges(vctx, 0, 0);
+  vctx.globalCompositeOperation = "source-over";
+  vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const outl = $("outl").checked;
+  tiles.forEach((t, i) => {
+    const x = t.x * V.s + V.ox, y = t.y * V.s + V.oy, w = t.w * V.s, h = t.h * V.s;
+    if (t === sel){
+      vctx.strokeStyle = "#F27D00"; vctx.lineWidth = 2; vctx.setLineDash([]); vctx.strokeRect(x, y, w, h);
+      vctx.fillStyle = "#F27D00";
+      for (const [hx, hy] of [[x, y + h / 2], [x + w, y + h / 2], [x + w / 2, y], [x + w / 2, y + h]]) vctx.fillRect(hx - 5, hy - 5, 10, 10);
+    }
+    else if (outl){ vctx.strokeStyle = "rgba(0,150,69,.7)"; vctx.lineWidth = 1; vctx.setLineDash([6, 4]); vctx.strokeRect(x, y, w, h); }
+    if (outl || t === sel){
+      vctx.setLineDash([]); vctx.fillStyle = t === sel ? "#F27D00" : "#009645";
+      vctx.beginPath(); vctx.arc(x + 15, y + 15, 11, 0, 7); vctx.fill();
+      vctx.fillStyle = "#fff"; vctx.font = "bold 12px Arial"; vctx.textAlign = "center"; vctx.textBaseline = "middle";
+      vctx.fillText(String(i + 1), x + 15, y + 15.5);
+    }
+  });
+}
+function refresh(){
+  computeBridges();
+  if (!raf) raf = requestAnimationFrame(draw);
+  renderList(); updateUi();
+}
+function setStatus(msg){ $("status").textContent = msg; statusLock = Date.now() + 6000; }
+let statusLock = 0;
+function updateUi(){
+  $("drop").style.display = tiles.length ? "none" : "grid";
+  for (const id of ["bRotL", "bRotR", "bFineL", "bFineR", "bDeskew", "bSnapL", "bSnapT", "bDel"]) $(id).disabled = !sel;
+  $("bUncrop").disabled = !sel || !(sel.crop.l || sel.crop.r || sel.crop.t || sel.crop.b);
+  for (const id of ["bGrid", "bFit", "bDeskewAll", "bPdf", "bJpg", "bPng"]) $(id).disabled = !tiles.length;
+  $("bUndo").disabled = !undo.length;
+  if (Date.now() < statusLock) return;
+  const b = bbox();
+  if (!b){ $("status").textContent = "Žádné díly"; return; }
+  const dpi = +$("dpi").value, mm = v => Math.round(v / dpi * 25.4);
+  let s = tiles.length + " dílů · výsledek " + mm(b.w) + " × " + mm(b.h) + " mm (" + b.w + " × " + b.h + " px při " + dpi + " dpi)";
+  if (sel){
+    const c = sel.crop;
+    s += " · vybrán díl " + (tiles.indexOf(sel) + 1) + (sel.angle ? ", natočení " + sel.angle.toFixed(2).replace(".", ",") + "°" : "");
+    if (c.l || c.r || c.t || c.b) s += ", ořez L " + c.l + " / P " + c.r + " / H " + c.t + " / D " + c.b + " px";
+  }
+  if ($("bridge").checked) s += " · doplněno čar: " + bridges.length;
+  $("status").textContent = s;
+}
+function renderList(){
+  const L = $("list"); L.textContent = "";
+  tiles.forEach((t, i) => {
+    const d = document.createElement("div"); d.className = "tile" + (t === sel ? " sel" : "");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = i + 1;
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = t.name; nm.title = t.name;
+    const up = document.createElement("button"); up.textContent = "▲"; up.title = "Posunout v pořadí výš"; up.disabled = i === 0;
+    const dn = document.createElement("button"); dn.textContent = "▼"; dn.title = "Posunout v pořadí níž"; dn.disabled = i === tiles.length - 1;
+    up.onclick = e => { e.stopPropagation(); snapshot(); tiles.splice(i - 1, 0, tiles.splice(i, 1)[0]); refresh(); };
+    dn.onclick = e => { e.stopPropagation(); snapshot(); tiles.splice(i + 1, 0, tiles.splice(i, 1)[0]); refresh(); };
+    d.onclick = () => { sel = t; refresh(); };
+    d.append(n, nm, up, dn); L.append(d);
+  });
+}
+
+/* ---------- myš, dotyk, klávesnice ---------- */
+const ptrs = new Map(); let drag = null, pinch = null;
+function toWorld(e){ const r = view.getBoundingClientRect(); return {sx: e.clientX - r.left, sy: e.clientY - r.top, x: (e.clientX - r.left - V.ox) / V.s, y: (e.clientY - r.top - V.oy) / V.s}; }
+function hit(p){
+  if (sel && p.x >= sel.x && p.x <= sel.x + sel.w && p.y >= sel.y && p.y <= sel.y + sel.h) return sel;
+  for (let i = tiles.length - 1; i >= 0; i--){ const t = tiles[i]; if (p.x >= t.x && p.x <= t.x + t.w && p.y >= t.y && p.y <= t.y + t.h) return t; }
+  return null;
+}
+view.addEventListener("pointerdown", e => {
+  view.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e);
+  if (ptrs.size === 2){
+    const [a, b] = [...ptrs.values()]; drag = null;
+    pinch = {d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), s: V.s};
+    return;
+  }
+  const p = toWorld(e), edge = edgeAt(p), t = hit(p);
+  if (edge){ drag = {t: sel, edge, moved: false}; }
+  else if (t){ sel = t; drag = {t, dx: p.x - t.x, dy: p.y - t.y, moved: false}; }
+  else { sel = null; drag = {pan: true, sx: p.sx, sy: p.sy, ox: V.ox, oy: V.oy}; }
+  view.style.cursor = "grabbing"; refresh();
+});
+// okraj vybraného dílu pod ukazatelem (pro ořez): "l" | "r" | "t" | "b" | null
+function edgeAt(p){
+  const t = sel; if (!t) return null;
+  const tol = 7 / V.s;
+  const inY = p.y >= t.y - tol && p.y <= t.y + t.h + tol, inX = p.x >= t.x - tol && p.x <= t.x + t.w + tol;
+  if (inY && Math.abs(p.x - t.x) <= tol) return "l";
+  if (inY && Math.abs(p.x - (t.x + t.w)) <= tol) return "r";
+  if (inX && Math.abs(p.y - t.y) <= tol) return "t";
+  if (inX && Math.abs(p.y - (t.y + t.h)) <= tol) return "b";
+  return null;
+}
+function cropDrag(t, edge, p){
+  const c = t.crop, min = 50;
+  if (edge === "l"){ const v = Math.round(Math.max(0, Math.min(c.l + (p.x - t.x), t.fw - c.r - min))); t.x += v - c.l; c.l = v; }
+  else if (edge === "r"){ c.r = Math.round(Math.max(0, Math.min(c.r + (t.x + t.w - p.x), t.fw - c.l - min))); }
+  else if (edge === "t"){ const v = Math.round(Math.max(0, Math.min(c.t + (p.y - t.y), t.fh - c.b - min))); t.y += v - c.t; c.t = v; }
+  else { c.b = Math.round(Math.max(0, Math.min(c.b + (t.y + t.h - p.y), t.fh - c.t - min))); }
+  applyCrop(t);
+}
+view.addEventListener("pointermove", e => {
+  if (!ptrs.size){ const ed = edgeAt(toWorld(e)); view.style.cursor = ed ? (ed === "l" || ed === "r" ? "ew-resize" : "ns-resize") : "grab"; }
+  if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, e);
+  if (pinch && ptrs.size === 2){
+    const [a, b] = [...ptrs.values()], r = view.getBoundingClientRect();
+    const cx = (a.clientX + b.clientX) / 2 - r.left, cy = (a.clientY + b.clientY) / 2 - r.top;
+    zoomAt(cx, cy, pinch.s * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.d / V.s); return;
+  }
+  if (!drag) return; const p = toWorld(e);
+  if (drag.pan){ V.ox = drag.ox + p.sx - drag.sx; V.oy = drag.oy + p.sy - drag.sy; }
+  else if (drag.edge){
+    if (!drag.moved){ snapshot(); drag.moved = true; }
+    cropDrag(drag.t, drag.edge, p);
+  }
+  else {
+    if (!drag.moved){ snapshot(); drag.moved = true; }
+    drag.t.x = Math.round(p.x - drag.dx); drag.t.y = Math.round(p.y - drag.dy);
+  }
+  if (!raf) raf = requestAnimationFrame(draw);
+});
+function endPtr(e){ ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (!ptrs.size){ drag = null; view.style.cursor = "grab"; refresh(); } }
+view.addEventListener("pointerup", endPtr); view.addEventListener("pointercancel", endPtr);
+function zoomAt(sx, sy, f){
+  const ns = Math.max(0.01, Math.min(8, V.s * f)); f = ns / V.s;
+  V.ox = sx - (sx - V.ox) * f; V.oy = sy - (sy - V.oy) * f; V.s = ns;
+  if (!raf) raf = requestAnimationFrame(draw);
+}
+view.addEventListener("wheel", e => { e.preventDefault(); const r = view.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015)); }, {passive: false});
+window.addEventListener("keydown", e => {
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z"){ e.preventDefault(); doUndo(); return; }
+  if (!sel) return;
+  const st = e.shiftKey ? 10 : 1;
+  const mv = {ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st]}[e.key];
+  if (mv){ e.preventDefault(); snapshot(); sel.x += mv[0]; sel.y += mv[1]; refresh(); }
+  else if (e.key === "Delete"){ $("bDel").click(); }
+  else if (e.key.toLowerCase() === "r"){ $("bRotR").click(); }
+});
+window.addEventListener("resize", () => { if (!raf) raf = requestAnimationFrame(draw); });
+
+/* ---------- tlačítka ---------- */
+$("bAdd").onclick = () => $("file").click();
+$("file").onchange = e => { const f = [...e.target.files]; e.target.value = ""; if (f.length) busy(() => addFiles(f)); };
+const stage = $("stage");
+stage.addEventListener("dragover", e => { e.preventDefault(); $("drop").classList.add("over"); });
+stage.addEventListener("dragleave", () => $("drop").classList.remove("over"));
+stage.addEventListener("drop", e => { e.preventDefault(); $("drop").classList.remove("over"); const f = [...e.dataTransfer.files]; if (f.length) busy(() => addFiles(f)); });
+$("bGrid").onclick = () => { snapshot(); layoutGrid(true); fit(); };
+$("bFit").onclick = fit;
+$("bUncrop").onclick = () => { if (!sel) return; snapshot(); sel.x -= sel.crop.l; sel.y -= sel.crop.t; sel.crop = {l: 0, t: 0, r: 0, b: 0}; applyCrop(sel); refresh(); };
+$("bridge").onchange = () => { statusLock = 0; refresh(); };
+$("gap").onchange = () => { statusLock = 0; refresh(); };
+function rot(q){ if (!sel) return; snapshot(); const cx = sel.x + sel.w / 2, cy = sel.y + sel.h / 2; sel.rot90 = (sel.rot90 + q + 4) % 4; sel.crop = {l: 0, t: 0, r: 0, b: 0}; bake(sel); sel.x = Math.round(cx - sel.w / 2); sel.y = Math.round(cy - sel.h / 2); refresh(); }
+$("bRotL").onclick = () => rot(-1); $("bRotR").onclick = () => rot(1);
+function fine(d){ if (!sel) return; snapshot(); sel.angle = Math.round((sel.angle + d) * 100) / 100; bake(sel); refresh(); }
+$("bFineL").onclick = () => fine(-0.05); $("bFineR").onclick = () => fine(0.05);
+$("bDeskew").onclick = () => busy(() => { snapshot(); deskew(sel); setStatus("Díl narovnán o " + sel.angle.toFixed(2).replace(".", ",") + "°."); refresh(); });
+$("bDeskewAll").onclick = () => busy(async () => { snapshot(); for (const t of tiles){ deskew(t); await new Promise(r => setTimeout(r, 0)); } setStatus("Narovnáno: " + tiles.map((t, i) => (i + 1) + ": " + t.angle.toFixed(2).replace(".", ",") + "°").join(" · ")); refresh(); });
+$("bSnapL").onclick = () => { snapshot(); if (!snapTo(sel, "left")) undo.pop(); refresh(); };
+$("bSnapT").onclick = () => { snapshot(); if (!snapTo(sel, "top")) undo.pop(); refresh(); };
+$("bDel").onclick = () => { if (!sel) return; snapshot(); tiles = tiles.filter(t => t !== sel); sel = null; refresh(); };
+$("bUndo").onclick = doUndo;
+$("outl").onchange = refresh;
+$("clean").onchange = () => busy(() => { for (const t of tiles) bake(t); refresh(); });
+$("dpi").onchange = () => { statusLock = 0; if (tiles.length) setStatus("Nové DPI se použije pro další načtené PDF a pro přepočet velikosti; už načtené díly zůstávají."); updateUi(); };
+
+/* ---------- export ---------- */
+function compose(){
+  const b = bbox();
+  if (b.w > 16000 || b.h > 16000 || b.w * b.h > 240e6) throw new Error("Výsledek je příliš velký (" + b.w + " × " + b.h + " px). Načtěte díly s nižším DPI.");
+  const c = mk(b.w, b.h), cx = c.getContext("2d");
+  cx.fillStyle = "#fff"; cx.fillRect(0, 0, b.w, b.h);
+  cx.globalCompositeOperation = "darken";
+  for (const t of tiles) drawTile(cx, t, Math.round(t.x - b.x), Math.round(t.y - b.y));
+  computeBridges(); drawBridges(cx, b.x, b.y);
+  return c;
+}
+function save(blob, name){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 20000); }
+const blobOf = (c, type, q) => new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("Obrázek se nepodařilo vytvořit.")), type, q));
+$("bJpg").onclick = () => busy(async () => save(await blobOf(compose(), "image/jpeg", 0.9), "slozeny_vykres.jpg"));
+$("bPng").onclick = () => busy(async () => save(await blobOf(compose(), "image/png"), "slozeny_vykres.png"));
+$("bPdf").onclick = () => busy(async () => {
+  const c = compose(), dpi = +$("dpi").value, wmm = c.width / dpi * 25.4, hmm = c.height / dpi * 25.4;
+  const buf = new Uint8Array(await (await blobOf(c, "image/jpeg", 0.88)).arrayBuffer());
+  const doc = new jspdf.jsPDF({unit: "mm", format: [wmm, hmm], orientation: wmm >= hmm ? "landscape" : "portrait", compress: true});
+  doc.addImage(buf, "JPEG", 0, 0, wmm, hmm, undefined, "NONE");
+  doc.setProperties({title: "Složený výkres"});
+  save(doc.output("blob"), "slozeny_vykres.pdf");
+});
+
+window.__skladani = {get bridges(){ return bridges; }, get view(){ return V; }, applyCrop, addFiles, get tiles(){ return tiles; }, estimateSkew, snapTo, compose, fit, refresh, select: i => { sel = tiles[i]; refresh(); }};
+refresh();
+</script>
+</body>
+</html>

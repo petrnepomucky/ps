@@ -14,6 +14,7 @@
     ['komprimace.html', 'Komprimace'],
     ['tisk.html', 'Hromadný tisk'],
     ['vykresy.html', 'Výkresy'],
+    ['skladani.html', 'Skládání skenů'],
     ['plany.html', 'Plány podlaží']
   ];
   var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
