@@ -729,23 +729,23 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     </div>
   </div>
 
-  <!-- 5. Správa budov PS (AppSheet) -->
-  <div class="tool-row rev" data-url="https://www.appsheet.com/start/ee96b005-5ad2-4eee-8afe-b1715ffff77b#appName=Spr%C3%A1vabudovPS-437802722&amp;view=Provozovny" data-name="Správa budov">
+  <!-- 5. Správa budov (napojeno na Google Disk) -->
+  <div class="tool-row rev" data-url="https://ps.yey.cz/budovy.html" data-name="Správa budov">
     <div class="tool-info">
       <div class="tool-cat cat-tel">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
         Evidence objektů
       </div>
       <div class="tool-title">Správa budov</div>
-      <div class="tool-desc">Aplikace AppSheet s evidencí provozoven a objektů. Data jsou uložená v cloudu a sdílená v rámci oddělení, pro přístup je nutné přihlášení firemním účtem.</div>
+      <div class="tool-desc">Přehled provozoven, budov a podlaží napojený na tabulku a složky s fotkami na Google Disku. U každého areálu a budovy fotografie, plán areálu a plány podlaží se zakresleným vybavením a hasicími přístroji.</div>
       <ul class="tool-features">
-        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Přehled provozoven a objektů na jednom místě</li>
-        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Sdílená data pro celé oddělení</li>
-        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Funguje v prohlížeči i v mobilní aplikaci AppSheet</li>
-        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Přístup pouze po přihlášení</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Provozovna → budova → podlaží, vše propojené</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Fotky a plány podlaží přímo z Google Disku, s přiblížením</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Vybavení a hasicí přístroje jako špendlíky na plánu</li>
+        <li><div class="fd fd-purple"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Revize, stav fasád a hledání napříč vším; úpravy dál v AppSheet</li>
       </ul>
       <div class="tool-actions">
-        <a href="https://www.appsheet.com/start/ee96b005-5ad2-4eee-8afe-b1715ffff77b#appName=Spr%C3%A1vabudovPS-437802722&amp;view=Provozovny" class="btn-open" style="background:#7b1fa2">
+        <a href="https://ps.yey.cz/budovy.html" class="btn-open">
           <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           Otevřít aplikaci
         </a>
@@ -759,17 +759,9 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
       <div class="phone-shell">
         <div class="phone-notch"></div>
         <div class="phone-screen">
-          <div class="phone-bar" style="background:#7b1fa2"><span>9:41</span><span>●●● 100%</span></div>
+          <div class="phone-bar" style="background:var(--green-dark)"><span>9:41</span><span>●●● 100%</span></div>
           <div class="phone-content">
-            <div class="as-mock">
-              <div class="as-head">Provozovny</div>
-              <div class="as-item"><b></b><i></i></div>
-              <div class="as-item"><b></b><i></i></div>
-              <div class="as-item"><b></b><i></i></div>
-              <div class="as-item"><b></b><i></i></div>
-              <div class="as-item"><b></b><i></i></div>
-              <div class="as-note">Náhled není k dispozici –<br>aplikace vyžaduje přihlášení</div>
-            </div>
+            <iframe src="https://ps.yey.cz/budovy.html" title="Správa budov" loading="lazy"></iframe>
           </div>
           <div class="phone-home-bar"><div></div></div>
         </div>

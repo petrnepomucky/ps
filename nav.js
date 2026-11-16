@@ -15,7 +15,8 @@
     ['tisk.html', 'Hromadný tisk'],
     ['vykresy.html', 'Výkresy'],
     ['skladani.html', 'Skládání skenů'],
-    ['plany.html', 'Plány podlaží']
+    ['plany.html', 'Plány podlaží'],
+    ['budovy.html', 'Správa budov']
   ];
   var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
   var css = document.createElement('style');

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Správa budov</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#009645">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nástroje">
+<meta name="referrer" content="no-referrer">
+<style>
+:root{--g:#009645;--gd:#00753a;--gl:#f0f8f3;--gm:#cfe8d9;--o:#f27d00;--od:#d46e00;--ol:#fde9d2;--red:#d32f2f;--ink:#1c2321;--muted:#6b746f;--line:#e2e6e3;--bg:#f4f6f5;--card:#fff;--r:12px;font-family:Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;display:flex;flex-direction:column}
+a{color:var(--gd)}
+header{background:var(--g);color:#fff;flex:none}
+header .bar{display:flex;align-items:center;gap:14px;padding:12px 16px}
+header .mark{background:#fff;border-radius:9px;width:36px;height:36px;display:grid;place-items:center;flex:none}
+header .mark svg{width:22px;height:22px;color:var(--g)}
+header h1{margin:0;font-size:18px;font-weight:700}
+header p{margin:0;font-size:12.5px;opacity:.9}
+header .accent{background:var(--o);height:4px}
+.hbtn{margin-left:8px;color:#fff;cursor:pointer;background:#ffffff1f;border:1.5px solid #ffffff80;border-radius:50%;width:36px;height:36px;display:grid;place-items:center;flex:none}
+.hbtn:first-of-type{margin-left:auto}
+.hbtn:hover{background:#ffffff42}
+.hbtn svg{width:19px;height:19px}
+.toolbar{background:#fff;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;flex:none}
+.search{flex:1 1 260px;max-width:520px;position:relative}
+.search input{width:100%;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:9px;padding:8px 12px 8px 34px;background:#fafbfa}
+.search input:focus{outline:2px solid var(--gm);border-color:var(--g);background:#fff}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
+.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn.primary{background:var(--o);border-color:var(--o);color:#fff}
+.btn.primary:hover{background:var(--od)}
+.btn.green{background:var(--g);border-color:var(--g);color:#fff}
+.btn.green:hover{background:var(--gd)}
+.btn:disabled{opacity:.5;cursor:default}
+.status{font-size:12.5px;color:var(--muted);margin-left:auto}
+.status.err{color:var(--red)}
+.crumbs{font-size:13px;color:var(--muted);padding:12px 20px 0;max-width:1280px;width:100%;margin:0 auto;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.crumbs a{text-decoration:none;font-weight:600}
+.crumbs a:hover{text-decoration:underline}
+.crumbs .sep{opacity:.5}
+main{flex:1;overflow:auto}
+.wrap{max-width:1280px;margin:0 auto;padding:14px 20px 40px}
+h2{font-size:22px;margin:4px 0 2px}
+h3{font-size:15px;margin:26px 0 10px;color:var(--gd);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--gm);padding-bottom:6px}
+h3 .n{background:var(--gl);color:var(--gd);border-radius:99px;font-size:12px;padding:1px 9px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s;cursor:pointer}
+.card:hover{box-shadow:0 6px 22px #00643217;border-color:var(--gm)}
+.ph{position:relative;aspect-ratio:16/10;background:#e9eeeb;overflow:hidden;display:block}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph.plan img{object-fit:contain;background:#fff}
+.ph .none{position:absolute;inset:0;display:grid;place-items:center;color:#a5b0aa;font-size:12px;text-align:center;padding:10px}
+.ph .none svg{width:34px;height:34px;display:block;margin:0 auto 4px}
+.ph .tag{position:absolute;left:8px;top:8px;background:#1c2321b8;color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+.card .body{padding:10px 14px 12px}
+.card .t{font-weight:700;font-size:15px;line-height:1.3}
+.card .s{color:var(--muted);font-size:12.5px;margin-top:2px}
+.card .m{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--gl);color:var(--gd)}
+.chip.o{background:var(--ol);color:#9a5200}
+.chip.r{background:#fde7e7;color:#a12626}
+.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;margin-top:10px}
+.hero .imgs{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.hero .imgs.one{grid-template-columns:1fr}
+.fig{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;cursor:zoom-in;position:relative}
+.fig .ph{aspect-ratio:4/3}
+.fig figcaption{font-size:12px;color:var(--muted);padding:6px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
+.info{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:6px 0;align-self:start}
+.info dl{margin:0;display:grid;grid-template-columns:minmax(110px,40%) 1fr}
+.info dt,.info dd{padding:6px 14px;margin:0;font-size:13.5px;border-bottom:1px solid #eef1ef}
+.info dt{color:var(--muted)}
+.info dd{font-weight:600;word-break:break-word}
+.info dl>*:nth-last-child(-n+2){border-bottom:0}
+.links{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 8px;border-top:1px solid var(--line)}
+.links:empty{display:none}
+table.tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;font-size:13px}
+.tb th{background:var(--g);color:#fff;text-align:left;padding:7px 10px;font-weight:600}
+.tb td{padding:7px 10px;border-top:1px solid #eef1ef;vertical-align:top}
+.tb tr:nth-child(even) td{background:#f8fbf9}
+.tbw{overflow-x:auto}
+.empty{background:#fff;border:1px dashed #c9d1cc;border-radius:var(--r);padding:26px;text-align:center;color:var(--muted);font-size:14px}
+.res{display:flex;flex-direction:column;gap:6px}
+.res a{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px}
+.res a:hover{border-color:var(--gm);background:var(--gl)}
+.res img,.res .ni{width:56px;height:42px;object-fit:cover;border-radius:6px;background:#e9eeeb;flex:none}
+.res .k{font-size:11px;font-weight:700;color:#fff;background:var(--g);border-radius:5px;padding:1px 6px;flex:none}
+.res .k.b{background:#5a6b62}.res .k.f{background:var(--o)}.res .k.z{background:#8a4f9e}
+.res .tt{font-weight:600;font-size:14px}.res .ss{font-size:12px;color:var(--muted)}
+/* plán podlaží */
+.floorbar{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.floorbar a{padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;text-decoration:none;color:var(--ink)}
+.floorbar a.on{background:var(--g);border-color:var(--g);color:#fff}
+.planlay{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+.pv{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;height:min(72vh,760px);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.pv.drag{cursor:grabbing}
+.pv .stage{position:absolute;left:0;top:0;transform-origin:0 0;--z:1}
+.pv .stage img{display:block;width:100%;height:100%;pointer-events:none}
+.pv .ctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:3}
+.pv .ctl button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:18px;font-weight:700;cursor:pointer;color:var(--ink);box-shadow:0 2px 8px #0000001a}
+.pv .ctl button:hover{background:var(--gl)}
+.pv .msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;text-align:center;padding:20px}
+.pin{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:translate(-50%,-100%) scale(calc(1 / var(--z))) rotate(-45deg);transform-origin:50% 100%;background:var(--o);border:2px solid #fff;box-shadow:0 2px 6px #0006;cursor:pointer;z-index:2}
+.pin::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;background:#fff;border-radius:50%}
+.pin.h{background:var(--red)}
+.pin.sel{background:var(--g);z-index:4;width:32px;height:32px}
+.pin.hid{display:none}
+.pop{position:absolute;left:10px;bottom:10px;z-index:5;background:#fff;border:1px solid var(--line);border-left:4px solid var(--o);border-radius:10px;box-shadow:0 8px 24px #0000002e;padding:10px 14px;max-width:min(420px,calc(100% - 20px));font-size:13px;display:none}
+.pop.on{display:block}
+.pop.h{border-left-color:var(--red)}
+.pop .x{position:absolute;right:6px;top:4px;border:0;background:none;font-size:18px;cursor:pointer;color:var(--muted)}
+.pop .pt{font-weight:700;font-size:14px;padding-right:20px}
+.pop .pg{display:flex;gap:6px;margin-top:8px}
+.pop .pg img{width:96px;height:72px;object-fit:cover;border-radius:6px;cursor:zoom-in;background:#eee}
+.side{background:#fff;border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;max-height:min(72vh,760px);overflow:hidden}
+.side .hd{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.side .hd b{font-size:14px}
+.side label{font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.side label i{width:11px;height:11px;border-radius:50%;background:var(--o);display:inline-block}
+.side label i.h{background:var(--red)}
+.side input{accent-color:var(--g)}
+.side ul{list-style:none;margin:0;padding:4px 0;overflow:auto;flex:1}
+.side li{padding:6px 12px;font-size:13px;cursor:pointer;display:flex;gap:8px;align-items:flex-start;border-left:3px solid transparent}
+.side li:hover{background:var(--bg)}
+.side li.sel{background:var(--gl);border-left-color:var(--g)}
+.side li i{width:10px;height:10px;border-radius:50%;background:var(--o);flex:none;margin-top:5px}
+.side li i.h{background:var(--red)}
+.side li i.no{background:#c9d1cc}
+.side li small{display:block;color:var(--muted);font-size:11.5px}
+/* lightbox */
+.lb{position:fixed;inset:0;z-index:2000;background:#0d1310;display:none;flex-direction:column}
+.lb.on{display:flex}
+.lb .lbh{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#fff;font-size:14px}
+.lb .lbh .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .lbh a,.lb .lbh button{color:#fff;background:#ffffff1f;border:1px solid #ffffff4d;border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
+.lb .pv{flex:1;height:auto;border:0;border-radius:0;background:transparent;margin:0 10px 10px}
+/* modály */
+.mo{position:fixed;inset:0;z-index:1900;background:#121c178c;display:flex;align-items:center;justify-content:center;padding:20px}
+.mo[hidden]{display:none!important}
+.md{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow:auto;padding:24px;position:relative;box-shadow:0 20px 60px #00000047}
+.md h3{border:0;margin:0 0 8px;padding:0;font-size:19px}
+.md .bar{height:3px;border-radius:99px;background:linear-gradient(90deg,var(--g) 0 62%,var(--o) 62% 100%);margin:0 0 14px}
+.md p,.md li{font-size:13.5px}
+.md ol{padding-left:20px;margin:0 0 12px}
+.md .x{position:absolute;right:10px;top:10px;width:34px;height:34px;border-radius:50%;border:0;background:var(--bg);font-size:18px;cursor:pointer}
+.md input{width:100%;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+.md .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.facts{background:var(--gl);border:1px solid var(--gm);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--gd)}
+.spin{width:34px;height:34px;border:4px solid var(--gm);border-top-color:var(--g);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading{padding:60px 20px;text-align:center;color:var(--muted)}
+@media (max-width:900px){.hero,.planlay{grid-template-columns:1fr}.side{max-height:320px}}
+@media (max-width:600px){header p{display:none}.wrap{padding:10px 12px 30px}.crumbs{padding:10px 12px 0}.hero .imgs{grid-template-columns:1fr}.status{flex-basis:100%;margin-left:0}.pv{height:60vh}}
+@media print{.toolbar,header .hbtn,.pv .ctl{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg></div>
+    <div>
+      <h1>Správa budov</h1>
+      <p>Provozovny, budovy a patra – fotografie, plány podlaží a vybavení</p>
+    </div>
+    <button class="hbtn" title="Nastavení připojení" aria-label="Nastavení" onclick="openSetup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <button class="hbtn" title="O aplikaci" aria-label="O aplikaci" onclick="document.getElementById('infoMo').hidden=false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11.5" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/></svg></button>
+  </div>
+  <div class="accent"></div>
+</header>
+
+<div class="toolbar">
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+    <input id="q" type="search" placeholder="Hledat provozovnu, budovu, patro nebo zařízení…" autocomplete="off">
+  </div>
+  <button class="btn" id="reloadBtn" title="Načíst čerstvá data z tabulky">⟳ Obnovit</button>
+  <a class="btn" id="editBtn" target="_blank" rel="noopener" href="https://www.appsheet.com/start/ee96b005-5ad2-4eee-8afe-b1715ffff77b#appName=Spr%C3%A1vabudovPS-437802722&amp;view=Provozovny" title="Úpravy dat a nahrávání fotek dál probíhají v AppSheet">✎ Upravit v AppSheet</a>
+  <span class="status" id="status"></span>
+</div>
+
+<main id="main">
+  <nav class="crumbs" id="crumbs"></nav>
+  <div class="wrap" id="view"><div class="loading"><div class="spin"></div>Načítám data…</div></div>
+</main>
+
+<div class="lb" id="lb">
+  <div class="lbh"><span class="t" id="lbT"></span><a id="lbOpen" target="_blank" rel="noopener">Otevřít na Disku</a><button onclick="closeLb()">✕ Zavřít</button></div>
+  <div class="pv" id="lbPv"></div>
+</div>
+
+<div class="mo" id="setupMo" hidden>
+  <div class="md">
+    <button class="x" onclick="closeSetup()" aria-label="Zavřít">×</button>
+    <h3>Připojení k datům</h3><div class="bar"></div>
+    <p>Aplikace čte data z tabulky <b>Provozovny</b> na Google Disku přes malý Apps Script (webovou aplikaci), který vydává jen budovy, patra, vybavení, revize a odkazy na fotky.</p>
+    <ol>
+      <li>Na <a href="https://script.new" target="_blank" rel="noopener">script.new</a> vlož kód „Správa budov API“.</li>
+      <li><b>Nasadit → Nové nasazení → Webová aplikace</b>, spustit jako <i>Já</i>, přístup <i>Kdokoli</i>.</li>
+      <li>Adresu končící <code>/exec</code> vlož sem.</li>
+    </ol>
+    <input id="apiIn" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="acts"><button class="btn" onclick="closeSetup()">Zrušit</button><button class="btn green" onclick="saveSetup()">Uložit a načíst</button></div>
+  </div>
+</div>
+
+<div class="mo" id="infoMo" hidden>
+  <div class="md">
+    <button class="x" onclick="this.closest('.mo').hidden=true" aria-label="Zavřít">×</button>
+    <h3>Správa budov</h3><div class="bar"></div>
+    <p>Přehled provozoven, budov a podlaží napojený na tabulku <b>Provozovny</b> a složky s fotkami na Google Disku (stejná data jako aplikace AppSheet).</p>
+    <div class="facts">
+      • Fotky areálů a budov, plány areálů a plány podlaží se berou přímo ze složek na Disku.<br>
+      • Na plánech podlaží jsou špendlíky vybavení (oranžové) a hasicích přístrojů (červené) podle pozic z AppSheet.<br>
+      • Kliknutím na fotku nebo plán ji otevřeš na celou obrazovku – kolečkem myši / dvěma prsty přiblížíš.<br>
+      • Úpravy a nahrávání nových fotek dál probíhají v AppSheet; tady se změny projeví po „Obnovit“ (nejpozději do 10 minut).<br>
+      • Poslední načtená data se pamatují, takže stránka se otevře hned i se slabým signálem.
+    </div>
+    <div class="acts"><button class="btn green" onclick="this.closest('.mo').hidden=true">Rozumím</button></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ====== Nastavení ====== */
+// Adresa nasazeného Apps Scriptu „Správa budov API“ (…/exec). Lze přepsat v nastavení (ozubené kolečko).
+const DEFAULT_API = '';
+const LS_API = 'sb.api', LS_DATA = 'sb.data';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s == null ? '' : s).normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+const fold = s => norm(s).normalize('NFD').replace(/[̀-ͯ]/g, '');
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+let API = lsGet(LS_API) || DEFAULT_API;
+let DB = null;          // zpracovaná data
+let RAW = null;
+
+/* ====== Načítání ====== */
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '__sb' + Date.now() + Math.floor(Math.random() * 1e5);
+    const s = document.createElement('script');
+    const t = setTimeout(() => { clean(); reject(new Error('Server neodpověděl včas.')); }, 45000);
+    function clean() { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); }
+    window[cb] = d => { clean(); resolve(d); };
+    s.onerror = () => { clean(); reject(new Error('Nepodařilo se spojit se skriptem (zkontroluj adresu a přístup „Kdokoli“).')); };
+    s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+function setStatus(t, err) { const el = $('#status'); el.textContent = t || ''; el.className = 'status' + (err ? ' err' : ''); }
+function fmtTime(iso) { try { const d = new Date(iso); return d.toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+
+async function load(refresh) {
+  if (!API) { if (!DB) showSetupNeeded(); return; }
+  $('#reloadBtn').disabled = true;
+  setStatus('Načítám…');
+  try {
+    const d = await jsonp(API + (refresh ? (API.indexOf('?') >= 0 ? '&' : '?') + 'refresh=1' : ''));
+    if (!d || !d.ok) throw new Error((d && d.error) || 'Neplatná odpověď serveru.');
+    RAW = d; DB = build(d);
+    lsSet(LS_DATA, JSON.stringify(d));
+    setStatus('Data z ' + fmtTime(d.generated));
+    route();
+  } catch (e) {
+    setStatus(e.message + (DB ? ' Zobrazuji uložená data.' : ''), true);
+    if (!DB) $('#view').innerHTML = '<div class="empty"><b>Data se nepodařilo načíst.</b><br>' + esc(e.message) + '<br><br><button class="btn green" onclick="openSetup()">Nastavení připojení</button> <button class="btn" onclick="load(true)">Zkusit znovu</button></div>';
+  } finally { $('#reloadBtn').disabled = false; }
+}
+
+function showSetupNeeded() {
+  $('#crumbs').innerHTML = '';
+  $('#view').innerHTML = '<div class="empty"><b>Aplikace ještě není připojená k tabulce.</b><br>Vlož adresu Apps Scriptu „Správa budov API“.<br><br><button class="btn green" onclick="openSetup()">Připojit</button></div>';
+  setStatus('Nepřipojeno', true);
+}
+function openSetup() { $('#apiIn').value = API || ''; $('#setupMo').hidden = false; setTimeout(() => $('#apiIn').focus(), 50); }
+function closeSetup() { $('#setupMo').hidden = true; }
+function saveSetup() {
+  const v = $('#apiIn').value.trim();
+  if (v && !/^https:\/\/script\.google(usercontent)?\.com\//.test(v)) { alert('Adresa musí začínat https://script.google.com/…'); return; }
+  API = v; lsSet(LS_API, v); closeSetup();
+  if (v) load(true); else showSetupNeeded();
+}
+
+/* ====== Zpracování dat ====== */
+function build(raw) {
+  const T = raw.tables || {}, files = raw.files || {};
+  const byPath = {}, byBase = {};
+  for (const k in files) { byPath[norm(k)] = files[k]; byBase[norm(k.split('/').pop())] = files[k]; }
+  const db = { files, byPath, byBase, P: [], B: [], F: [], Z: [], pMap: {}, bMap: {}, fMap: {} };
+
+  (T.provozovny || []).forEach(r => {
+    const id = r.Provozovna_ID || r.Nazev_Provozovny; if (!id) return;
+    const p = { k: 'p', id, name: r.Nazev_Provozovny || id, r, budovy: [], patraBez: [] };
+    db.P.push(p); db.pMap[norm(id)] = p;
+  });
+  const orphanP = () => {
+    let p = db.pMap['__bez'];
+    if (!p) { p = { k: 'p', id: '__bez', name: 'Nezařazené', r: {}, budovy: [], patraBez: [] }; db.pMap['__bez'] = p; db.P.push(p); }
+    return p;
+  };
+  (T.budovy || []).forEach(r => {
+    const id = r.Budova_ID; if (!id) return;
+    const p = db.pMap[norm(r.Provozovna_ID)] || orphanP();
+    const b = { k: 'b', id, name: r.Nazev_Budovy || id, r, p, patra: [], zar: [], revize: [], fasady: [] };
+    p.budovy.push(b); db.B.push(b); db.bMap[norm(id)] = b;
+  });
+  (T.patra || []).forEach(r => {
+    const id = r.Patro_ID; if (!id) return;
+    const b = db.bMap[norm(r.Budova_ID)];
+    const p = b ? b.p : (db.pMap[norm(r.Provozovna_ID)] || orphanP());
+    const f = { k: 'f', id, name: r.Cislo_Patra || r.Nazev_Patra || id, r, b, p, zar: [] };
+    if (b) b.patra.push(f); else p.patraBez.push(f);
+    db.F.push(f); db.fMap[norm(id)] = f;
+  });
+  const addZ = (r, kind) => {
+    const name = r.Nazev_Zarizeni || r.Vybaveni_ID || r['Zarízeni_ID'] || r.Zarizeni_ID; if (!name) return;
+    const f = db.fMap[norm(r.Patro_ID)];
+    const b = f ? f.b : db.bMap[norm(r.Budova_ID)];
+    const pos = parseXY(kind === 'h' ? r.Pozice_Mapa : r.XY_Pozice_X);
+    const z = { k: 'z', kind, name, r, f, b, pos, i: db.Z.length };
+    db.Z.push(z);
+    if (f) f.zar.push(z); else if (b) b.zar.push(z);
+  };
+  (T.vybaveni || []).forEach(r => addZ(r, 'v'));
+  (T.hasici || []).forEach(r => addZ(r, 'h'));
+  (T.revize || []).forEach(r => { const b = findB(db, r.Budova_ID); if (b) b.revize.push(r); });
+  (T.fasady || []).forEach(r => { const b = findB(db, r.Budova_ID); if (b) b.fasady.push(r); });
+
+  db.B.forEach(b => b.patra.sort((a, c) => floorOrd(a) - floorOrd(c) || a.name.localeCompare(c.name, 'cs')));
+  db.P.forEach(p => p.budovy.sort((a, c) => a.name.localeCompare(c.name, 'cs')));
+  db.P.sort((a, c) => (a.id === '__bez') - (c.id === '__bez') || a.name.localeCompare(c.name, 'cs'));
+  return db;
+}
+function findB(db, id) {
+  if (!id) return null;
+  const n = norm(id); if (db.bMap[n]) return db.bMap[n];
+  let best = null;
+  db.B.forEach(b => { const k = norm(b.id); if (n.startsWith(k) && (!best || k.length > norm(best.id).length)) best = b; });
+  return best;
+}
+function floorOrd(f) {
+  const s = norm(f.r.Cislo_Patra || f.name);
+  const m = s.match(/(-?\d+)\s*\.?\s*(np|pp|p)?/);
+  if (/pp|suter|sklep/.test(s)) return -(m ? +m[1] : 1);
+  if (/přízemí|prizemi/.test(s)) return 1;
+  if (/podkrov|střech|strech/.test(s)) return 50;
+  if (/are[aá]l/.test(s)) return -99;
+  return m ? +m[1] : 0;
+}
+function parseXY(v) {
+  if (!v) return null;
+  const m = String(v).match(/(-?\d+(?:[.,]\d+)?)\s*[,;]\s*(-?\d+(?:[.,]\d+)?)/);
+  if (!m) return null;
+  const x = parseFloat(m[1].replace(',', '.')), y = parseFloat(m[2].replace(',', '.'));
+  if (!(x >= 0 && x <= 100 && y >= 0 && y <= 100)) return null;
+  return { x, y };
+}
+function gps(v) {
+  if (!v) return null;
+  const m = String(v).match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);
+  return m ? { lat: m[1], lon: m[2] } : null;
+}
+
+/* ====== Soubory na Disku ====== */
+function fileOf(v) {
+  if (!v) return null;
+  v = String(v).trim();
+  let m = v.match(/\/d\/([\w-]{20,})/) || v.match(/[?&]id=([\w-]{20,})/) || v.match(/\/folders\/([\w-]{20,})/);
+  if (m) return { id: m[1], folder: /\/folders\//.test(v) };
+  const hit = DB.byPath[norm(v)] || DB.byBase[norm(v.split('/').pop())];
+  if (hit) return { id: hit[0], mime: hit[1] };
+  if (/^[\w-]{25,}$/.test(v)) return { id: v, unknown: true };
+  return null;
+}
+const thumb = (id, w) => 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 800);
+const openUrl = f => f.folder ? 'https://drive.google.com/drive/folders/' + f.id : (f.unknown ? 'https://drive.google.com/open?id=' + f.id : 'https://drive.google.com/file/d/' + f.id + '/view');
+const isImg = f => f && !f.folder && (!f.mime || /^image\//.test(f.mime)) && !f.unknown;
+
+const NOIMG = '<div class="none"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg>bez fotky</div></div>';
+function phHtml(path, w, extraCls, tag) {
+  const f = fileOf(path);
+  const t = tag ? '<span class="tag">' + esc(tag) + '</span>' : '';
+  if (!isImg(f)) return '<div class="ph ' + (extraCls || '') + '">' + NOIMG + t + '</div>';
+  return '<div class="ph ' + (extraCls || '') + '"><img loading="lazy" referrerpolicy="no-referrer" src="' + thumb(f.id, w) + '" alt="" onerror="imgErr(this)">' + t + '</div>';
+}
+function imgErr(img) { const ph = img.parentNode; img.remove(); ph.insertAdjacentHTML('afterbegin', NOIMG.replace('bez fotky', 'fotku nelze načíst')); }
+function figHtml(path, caption, isPlan) {
+  const f = fileOf(path);
+  if (!isImg(f)) return '';
+  return '<figure class="fig" style="margin:0" data-lb="' + esc(f.id) + '" data-cap="' + esc(caption) + '">' + phHtml(path, 1200, isPlan ? 'plan' : '') + '<figcaption><span>' + esc(caption) + '</span><span>⤢</span></figcaption></figure>';
+}
+
+/* ====== Popisky polí ====== */
+const LABELS = {
+  Zkratka: 'Zkratka', Ulice: 'Adresa', Telefon: 'Telefon', Email_Spravce: 'E-mail správce', 'GPS Lat Long': 'GPS', 'Středisko': 'Středisko',
+  Zkratka_Budovy: 'Zkratka', GPS_Lat: 'GPS', Typ_Budovy: 'Typ budovy', Rok_Vystavby: 'Rok výstavby', Pocet_Pater: 'Počet pater',
+  Celkova_Plocha_m2: 'Plocha (m²)', Stav_Budovy: 'Stav budovy', Spravce_Budovy: 'Správce', Telefon_Spravce: 'Telefon správce',
+  Poznamky: 'Poznámky', 'Poznámky ke stavu budovy': 'Stav – poznámky', Cislo_Patra: 'Podlaží', Nazev_Patra: 'Název', Popis_Patra: 'Popis',
+  Pristupnost: 'Přístupnost', 'Zodpovědná_Osoba': 'Zodpovědná osoba'
+};
+const HIDE = /(_ID$|^Identifikace|Fotografie|Plán areálu|Plan_Podlazi|^File$|_URL$|^Nazev_Provozovny$|^Nazev_Budovy$)/;
+function dlHtml(r, skip) {
+  let h = '';
+  for (const k in r) {
+    if (HIDE.test(k) || (skip && skip.indexOf(k) >= 0)) continue;
+    let v = r[k], vh = esc(v);
+    if (/^Telefon/.test(k)) vh = '<a href="tel:' + esc(String(v).replace(/[^\d+]/g, '').replace(/^(\d{9})$/, '+420$1')) + '">' + vh + '</a>';
+    else if (/mail/i.test(k) && /@/.test(v)) vh = '<a href="mailto:' + esc(v) + '">' + vh + '</a>';
+    else if (/^https?:\/\//.test(v)) vh = '<a href="' + esc(v) + '" target="_blank" rel="noopener">otevřít odkaz</a>';
+    else if (k === 'Poznamky' && /^[\w-]{25,}$/.test(v)) vh = '<a href="https://drive.google.com/open?id=' + esc(v) + '" target="_blank" rel="noopener">složka / soubor na Disku</a>';
+    h += '<dt>' + esc(LABELS[k] || k.replace(/_/g, ' ')) + '</dt><dd>' + vh + '</dd>';
+  }
+  return h ? '<dl>' + h + '</dl>' : '<dl><dt>Údaje</dt><dd style="color:var(--muted);font-weight:400">nevyplněno</dd></dl>';
+}
+function linkBtn(path, label) { const f = fileOf(path); return f ? '<a class="btn" target="_blank" rel="noopener" href="' + openUrl(f) + '">' + label + '</a>' : ''; }
+function mapBtns(v) { const g = gps(v); return g ? '<a class="btn" target="_blank" rel="noopener" href="https://mapy.cz/zakladni?q=' + g.lat + ',' + g.lon + '&source=coor&id=' + g.lon + ',' + g.lat + '">🗺 Mapy.cz</a><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps?q=' + g.lat + ',' + g.lon + '">Google Maps</a>' : ''; }
+
+/* ====== Routování ====== */
+const href = (k, id) => '#' + k + '/' + encodeURIComponent(id);
+window.addEventListener('hashchange', route);
+function route() {
+  if (!DB) return;
+  const q = $('#q').value.trim();
+  const h = decodeURIComponent(location.hash.slice(1));
+  const k = h.slice(0, 1), id = h.slice(2);
+  $('#main').scrollTop = 0;
+  if (k === 'p' && DB.pMap[norm(id)]) return viewP(DB.pMap[norm(id)]);
+  if (k === 'b' && DB.bMap[norm(id)]) return viewB(DB.bMap[norm(id)]);
+  if (k === 'f' && DB.fMap[norm(id)]) return viewF(DB.fMap[norm(id)]);
+  if (q) return viewSearch(q);
+  viewHome();
+}
+function crumbs(list) {
+  $('#crumbs').innerHTML = [['#', 'Všechny provozovny']].concat(list).map((c, i, a) => i < a.length - 1 ? '<a href="' + c[0] + '">' + esc(c[1]) + '</a><span class="sep">›</span>' : '<span>' + esc(c[1]) + '</span>').join('');
+}
+
+/* ====== Pohledy ====== */
+function countF(p) { return p.budovy.reduce((s, b) => s + b.patra.length, 0) + p.patraBez.length; }
+function viewHome() {
+  $('#crumbs').innerHTML = '';
+  const P = DB.P;
+  $('#view').innerHTML = '<h2>Provozovny</h2><p class="sub">' + P.length + ' provozoven · ' + DB.B.length + ' budov · ' + DB.F.length + ' podlaží</p>' +
+    (P.length ? '<div class="grid">' + P.map(p => '<a class="card" href="' + href('p', p.id) + '">' + phHtml(p.r.Fotografie_Arealu || p.r['Plán areálu'], 640, '', p.r.Zkratka) +
+      '<div class="body"><div class="t">' + esc(p.name) + '</div><div class="s">' + esc(p.r.Ulice || '') + '</div><div class="m"><span class="chip">' + p.budovy.length + ' budov</span><span class="chip o">' + countF(p) + ' podlaží</span></div></div></a>').join('') + '</div>'
+      : '<div class="empty">V tabulce zatím nejsou žádné provozovny.</div>');
+}
+function viewP(p) {
+  crumbs([[href('p', p.id), p.name]]);
+  const r = p.r;
+  const figs = [figHtml(r.Fotografie_Arealu, 'Fotografie areálu'), figHtml(r['Plán areálu'], 'Plán areálu', true)].filter(Boolean);
+  let h = '<h2>' + esc(p.name) + '</h2><p class="sub">' + esc(r.Ulice || '') + '</p>';
+  h += '<div class="hero">' + (figs.length ? '<div class="imgs' + (figs.length === 1 ? ' one' : '') + '">' + figs.join('') + '</div>' : '<div class="empty">K provozovně nejsou nahrané fotky ani plán areálu.</div>') +
+    '<div class="info">' + dlHtml(r) + '<div class="links">' + mapBtns(r['GPS Lat Long']) + linkBtn(r.File, '📐 Výkres areálu (DWG)') + '</div></div></div>';
+  h += '<h3>Budovy <span class="n">' + p.budovy.length + '</span></h3>';
+  h += p.budovy.length ? '<div class="grid">' + p.budovy.map(cardB).join('') + '</div>' : '<div class="empty">Žádné budovy.</div>';
+  if (p.patraBez.length) h += '<h3>Podlaží bez přiřazené budovy <span class="n">' + p.patraBez.length + '</span></h3><div class="grid">' + p.patraBez.map(cardF).join('') + '</div>';
+  $('#view').innerHTML = h;
+}
+function cardB(b) {
+  return '<a class="card" href="' + href('b', b.id) + '">' + phHtml(b.r.Fotografie_Budovy, 640, '', b.r.Zkratka_Budovy) +
+    '<div class="body"><div class="t">' + esc(b.name) + '</div>' + (b.r.Spravce_Budovy ? '<div class="s">Správce: ' + esc(b.r.Spravce_Budovy) + '</div>' : '') +
+    '<div class="m"><span class="chip o">' + b.patra.length + ' podlaží</span>' + (b.revize.length ? '<span class="chip">' + b.revize.length + ' revizí</span>' : '') + '</div></div></a>';
+}
+function cardF(f) {
+  const nz = f.zar.length;
+  return '<a class="card" href="' + href('f', f.id) + '">' + phHtml(f.r.Plan_Podlazi_URL, 640, 'plan', f.r.Cislo_Patra) +
+    '<div class="body"><div class="t">' + esc(f.r.Cislo_Patra || f.name) + (f.r.Popis_Patra ? ' – ' + esc(f.r.Popis_Patra) : '') + '</div>' +
+    '<div class="m">' + (fileOf(f.r.Plan_Podlazi_URL) ? '<span class="chip">plán</span>' : '<span class="chip r">bez plánu</span>') + (nz ? '<span class="chip o">' + nz + ' zařízení</span>' : '') + '</div></div></a>';
+}
+function viewB(b) {
+  crumbs([[href('p', b.p.id), b.p.name], [href('b', b.id), b.name]]);
+  const r = b.r;
+  const fig = figHtml(r.Fotografie_Budovy, 'Fotografie budovy');
+  let h = '<h2>' + esc(b.name) + '</h2><p class="sub">' + esc(b.p.name) + '</p>';
+  h += '<div class="hero">' + (fig ? '<div class="imgs one">' + fig + '</div>' : '<div class="empty">K budově není nahraná fotka.</div>') +
+    '<div class="info">' + dlHtml(r) + '<div class="links">' + mapBtns(r.GPS_Lat) + linkBtn(r.File, '📐 Výkres (DWG)') +
+    (r.Dokumentace_URL ? linkBtn(r.Dokumentace_URL, '📄 Dokumentace') : '') + (r.Slozka_s_Dokumenty_URL ? linkBtn(r.Slozka_s_Dokumenty_URL, '📁 Složka s dokumenty') : '') + '</div></div></div>';
+  h += '<h3>Podlaží a plány <span class="n">' + b.patra.length + '</span></h3>';
+  h += b.patra.length ? '<div class="grid">' + b.patra.map(cardF).join('') + '</div>' : '<div class="empty">K budově nejsou zadaná podlaží.</div>';
+  if (b.zar.length) h += '<h3>Zařízení bez podlaží <span class="n">' + b.zar.length + '</span></h3>' + zarTable(b.zar);
+  if (b.revize.length) {
+    h += '<h3>Revize <span class="n">' + b.revize.length + '</span></h3><div class="tbw"><table class="tb"><tr><th>Revize</th><th>Typ</th><th>Datum</th><th>Příští</th><th>Protokol</th></tr>' +
+      b.revize.map(v => { const f = fileOf(v.Protokol_Soubor); return '<tr><td>' + esc(v.Oznaceni_revize || v.Revize_ID || '') + (v.Poznamky ? '<br><small style="color:var(--muted)">' + esc(v.Poznamky) + '</small>' : '') + '</td><td>' + esc(v.Typ_Revize || '') + '</td><td>' + esc(v.Datum_Revize || v.Datum_nahrani || '') + '</td><td>' + esc(v.Datum_Pristi_Revize || '') + '</td><td>' + (f ? '<a target="_blank" rel="noopener" href="' + openUrl(f) + '">otevřít</a>' : '–') + '</td></tr>'; }).join('') + '</table></div>';
+  }
+  if (b.fasady.length) {
+    h += '<h3>Stav fasády <span class="n">' + b.fasady.length + '</span></h3><div class="grid">' + b.fasady.map(v => {
+      const f = fileOf(v.Fotografie_Budovy);
+      return '<div class="card" style="cursor:default"' + (isImg(f) ? ' data-lb="' + esc(f.id) + '" data-cap="Fasáda – ' + esc(b.name) + '"' : '') + '>' + phHtml(v.Fotografie_Budovy, 640) + '<div class="body">' +
+        (v.Popis_Stavu ? '<div class="t">' + esc(v.Popis_Stavu) + '</div>' : '') +
+        '<div class="s">' + [v['Poškození_popis'], v['Závěrečná zpráva']].filter(Boolean).map(esc).join('<br>') + '</div><div class="m">' +
+        (v.Druh_Opravy ? '<span class="chip o">' + esc(v.Druh_Opravy) + '</span>' : '') + (v.Termin_Opravy ? '<span class="chip">oprava ' + esc(v.Termin_Opravy) + '</span>' : '') + (v['Termín prohlídky'] ? '<span class="chip">prohlídka ' + esc(v['Termín prohlídky']) + '</span>' : '') + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  $('#view').innerHTML = h;
+}
+function zarTable(list) {
+  return '<div class="tbw"><table class="tb"><tr><th>Zařízení</th><th>Druh</th><th>Výrobce / typ</th><th>Výr. číslo</th><th>Stav</th></tr>' + list.map(z => {
+    const r = z.r;
+    return '<tr><td>' + (z.kind === 'h' ? '🧯 ' : '') + esc(z.name) + '</td><td>' + esc([r.Kategorie, r.Podkategorie || r.Druh].filter(Boolean).join(' – ')) + '</td><td>' + esc([r.Vyrobce, r.Model || r.Typ].filter(Boolean).join(' ')) + '</td><td>' + esc(r.Seriove_Cislo || r.Vyrobni_Cislo || '') + '</td><td>' + esc(r.Stav_Zarizeni || r['Stav_Zarizeni Provozuschopne'] || '') + '</td></tr>';
+  }).join('') + '</table></div>';
+}
+function viewF(f) {
+  const b = f.b, p = f.p;
+  crumbs([[href('p', p.id), p.name]].concat(b ? [[href('b', b.id), b.name]] : []).concat([[href('f', f.id), f.r.Cislo_Patra || f.name]]));
+  const r = f.r;
+  let h = '<h2>' + esc(b ? b.name : p.name) + ' · ' + esc(r.Cislo_Patra || f.name) + '</h2><p class="sub">' + esc([r.Popis_Patra, r.Pristupnost, r['Zodpovědná_Osoba']].filter(Boolean).join(' · ')) + '</p>';
+  if (b && b.patra.length > 1) h += '<div class="floorbar">' + b.patra.map(x => '<a href="' + href('f', x.id) + '"' + (x === f ? ' class="on"' : '') + '>' + esc(x.r.Cislo_Patra || x.name) + '</a>').join('') + '</div>';
+  const plan = fileOf(r.Plan_Podlazi_URL);
+  const pins = f.zar.filter(z => z.pos);
+  h += '<div class="planlay"><div class="pv" id="planPv"></div><div class="side"><div class="hd"><b>Vybavení na podlaží (' + f.zar.length + ')</b>' +
+    '<label><input type="checkbox" checked data-flt="v"><i></i> Vybavení (' + f.zar.filter(z => z.kind === 'v').length + ')</label>' +
+    '<label><input type="checkbox" checked data-flt="h"><i class="h"></i> Hasicí přístroje (' + f.zar.filter(z => z.kind === 'h').length + ')</label></div><ul id="zarList">' +
+    (f.zar.length ? f.zar.map(z => '<li data-z="' + z.i + '" data-kind="' + z.kind + '"><i class="' + (z.pos ? (z.kind === 'h' ? 'h' : '') : 'no') + '"></i><div>' + esc(z.name) + '<small>' + esc([z.r.Kategorie || z.r.Druh, z.r.Umisteni].filter(Boolean).join(' · ')) + (z.pos ? '' : ' · bez pozice') + '</small></div></li>').join('') : '<li style="cursor:default;color:var(--muted)">Žádné zařízení</li>') +
+    '</ul></div></div>';
+  if (plan) h += '<div class="links" style="border:0;padding:10px 0"><a class="btn" target="_blank" rel="noopener" href="' + openUrl(plan) + '">Otevřít plán na Disku</a></div>';
+  $('#view').innerHTML = h;
+
+  const pv = $('#planPv');
+  if (!isImg(plan)) { pv.innerHTML = '<div class="msg">' + (plan ? 'Plán není obrázek – otevři ho na Disku.' : 'K tomuto podlaží není nahraný plán.') + '</div>'; return; }
+  const viewer = makeViewer(pv, thumb(plan.id, 2400), pins);
+  pv.addEventListener('pinclick', e => selectZ(e.detail));
+  document.querySelectorAll('#zarList li[data-z]').forEach(li => li.addEventListener('click', () => { const z = DB.Z[+li.dataset.z]; selectZ(z); if (z.pos) viewer.focus(z.pos); }));
+  document.querySelectorAll('[data-flt]').forEach(cb => cb.addEventListener('change', () => {
+    pv.querySelectorAll('.pin').forEach(el => { const z = DB.Z[+el.dataset.z]; el.classList.toggle('hid', !document.querySelector('[data-flt="' + z.kind + '"]').checked); });
+  }));
+  function selectZ(z) {
+    pv.querySelectorAll('.pin.sel').forEach(el => el.classList.remove('sel'));
+    const pin = pv.querySelector('.pin[data-z="' + z.i + '"]'); if (pin) pin.classList.add('sel');
+    document.querySelectorAll('#zarList li').forEach(li => li.classList.toggle('sel', li.dataset.z == z.i));
+    const li = document.querySelector('#zarList li[data-z="' + z.i + '"]'); if (li) li.scrollIntoView({ block: 'nearest' });
+    const r = z.r;
+    const photos = [[r.Fotografie_Zarizeni || r.Foto_Zarizeni, 'Zařízení'], [r.Fotografie_Umisteni || r.Foto_Prostoru, 'Umístění']].map(a => [fileOf(a[0]), a[1]]).filter(a => isImg(a[0]));
+    const det = [[r.Kategorie || (z.kind === 'h' ? 'Hasicí přístroj' : ''), r.Podkategorie || r.Druh], [r.Vyrobce, r.Model || r.Typ], [r.Seriove_Cislo || r.Vyrobni_Cislo ? 'v. č. ' + (r.Seriove_Cislo || r.Vyrobni_Cislo) : '', r.Rok_Vyroby ? 'rok ' + r.Rok_Vyroby : ''], [r.Umisteni, r.Stav_Zarizeni || (r['Stav_Zarizeni Provozuschopne'] ? 'provozuschopné: ' + r['Stav_Zarizeni Provozuschopne'] : '')], [r.Termin_kontroly ? 'kontrola do ' + r.Termin_kontroly : '', r.Inventarni_Cislo ? 'inv. č. ' + r.Inventarni_Cislo : '']]
+      .map(a => a.filter(Boolean).join(' · ')).filter(Boolean);
+    let pop = pv.querySelector('.pop');
+    if (!pop) { pop = document.createElement('div'); pv.appendChild(pop); pop.addEventListener('pointerdown', e => e.stopPropagation()); }
+    pop.className = 'pop on' + (z.kind === 'h' ? ' h' : '');
+    pop.innerHTML = '<button class="x" aria-label="Zavřít">×</button><div class="pt">' + esc(z.name) + '</div>' + det.map(d => '<div>' + esc(d) + '</div>').join('') +
+      (photos.length ? '<div class="pg">' + photos.map(a => '<img referrerpolicy="no-referrer" src="' + thumb(a[0].id, 300) + '" data-lb="' + esc(a[0].id) + '" data-cap="' + esc(z.name + ' – ' + a[1]) + '" title="' + esc(a[1]) + '">').join('') + '</div>' : '');
+    pop.querySelector('.x').onclick = () => { pop.classList.remove('on'); pv.querySelectorAll('.pin.sel').forEach(el => el.classList.remove('sel')); };
+  }
+}
+function viewSearch(q) {
+  $('#crumbs').innerHTML = '';
+  const t = fold(q).split(/\s+/).filter(Boolean);
+  const hit = s => { const f = fold(s); return t.every(w => f.indexOf(w) >= 0); };
+  const out = [];
+  DB.P.forEach(p => { if (p.id !== '__bez' && hit([p.name, p.r.Zkratka, p.r.Ulice].join(' '))) out.push(['p', p, 'Provozovna', p.r.Ulice, p.r.Fotografie_Arealu]); });
+  DB.B.forEach(b => { if (hit([b.id, b.name, b.r.Zkratka_Budovy, b.r.Spravce_Budovy].join(' '))) out.push(['b', b, 'Budova', b.p.name, b.r.Fotografie_Budovy]); });
+  DB.F.forEach(f => { if (hit([f.id, f.r.Nazev_Patra, f.r.Popis_Patra].join(' '))) out.push(['f', f, 'Podlaží', (f.b ? f.b.name : f.p.name), f.r.Plan_Podlazi_URL]); });
+  DB.Z.forEach(z => { if (z.f && hit([z.name, z.r.Kategorie, z.r.Podkategorie, z.r.Vyrobce, z.r.Model, z.r.Seriove_Cislo, z.r.Vyrobni_Cislo, z.r.Umisteni].join(' '))) out.push(['z', z, z.kind === 'h' ? 'Hasicí př.' : 'Zařízení', (z.f.b ? z.f.b.name + ' · ' : '') + (z.f.r.Cislo_Patra || ''), z.r.Fotografie_Zarizeni || z.r.Foto_Zarizeni]); });
+  const max = 150;
+  $('#view').innerHTML = '<h2>Výsledky hledání</h2><p class="sub">' + out.length + ' nalezeno' + (out.length > max ? ' (zobrazeno prvních ' + max + ')' : '') + '</p>' +
+    (out.length ? '<div class="res">' + out.slice(0, max).map(o => {
+      const f = fileOf(o[4]);
+      const target = o[0] === 'z' ? href('f', o[1].f.id) : href(o[0], o[1].id);
+      return '<a href="' + target + '">' + (isImg(f) ? '<img loading="lazy" referrerpolicy="no-referrer" src="' + thumb(f.id, 160) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<span class="ni"></span>') +
+        '<span class="k ' + (o[0] === 'p' ? '' : o[0]) + '">' + esc(o[2]) + '</span><span><div class="tt">' + esc(o[0] === 'f' ? (o[1].r.Nazev_Patra || o[1].id) : o[1].name) + '</div><div class="ss">' + esc(o[3] || '') + '</div></span></a>';
+    }).join('') + '</div>' : '<div class="empty">Nic nenalezeno.</div>');
+}
+
+/* ====== Prohlížeč obrázku s přiblížením a špendlíky ====== */
+function makeViewer(box, src, pins) {
+  box.innerHTML = '<div class="msg"><div><div class="spin"></div>Načítám plán…</div></div><div class="stage"><img referrerpolicy="no-referrer" alt=""></div><div class="ctl"><button data-a="in" title="Přiblížit">+</button><button data-a="out" title="Oddálit">−</button><button data-a="fit" title="Celý plán">⤢</button></div>';
+  const stage = box.querySelector('.stage'), img = stage.querySelector('img'), msg = box.querySelector('.msg');
+  let z = 1, tx = 0, ty = 0, W = 0, H = 0, fitZ = 1;
+  const apply = () => { stage.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + z + ')'; stage.style.setProperty('--z', z); };
+  function fit() {
+    if (!W) return;
+    const bw = box.clientWidth, bh = box.clientHeight;
+    fitZ = Math.min(bw / W, bh / H) * 0.98; z = fitZ;
+    tx = (bw - W * z) / 2; ty = (bh - H * z) / 2; apply();
+  }
+  function zoomAt(f, cx, cy) {
+    const nz = Math.max(fitZ * 0.5, Math.min(fitZ * 12, z * f));
+    tx = cx - (cx - tx) * (nz / z); ty = cy - (cy - ty) * (nz / z); z = nz; apply();
+  }
+  img.onload = () => {
+    W = img.naturalWidth; H = img.naturalHeight;
+    stage.style.width = W + 'px'; stage.style.height = H + 'px';
+    msg.remove();
+    (pins || []).forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'pin' + (p.kind === 'h' ? ' h' : '');
+      el.style.left = p.pos.x + '%'; el.style.top = p.pos.y + '%';
+      el.dataset.z = p.i; el.title = p.name;
+      el.addEventListener('pointerdown', e => e.stopPropagation());
+      el.addEventListener('click', e => { e.stopPropagation(); box.dispatchEvent(new CustomEvent('pinclick', { detail: p })); });
+      stage.appendChild(el);
+    });
+    fit();
+  };
+  img.onerror = () => { msg.innerHTML = 'Obrázek se nepodařilo načíst.<br><small>Zkontroluj, že je složka na Disku sdílená odkazem.</small>'; };
+  img.src = src;
+  box.querySelector('.ctl').addEventListener('pointerdown', e => e.stopPropagation());
+  box.querySelector('.ctl').addEventListener('click', e => {
+    const a = e.target.dataset.a; const bw = box.clientWidth / 2, bh = box.clientHeight / 2;
+    if (a === 'in') zoomAt(1.5, bw, bh); else if (a === 'out') zoomAt(1 / 1.5, bw, bh); else if (a === 'fit') fit();
+  });
+  box.addEventListener('wheel', e => { e.preventDefault(); const r = box.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  box.addEventListener('dblclick', e => { const r = box.getBoundingClientRect(); zoomAt(2, e.clientX - r.left, e.clientY - r.top); });
+  const pts = new Map(); let last = null;
+  box.addEventListener('pointerdown', e => { box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); box.classList.add('drag'); last = null; });
+  box.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    const prev = pts.get(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) { tx += e.clientX - prev.x; ty += e.clientY - prev.y; apply(); }
+    else if (pts.size === 2) {
+      const [a, b] = [...pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const r = box.getBoundingClientRect(); const cx = (a.x + b.x) / 2 - r.left, cy = (a.y + b.y) / 2 - r.top;
+      if (last) { zoomAt(d / last.d, cx, cy); tx += cx - last.cx; ty += cy - last.cy; apply(); }
+      last = { d, cx, cy };
+    }
+  });
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) last = null; if (!pts.size) box.classList.remove('drag'); };
+  box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+  const ro = new ResizeObserver(() => { if (W && Math.abs(z - fitZ) < 1e-6) fit(); }); ro.observe(box);
+  return {
+    fit,
+    focus(pos) { if (!W) return; const nz = Math.max(z, fitZ * 2.5); z = nz; tx = box.clientWidth / 2 - W * pos.x / 100 * z; ty = box.clientHeight / 2 - H * pos.y / 100 * z; apply(); }
+  };
+}
+
+/* ====== Lightbox ====== */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-lb]');
+  if (!t) return;
+  e.preventDefault();
+  openLb(t.dataset.lb, t.dataset.cap || '');
+});
+function openLb(id, cap) {
+  $('#lbT').textContent = cap; $('#lbOpen').href = 'https://drive.google.com/file/d/' + id + '/view';
+  $('#lb').classList.add('on');
+  makeViewer($('#lbPv'), thumb(id, 2400), []);
+}
+function closeLb() { $('#lb').classList.remove('on'); $('#lbPv').innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#lb').classList.contains('on')) closeLb(); else document.querySelectorAll('.mo').forEach(m => m.hidden = true); } });
+
+/* ====== Start ====== */
+let qT;
+$('#q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => { if (location.hash) history.replaceState(null, '', location.pathname); route(); }, 180); });
+$('#reloadBtn').addEventListener('click', () => load(true));
+$('#apiIn').addEventListener('keydown', e => { if (e.key === 'Enter') saveSetup(); });
+(function start() {
+  const cached = lsGet(LS_DATA);
+  if (cached) { try { RAW = JSON.parse(cached); DB = build(RAW); setStatus('Uložená data z ' + fmtTime(RAW.generated)); route(); } catch (e) { DB = null; } }
+  if (API) load(false); else if (!DB) showSetupNeeded();
+})();
+</script>
+<script src="/nav.js" defer></script>
+</body>
+</html>
