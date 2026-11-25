@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="author" content="Petr Nepomucký"><title>Přetlak</title>
+<style>
+*{box-sizing:border-box}body{margin:0;height:100dvh;overflow:hidden;background:#04231a;color:#fff6dc;font:16px "Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;touch-action:none;user-select:none}
+canvas{flex:1;min-height:0;max-width:100%;aspect-ratio:3/4;object-fit:contain}
+#b{display:flex;gap:6px;padding:8px;width:100%;max-width:560px}button{flex:1;font:700 15px "Segoe UI";padding:13px 4px;border:0;border-radius:9px;color:#1d1a10;background:#8ed14b;cursor:pointer}button:focus-visible{outline:3px solid #fff}#go{background:#f58220}
+</style></head><body><canvas id="c" width="600" height="800"></canvas>
+<div id="b"><button id="st">DUPNOUT</button><button id="go">ODVÉZT</button></div>
+<script>
+'use strict';
+const c=document.getElementById('c'),x=c.getContext('2d'),$=i=>document.getElementById(i);
+const T=[{n:'PLAST',c:'#f0c419',e:['🧴','🥤','🛍️','🪣']},{n:'PAPÍR',c:'#3f7fd0',e:['📦','📰','🧻','📚']},{n:'SMĚS',c:'#6a7a8c',e:['🧦','🍗','🩲','🧸','🛋️','🚽']}];
+const LV=[{n:'KÝBL',c:'#7d8f86',at:0,w:0,cap:1,tp:1},{n:'POPELNICE',c:'#3f8f4f',at:2,w:14,cap:1.2,tp:.92},{n:'KONTEJNER',c:'#e08a1e',at:5,w:30,cap:1.45,tp:.85},{n:'LIS',c:'#2f9fb0',at:9,w:42,cap:1.75,tp:.78},{n:'KVANTOVÝ LIS',c:'#8a5ad0',at:14,w:56,cap:2.1,tp:.7}];
+const UP=[{e:'↔️',m:'Širší kontejner!',f:()=>s.wide=Math.min(60,s.wide+15)},{e:'🔩',m:'Pevnější plech: dupání tlačí méně',f:()=>s.tough=Math.min(3,s.tough+1)},{e:'💨',m:'Ventil: tlak dolů',f:()=>s.press=Math.max(0,s.press-35)},{e:'🌸',m:'Osvěžovač: zápach dolů',f:()=>s.stink=Math.max(0,s.stink-25)},{e:'🧲',m:'Magnet na 10 sekund',f:()=>s.mag=10},{e:'⏱️',m:'Zpomalení na 7 sekund',f:()=>s.uni=7},{e:'💎',m:'Dvojnásobné body na 12 sekund',f:()=>s.dbl=12}];
+const ALERT=['Kdo vyhodil záchod? Ještě teplý!','Pan Kadlec už zase netřídí.','Ze třetího patra letí plína. Plná.','Domovní schůze se ruší, smrdí to.','Holubi podali stížnost.','Ten gauč měl víc nájemníků než dům.','Trenky bez majitele. Majitel bez trenek.'];
+const BOOM=['Dvůr je k nepoznání. Ceny bytů taky.','Holub nese následky. A kus banánu.','Tohle už nevypere ani déšť.','Vedoucí směny dělá, že tě nezná.'];
+let best=0;try{best=+localStorage.pretlak||0}catch(e){}
+let s={on:false,over:false},A=null,keys={},last=0;
+function tone(f,d,ty='square',v=.06){try{A=A||new AudioContext();const o=A.createOscillator(),g=A.createGain();o.type=ty;o.frequency.setValueAtTime(f,A.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(30,f*.4),A.currentTime+d);g.gain.setValueAtTime(v,A.currentTime);g.gain.exponentialRampToValueAtTime(.001,A.currentTime+d);o.connect(g);g.connect(A.destination);o.start();o.stop(A.currentTime+d)}catch(e){}}
+function reset(){s={on:true,over:false,x:300,to:300,lv:0,hauls:0,wide:0,tough:0,mag:0,uni:0,dbl:0,upT:6,fill:0,press:0,stink:0,score:0,t:0,next:.5,items:[],fx:[],msg:'Chytej, dupej a odvez to včas.',mt:3,sq:0,away:0,shake:0,end:''};tone(300,.2)}
+function stomp(){if(!s.on){if(!s.lock)reset();return}if(s.away>0||s.fill<10)return;s.fill*=.5;s.press+=(13+Math.random()*9)*(1-s.tough*.12)*LV[s.lv].tp;s.sq=1;s.shake=5;tone(110,.25,'sawtooth',.1);if(s.press>=100)die('PŘETLAK!',BOOM[Math.random()*BOOM.length|0])}
+function haul(){if(!s.on||s.away>0||s.fill+s.press<5)return;const p=Math.round((s.fill*.6+s.press*s.press/18)*(s.dbl>0?2:1)*(1+s.lv*.25));s.score+=p;s.stink=Math.max(0,s.stink-4-s.press*.18);s.fill=s.press=0;s.away=.5;s.hauls++;say('Odvezeno: +'+p);if(LV[s.lv+1]&&s.hauls>=LV[s.lv+1].at){s.lv++;say('Nový stroj: '+LV[s.lv].n+'!');tone(1000,.6,'triangle',.1)}tone(700,.3,'triangle',.1)}
+function say(m){s.msg=m;s.mt=2.4}
+function die(h,m){s.on=false;s.over=true;s.end=h;s.msg=m;s.lock=true;setTimeout(()=>s.lock=false,900);s.shake=22;tone(160,.9,'sawtooth',.15);for(let i=0;i<60;i++)s.fx.push({x:s.x,y:640,vx:Math.random()*700-350,vy:-Math.random()*800,e:T[i%3].e[i%4],t:2.5});if(s.score>best){best=s.score;try{localStorage.pretlak=best}catch(e){}}}
+function step(d){
+ s.shake=Math.max(0,(s.shake||0)-d*25);
+ for(const f of s.fx||[]){f.t-=d;f.vy+=900*d;f.x+=f.vx*d;f.y+=f.vy*d}s.fx=(s.fx||[]).filter(f=>f.t>0);
+ if(!s.on)return;
+ s.t+=d;s.mt-=d;s.sq=Math.max(0,s.sq-d*4);s.away=Math.max(0,s.away-d);
+ if(keys.ArrowLeft||keys.KeyA)s.to=s.x-60;if(keys.ArrowRight||keys.KeyD)s.to=s.x+60;
+ s.x+=Math.max(-620*d,Math.min(620*d,s.to-s.x));s.x=Math.max(60,Math.min(540,s.x));s.to=Math.max(60,Math.min(540,s.to));
+ const real=d;d*=s.away>0?.2:s.uni>0?.5:1;
+ s.next-=d;if(s.next<0){s.next=Math.max(.27,.85-s.t*.0055);const t=Math.random()*3|0,e=T[t].e;s.items.push({t,e:e[Math.random()*e.length|0],x:90+(Math.random()*5|0)*105,y:80+(Math.random()*4|0)*95,v:110,r:0});if(Math.random()<.12)say(ALERT[Math.random()*ALERT.length|0])}
+ for(const k of['mag','uni','dbl'])s[k]=Math.max(0,s[k]-real);
+ s.upT-=d;if(s.upT<0){s.upT=9+Math.random()*5;const u=UP[Math.random()*UP.length|0];s.items.push({u,e:u.e,x:90+(Math.random()*5|0)*105,y:100,v:40,r:0})}
+ for(const i of s.items){if(s.mag>0&&i.y>250&&true)i.x+=Math.max(-260*d,Math.min(260*d,s.x-i.x));i.v+=(170+s.t*1.3)*d;i.y+=i.v*d;i.r+=2*d;
+  const top=625;
+  if(s.away<=0&&i.y>top-20&&i.y<top+50&&Math.abs(i.x-s.x)<62+(s.wide+LV[s.lv].w)/2){i.dead=true;
+   if(i.u){i.u.f();say(i.u.m);tone(900,.35,'triangle',.1)}
+   else if(s.fill>=100){s.stink+=4;say('Přeteklo to. Dupni si!')}
+   else{s.fill=Math.min(100,s.fill+[10,14,18][i.t]/LV[s.lv].cap);s.score+=(s.dbl>0?2:1)*[4,5,7][i.t];tone(420,.06)}}
+  else if(i.y>735){i.dead=true;if(!i.u&&s.away<=0){s.stink+=5;tone(90,.12)}}
+  if(!s.on)break}
+ s.items=s.items.filter(i=>!i.dead);
+ if(s.on&&s.stink>=100)die('ZÁPACHOVÝ KOLAPS','Dvůr vyhlásil samostatnost.')}
+function bar(y,l,v,col){x.fillStyle='#0008';x.fillRect(150,y,290,18);x.fillStyle=col;x.fillRect(150,y,290*Math.min(1,v/100),18);x.fillStyle='#fff';x.font='700 15px Segoe UI';x.textAlign='left';x.fillText(l,20,y+15)}
+function em(e,X,Y,z,r=0){x.save();x.translate(X,Y);x.rotate(r);x.font=z+'px "Segoe UI Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(e,0,0);x.restore()}
+const RES=['🤖','👽','🧙','🐙','🦝'],W0=performance.now();
+function glow(col,b,f){x.save();x.shadowColor=col;x.shadowBlur=b;f();x.restore()}
+// Statické pozadí se kreslí jednou, animuje se jen to, co se hýbe
+const BG=document.createElement('canvas');BG.width=640;BG.height=840;
+function rr(q,X,Y,w,h,r,f,st){q.beginPath();q.roundRect(X,Y,w,h,r);if(f){q.fillStyle=f;q.fill()}if(st){q.strokeStyle=st;q.lineWidth=2;q.stroke()}}
+(function(){const q=BG.getContext('2d');q.translate(20,20);
+ const lg=(a,b,...l)=>{const g=q.createLinearGradient(0,a,0,b);l.forEach((v,i)=>g.addColorStop(i/(l.length-1),v));return g};
+ q.fillStyle=lg(60,700,'#04261f','#0a5a45','#4e9a5a','#f9b24a','#ff8a3a');q.fillRect(-20,-20,640,840);
+ const m=q.createRadialGradient(300,560,10,300,560,330);m.addColorStop(0,'#fff0b8dd');m.addColorStop(1,'#ffb34a00');q.fillStyle=m;q.fillRect(-20,200,640,520);
+ for(let l=0;l<3;l++)for(let k=0;k<15-l*3;k++){const w=[46,58,74][l],h=[270,210,150][l]+(k*(61+l*22))%120,X=k*w-25,Y=700-h;
+  q.fillStyle=lg(Y,700,['#2f7a56','#1a5a40','#0c3d2b'][l],['#c08a45','#5d7340','#17452f'][l]);q.fillRect(X,Y,w-6,h);
+  if(k%3===0){q.beginPath();q.arc(X+(w-6)/2,Y,(w-6)/2,Math.PI,0);q.fill()}else if(k%3===1)q.fillRect(X+w/2-5,Y-32,4,32);else q.fillRect(X+8,Y-12,w-24,12);
+  for(let a=10;a<h-10;a+=13)for(let b=6;b<w-14;b+=10)if((k*7+a*3+b*5+l)%4<1.2){q.fillStyle=(a+b)%3?'#ffe7a0aa':'#9dffc0aa';q.fillRect(X+b,Y+a,5,6)}}
+ q.fillStyle='#0a2f22';q.fillRect(-20,648,640,60);for(let k=0;k<34;k++){q.fillStyle=k%2?'#14593a':'#1c7048';q.beginPath();q.arc(k*19-12,668+(k*13)%16,19,0,7);q.fill()}
+ rr(q,40,90,520,410,24,lg(90,500,'#0f4a38','#0a2f26'),'#7dffa0');
+ for(let r=0;r<4;r++){q.fillStyle='#ffffff0d';q.fillRect(44,96+r*95,512,3);for(let k=0;k<5;k++){const n=r*5+k,X=55+k*105,Y=102+r*95,lit=n%4===0||n%7===3;
+  rr(q,X-4,Y-4,78,70,18,'#06231b');rr(q,X,Y,70,62,14,lg(Y,Y+62,lit?'#ffe2a0':'#2a7a62',lit?'#f7a24a':'#0d3c30'),k%2?'#ff9d2e':'#7dffa0');
+  q.save();q.beginPath();q.roundRect(X,Y,70,62,14);q.clip();q.fillStyle='#ffffff1f';q.beginPath();q.moveTo(X+8,Y+62);q.lineTo(X+38,Y);q.lineTo(X+54,Y);q.lineTo(X+24,Y+62);q.fill();
+  if(lit){q.fillStyle='#c2562b88';q.fillRect(X,Y,10,62);q.fillRect(X+60,Y,10,62)}q.restore();
+  rr(q,X-8,Y+60,86,9,4,'#3b5a4c');
+  if(n%3===0)for(let f=0;f<6;f++){q.fillStyle='#2f9d54';q.beginPath();q.arc(X+f*13+2,Y+58-(f%2)*4,7,0,7);q.fill();q.fillStyle=['#ff7a59','#ffd166','#fff'][f%3];q.beginPath();q.arc(X+f*13+2,Y+53-(f%2)*4,3,0,7);q.fill()}
+  if(n%5===2){rr(q,X+78,Y+18,20,26,4,'#9fb5a8');q.strokeStyle='#4d6158';for(let f=0;f<4;f++){q.beginPath();q.moveTo(X+81,Y+23+f*5);q.lineTo(X+95,Y+23+f*5);q.stroke()}}
+  if(n%6===4){q.strokeStyle='#e9f5dd';q.lineWidth=1;q.beginPath();q.moveTo(X-6,Y+72);q.lineTo(X+76,Y+72);q.stroke();['#f58220','#e8f5d0','#8ed14b'].forEach((v,f)=>{q.fillStyle=v;q.fillRect(X+6+f*22,Y+73,14,15)})}}}
+ q.strokeStyle='#4e7a66';q.lineWidth=5;q.beginPath();q.moveTo(49,100);q.lineTo(49,700);q.moveTo(551,100);q.lineTo(551,700);q.stroke();
+ q.fillStyle=lg(500,700,'#0a2f26','#061d18');q.fillRect(60,500,480,170);rr(q,235,555,130,115,10,'#123f34','#7dffa0');rr(q,242,562,56,108,4,lg(560,670,'#ffd98a','#e98a3a'));rr(q,302,562,56,108,4,lg(560,670,'#ffd98a','#e98a3a'));
+ for(const X of[90,425]){rr(q,X,575,85,70,10,'#0d4636','#ff9d2e');for(let k=0;k<3;k++){q.fillStyle='#ffd16688';q.fillRect(X+10+k*24,588,16,30)}}
+ q.fillStyle=lg(668,820,'#4d6a5c','#14271f');q.fillRect(-20,668,640,160);q.fillStyle='#8aa396';q.fillRect(-20,668,640,6);
+ q.strokeStyle='#0004';q.lineWidth=2;for(let k=-9;k<=9;k++){q.beginPath();q.moveTo(300+k*42,674);q.lineTo(300+k*105,820);q.stroke()}for(const Y of[692,716,752,790]){q.beginPath();q.moveTo(-20,Y);q.lineTo(620,Y);q.stroke()}
+ for(const[X,Y,w]of[[130,764,62],[455,778,78],[300,792,46]]){q.fillStyle='#ffb75a44';q.beginPath();q.ellipse(X,Y,w,9,0,0,7);q.fill();q.fillStyle='#bfffd033';q.beginPath();q.ellipse(X-8,Y-2,w*.6,4,0,0,7);q.fill()}
+ for(const X of[22,578]){q.fillStyle='#17362b';q.fillRect(X-4,540,8,140);rr(q,X-20,530,40,12,6,'#17362b');const g=q.createRadialGradient(X,545,2,X,545,85);g.addColorStop(0,'#fff0b0cc');g.addColorStop(1,'#ffc85a00');q.fillStyle=g;q.fillRect(X-85,470,170,170)}
+})();
+function scene(){const t=(performance.now()-W0)/1000;
+ x.drawImage(BG,-20,-20);
+ for(let i=0;i<30;i++){x.globalAlpha=.3+.3*Math.sin(t*2+i);x.fillStyle='#fff';x.fillRect((i*137)%600,90+(i*31)%90,2,2)}x.globalAlpha=1;
+ for(let i=0;i<4;i++){const X=((t*(45+i*22)+i*190)%760)-80,Y=515+i*13;x.fillStyle='#ffffff3d';x.fillRect(X-50,Y-1,32,2);glow(['#7dffa0','#ff9d2e','#ffd166','#fff'][i],12,()=>{x.fillStyle=['#7dffa0','#ff9d2e','#ffd166','#ddfff0'][i];x.beginPath();x.ellipse(X,Y,17,5,0,0,7);x.fill()});x.fillStyle='#0b3a2c';x.beginPath();x.ellipse(X+2,Y-4,8,4,0,Math.PI,0);x.fill()}
+ for(let n=0;n<20;n++)if(n%4===0||n%7===3){const X=55+n%5*105,Y=102+(n/5|0)*95;em(RES[n%5],X+35,Y+34+Math.sin(t*3+n)*3,34)}
+ const f=Math.sin(t*9)>-.92;x.globalAlpha=f?1:.35;glow('#ff9d2e',18,()=>{x.fillStyle='#ffb14a';x.font='800 20px Segoe UI';x.textAlign='center';x.fillText('DVŮR 2226',300,546)});x.globalAlpha=1;
+ for(const X of[110,490])for(let i=0;i<5;i++){const a=(t*.35+i/5)%1;x.globalAlpha=(1-a)*.2;x.fillStyle='#e4fff0';x.beginPath();x.arc(X+Math.sin(t+i*2)*10,690-a*90,7+a*20,0,7);x.fill()}x.globalAlpha=1;
+ for(let i=0;i<16;i++){x.globalAlpha=.4+.4*Math.sin(t*3+i*2);x.fillStyle='#e9ff9a';x.beginPath();x.arc((i*83+Math.sin(t*.7+i)*25)%600,570+(i*47)%140+Math.cos(t+i)*10,2,0,7);x.fill()}x.globalAlpha=1}
+function worker(X,Y,k){x.save();x.translate(X,Y+(k?14*k:0));x.fillStyle='#26304f';x.fillRect(-14,-24,11,24-k*8);x.fillRect(3,-24,11,24);x.fillStyle='#ff9d2e';x.beginPath();x.roundRect(-18,-64,36,42,9);x.fill();glow('#dfff5a',10,()=>{x.fillStyle='#dfff5a';x.fillRect(-18,-46,36,6)});x.strokeStyle='#ff9d2e';x.lineWidth=9;x.lineCap='round';x.beginPath();x.moveTo(-15,-55);x.lineTo(-32,-40-k*35);x.moveTo(15,-55);x.lineTo(32,-40-k*35);x.stroke();x.fillStyle='#e9bd96';x.beginPath();x.arc(0,-76,14,0,7);x.fill();x.fillStyle='#f4f7ff';x.beginPath();x.arc(0,-80,15,Math.PI,0);x.fill();glow('#7dffa0',8,()=>{x.fillStyle='#7dffa0';x.fillRect(-12,-79,24,6)});x.restore()}
+function draw(){x.save();if(s.shake)x.translate((Math.random()-.5)*s.shake,(Math.random()-.5)*s.shake);
+ scene();
+ for(let i=0;i<(s.stink||0)/4;i++)em(['🗑️','🍌','🧻','💩'][i%4],(i*97)%580+10,735+(i*37)%55,26,i);
+ if(s.x!==undefined){for(const i of s.items){const k=i.u?'#ffffff':T[i.t].c;x.fillStyle=k;x.beginPath();x.arc(i.x,i.y,i.u?29:25,0,7);glow(k,i.u?35:16,()=>x.fill());em(i.e,i.x,i.y,30,Math.sin(i.r)*.5)}
+  if(s.away>0)em('🚛',-60+(.5-s.away)*1440,660,110);
+  else if(!s.over){x.fillStyle='#0007';x.beginPath();x.ellipse(s.x,756,72+(s.wide+LV[s.lv].w)/2,10,0,0,7);x.fill();const q=s.sq*22,w=100+LV[s.lv].w+s.wide+s.press*.25+Math.sin(s.t*40)*(s.press>70?4:0),h=110-q,y=745-h;x.fillStyle=LV[s.lv].c;x.fillRect(s.x-w/2,y,w,h);x.fillStyle='#0005';x.fillRect(s.x-w/2+8,y+8,w-16,(h-16)*(1-s.fill/100));x.fillStyle='#f58220';x.fillRect(s.x-w/2,y+h-16,w,10);x.fillStyle='#1d3b2c';x.fillRect(s.x-w/2+10,745,18,9);x.fillRect(s.x+w/2-28,745,18,9);x.fillStyle='#fff';x.font='800 18px Segoe UI';x.textAlign='center';x.fillText(LV[s.lv].n,s.x,y+h/2+10,w-10);em(s.press>75?'🥵':s.press>40?'😬':'😐',s.x,y+30,28);worker(s.x,y-(s.sq?s.sq*18:0),s.sq);glow(LV[s.lv].c,18+s.lv*8,()=>{x.strokeStyle='#ffffffaa';x.lineWidth=2;x.strokeRect(s.x-w/2,y,w,h)})}
+  for(const f of s.fx)em(f.e,f.x,f.y,34,f.t*5)}
+ x.fillStyle='#04231ae8';x.fillRect(-20,-20,640,108);
+ bar(8,'Plnost',s.fill||0,'#6fbf5f');bar(32,'Tlak',s.press||0,'#f0503c');bar(56,'Zápach',s.stink||0,'#a6b52c');
+ x.textAlign='right';x.font='800 28px Segoe UI';x.fillStyle='#fff6dc';x.fillText(s.score||0,580,36);x.font='14px Segoe UI';x.fillText('Rekord '+best,580,56);if(s.on)x.fillText(LV[s.lv+1]?'Nový stroj za '+(LV[s.lv+1].at-s.hauls):'Nejvyšší stroj',580,76);{const a=[['mag','🧲'],['uni','⏱️'],['dbl','💎']].filter(k=>s[k[0]]>0);a.forEach((k,i)=>{em(k[1],70+i*85,560,28);x.textAlign='left';x.font='700 18px Segoe UI';x.fillStyle='#fff';x.fillText(Math.ceil(s[k[0]]),92+i*85,566)})}
+ x.textAlign='center';
+ if(s.on&&s.mt>0){x.fillStyle='#000b';x.fillRect(40,490,520,40);x.fillStyle='#fff';x.font='600 19px Segoe UI';x.fillText(s.msg,300,517)}
+ if(!s.on){x.fillStyle='#04231ae0';x.fillRect(30,190,540,370);x.fillStyle='#f2c230';x.font='900 46px Segoe UI';x.fillText(s.over?s.end:'PŘETLAK',300,260,500);x.fillStyle='#fff';x.font='19px Segoe UI';
+  const l=s.over?[s.msg,'Skóre: '+s.score,'','Dupni pro novou směnu.']:['Rok 2226. Z oken pořád lítá bordel.','Dupnutí udělá místo, ale zvýší tlak.','Čím větší tlak odvezeš, tím víc bodů.','Na stovce to bouchne.','Při odvozu se čas zpomalí. Odvozy vylepšují stroj.','Myš: levé dupe, pravé odváží.','Klávesy: šipky, mezerník dupe, E odváží.','Bílé svítící koule = upgrady. Klikni a začni.'];l.forEach((t,i)=>x.fillText(t,300,310+i*34,510))}
+ x.restore();}
+addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','Enter','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.repeat)return;if(e.code==='Space'||e.code==='Enter')stomp();if(e.code==='KeyE')haul();});
+addEventListener('keyup',e=>keys[e.code]=false);addEventListener('blur',()=>keys={});
+const mv=e=>{if(s.on&&(e.buttons||e.pointerType==='mouse')){const r=c.getBoundingClientRect(),k=Math.min(r.width/600,r.height/800);s.to=(e.clientX-r.left-(r.width-600*k)/2)/k}};
+c.addEventListener('pointermove',mv);c.addEventListener('pointerdown',e=>{if(!s.on){if(!s.lock)reset()}else{mv(e);if(e.pointerType==='mouse'){if(e.button===0)stomp();else if(e.button===2)haul();}}});
+addEventListener('contextmenu',e=>e.preventDefault());
+for(const[i,f]of[['st',stomp],['go',haul]])$(i).onclick=()=>{f();$(i).blur()};
+function loop(t){const d=Math.min(.04,(t-last)/1000||0);last=t;step(d);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+</script></body></html>
