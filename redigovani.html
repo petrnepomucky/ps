@@ -165,8 +165,10 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
             <label><input type="checkbox" value="op"> Čísla OP</label>
             <label><input type="checkbox" value="spz"> SPZ</label>
           </div>
+          <label class="opt"><input type="checkbox" id="optLaw" checked> Vynechat zákony a předpisy (např. 106/1999 Sb.)</label>
           <label class="opt"><input type="checkbox" id="optCase"> Rozlišovat velikost písmen</label>
           <button class="btn sm ghost full" onclick="search(true)">Vyhledat podle zaškrtnutých vzorů</button>
+          <button class="btn sm ghost full" style="margin-top:6px" onclick="findSignatures()" title="Prohledá konec dokumentu, strany před přílohami a místa označená k podpisu">✍ Najít podpisy a razítka</button>
           <div class="list" id="hits"></div>
           <div class="row" style="margin-top:8px">
             <button class="btn sm full" onclick="acceptAll()">✔ Potvrdit všechny návrhy</button>
@@ -204,6 +206,7 @@ kbd{background:#eee;border-radius:3px;padding:0 4px;font-size:11px;border:1px so
     <ol>
       <li>Nahrajte PDF nebo fotky / skeny.</li>
       <li>Táhnutím myši označte oblasti, nebo vyhledejte text (jména, rodná čísla, účty…). U skenů nejdřív klikněte na <b>Rozpoznat text</b>.</li>
+      <li>Tlačítko <b>Najít podpisy a razítka</b> navrhne vlastnoruční i elektronické podpisy – na konci dokumentu, před přílohami a u podpisových míst.</li>
       <li>Potvrďte návrhy a uložte redigované PDF.</li>
     </ol>
     <div class="box2"><b>Proč to je bezpečné:</b> obyčejný černý obdélník ve Wordu nebo v PDF editoru text jen překryje – pod ním zůstává a dá se zkopírovat. Tento nástroj stránky „vypálí" do obrázku, takže začerněný text ve výsledném souboru fyzicky neexistuje.</div>
@@ -289,7 +292,7 @@ async function ocrPage(i){
     pg.runs=[];
     for(const wd of r.data.words){
       const b=wd.bbox;
-      pg.runs.push({str:wd.text,x:b.x0/c.width,y:b.y0/c.height,w:(b.x1-b.x0)/c.width,h:(b.y1-b.y0)/c.height,word:true});
+      pg.runs.push({str:wd.text,x:b.x0/c.width,y:b.y0/c.height,w:(b.x1-b.x0)/c.width,h:(b.y1-b.y0)/c.height,word:true,conf:wd.confidence});
     }
     pg.ocrBtn.textContent='✔ Text rozpoznán ('+pg.runs.length+' slov)';pg.ocrBtn.disabled=true;
   }catch(e){alert('OCR se nepodařilo: '+e.message)}
@@ -471,11 +474,13 @@ function search(usePresets){
   pages.forEach((pg,pi)=>{
     const {s,map}=pageText(pg);
     const seen=[];
+    const laws=usePresets&&$('optLaw').checked?lawSpans(s):[];
     for(const re of regs){
       re.lastIndex=0;let m;
       while((m=re.exec(s))){
         if(!m[0].length){re.lastIndex++;continue}
         const a=m.index,b=a+m[0].length;
+        if(laws.some(([x,y])=>a>=x&&b<=y))continue;
         if(seen.some(([x,y])=>a<y&&b>x))continue;seen.push([a,b]);
         const rs=rectsFor(pg,map,a,b);
         const boxes=rs.map(r=>({...r,prop:true}));
@@ -509,6 +514,162 @@ function acceptAll(){
   refreshBoxes();refreshHits();
 }
 function clearProps(){pages.forEach(p=>p.boxes=p.boxes.filter(b=>!b.prop));selected=null;refreshBoxes();refreshHits()}
+
+/* ---------- ZÁKONY A PŘEDPISY (nezačerňovat) ---------- */
+function lawSpans(s){
+  const num='\\d{1,4}\\s?/\\s?(?:19|20)\\d{2}',eu='(?:19|20)\\d{2}\\s?/\\s?\\d{1,4}';
+  const list=`${num}(?:(?:\\s*,\\s*|\\s+a\\s+|\\s+nebo\\s+)(?:č\\.\\s*)?${num})*`;
+  const date='(?:\\s*,?\\s*ze\\s+dne\\s+\\d{1,2}\\.\\s?\\d{1,2}\\.\\s?\\d{4})?';
+  const res=[
+    `(?<!\\d|[-/]\\s?)${list}\\s*Sb\\.?${date}`,
+    `(?<!\\p{L})(?:zákon|vyhlášk|nařízení|směrnic)\\p{L}*(?:\\s+(?:vlády|Evropského parlamentu a Rady|Komise|Rady))?(?:\\s*\\((?:EU|ES|EHS)\\))?\\s+(?:č\\.\\s*)?(?:${list}|${eu})(?!\\d)${date}`,
+    `\\((?:EU|ES|EHS)\\)\\s*(?:č\\.\\s*)?(?:${num}|${eu})(?!\\d)${date}`,
+    `(?<!\\d)${eu}\\s?/\\s?(?:EU|ES|EHS)(?!\\p{L})${date}`
+  ];
+  const out=[];
+  for(const r of res)for(const m of s.matchAll(new RegExp(r,'giu')))out.push([m.index,m.index+m[0].length]);
+  return out;
+}
+
+/* ---------- PODPISY ---------- */
+// řádky textu rozdělené na sloupce (mezera > 3 % šířky strany)
+function textSegments(pg){
+  const segs=[];
+  const runs=pg.runs.slice().sort((a,b)=>a.x-b.x);
+  for(const r of runs){
+    const cy=r.y+r.h/2;
+    const g=segs.find(g=>Math.abs(g.cy-cy)<Math.max(g.h,r.h)*.45&&r.x-(g.x+g.w)<.03&&r.x-(g.x+g.w)>-.02);
+    if(g){
+      g.s+=(r.x-(g.x+g.w)>r.h*.15||r.word?' ':'')+r.str;
+      const x1=Math.max(g.x+g.w,r.x+r.w);g.w=x1-g.x;
+      const y0=Math.min(g.y,r.y);g.h=Math.max(g.y+g.h,r.y+r.h)-y0;g.y=y0;
+    }else segs.push({s:r.str,x:r.x,y:r.y,w:r.w,h:r.h,cy});
+  }
+  segs.forEach(g=>g.s=g.s.replace(/\s+/g,' ').trim());
+  return segs.sort((a,b)=>a.y-b.y||a.x-b.x);
+}
+const SIG_PARTY='objednatel|zhotovitel|prodávající|kupující|pronajímatel|nájemce|poskytovatel|příjemce|dodavatel|odběratel|zadavatel|předávající|přebírající|zmocnitel|zmocněnec|půjčitel|vypůjčitel|žadatel|stavebník|zaměstnavatel|zaměstnanec|investor|správce|vlastník|projektant';
+const RX_SIGN=new RegExp(`(?<!\\p{L})(podpis(y|ová)?|razítko|podepsán[ao]?|vlastnoruční)(?!\\p{L})|^za (${SIG_PARTY}|společnost)|^(převzal|předal|schválil|vypracoval|zpracoval)[ai]?\\s*:?`,'iu');
+const RX_WEAK=new RegExp(`^V(e)? \\p{L}.*(dne|\\d{4})|^dne\\s*[:.\\d_…]|^(${SIG_PARTY})\\p{L}{0,3}\\s*:?$|(jednatel|jednatelka|předsed\\p{L}+|starost\\p{L}+|ředitel\\p{L}*|prokurist\\p{L}*|vedoucí [\\p{L} ]+)$`,'iu');
+const RX_DOTS=/^[\s.…_‥-]{6,}$/;
+const RX_ESIGN=/(digitálně|elektronicky)\s+podeps|digitally\s+signed/i;
+const RX_ANNEX=/^(příloha|přílohy)(\s+(č\.?|číslo|[A-Z\d])|\s*:?$)/i;
+function isAnnexStart(segs){return segs.filter(g=>g.y>.04).slice(0,4).some(g=>g.s.length<90&&RX_ANNEX.test(g.s))}
+
+// kresba mimo rozpoznaný text → shluky {x,y,w,h,color}
+async function inkClusters(pg){
+  const c=await renderPage(pg,Math.min(2,1000/pg.w));
+  const W=c.width,H=c.height,ctx=c.getContext('2d',{willReadFrequently:true});
+  const d=ctx.getImageData(0,0,W,H).data;
+  const ink=new Uint8Array(W*H);       // 1 tmavá, 2 barevná
+  for(let i=0,j=0;i<ink.length;i++,j+=4){
+    const r=d[j],g=d[j+1],b=d[j+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+    if(mx-mn>55&&mn<190)ink[i]=2;else if((r+g+b)/3<150)ink[i]=1;
+  }
+  // vyloučit text; tečkované linky a nejisté OCR (často čmárance) ponechat
+  for(const r of pg.runs){
+    if(RX_DOTS.test(r.str)||(r.conf!==undefined&&r.conf<55))continue;
+    const x0=Math.max(0,Math.floor(r.x*W)-2),x1=Math.min(W,Math.ceil((r.x+r.w)*W)+2);
+    const y0=Math.max(0,Math.floor(r.y*H)-1),y1=Math.min(H,Math.ceil((r.y+r.h)*H)+1);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+      const k=y*W+x;
+      if(ink[k]===2&&pg.runs.length&&r.conf!==undefined)continue; // barevný inkoust přes tištěný text ve skenu
+      ink[k]=0;
+    }
+  }
+  // odstranit rovné čáry (tabulky, linky)
+  const kill=[];const LH=Math.round(W*.09),LV=Math.round(H*.07);
+  for(let y=0;y<H;y++)for(let x=0,s=0;x<=W;x++)if(x===W||!ink[y*W+x]){if(x-s>LH)for(let k=s;k<x;k++)kill.push(y*W+k);s=x+1}
+  for(let x=0;x<W;x++)for(let y=0,s=0;y<=H;y++)if(y===H||!ink[y*W+x]){if(y-s>LV)for(let k=s;k<y;k++)kill.push(k*W+x);s=y+1}
+  kill.forEach(k=>ink[k]=0);
+  // souvislé oblasti
+  const comps=[],st=[];
+  for(let i=0;i<ink.length;i++){
+    if(!ink[i])continue;
+    let x0=W,x1=0,y0=H,y1=0,n=0,col=0;st.push(i);if(ink[i]===2)col++;ink[i]=0;
+    while(st.length){
+      const k=st.pop(),x=k%W,y=(k-x)/W;n++;
+      if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=W||yy>=H)continue;
+        const q=yy*W+xx;if(ink[q]){if(ink[q]===2)col++;ink[q]=0;st.push(q)}
+      }
+    }
+    if(n<12||Math.max(x1-x0,y1-y0)<6)continue;
+    comps.push({x0,x1,y0,y1,n,col,big:Math.max(x1-x0,y1-y0)});
+  }
+  // spojit blízké tahy
+  const gx=W*.018,gy=H*.007;
+  for(let ch=true;ch;){
+    ch=false;
+    for(let i=0;i<comps.length;i++)for(let j=comps.length-1;j>i;j--){
+      const a=comps[i],b=comps[j];
+      if(b.x0-a.x1<gx&&a.x0-b.x1<gx&&b.y0-a.y1<gy&&a.y0-b.y1<gy){
+        a.x0=Math.min(a.x0,b.x0);a.x1=Math.max(a.x1,b.x1);a.y0=Math.min(a.y0,b.y0);a.y1=Math.max(a.y1,b.y1);
+        a.n+=b.n;a.col+=b.col;a.big=Math.max(a.big,b.big);comps.splice(j,1);ch=true;
+      }
+    }
+  }
+  return comps.map(a=>({x:a.x0/W,y:a.y0/H,w:(a.x1-a.x0+1)/W,h:(a.y1-a.y0+1)/H,
+    color:a.col/a.n,dens:a.n/((a.x1-a.x0+1)*(a.y1-a.y0+1)),big:a.big/W}))
+    .filter(a=>a.w>.035&&a.w<.55&&a.h>.009&&a.h<.2&&a.dens<.45&&a.big>.022);
+}
+async function findSignatures(){
+  if(!pages.length)return;
+  if(pages.some(p=>!p.runs.length)&&confirm('Některé strany nemají rozpoznaný text. Rozpoznat ho (OCR)? Podpisová místa se pak najdou spolehlivěji.'))await ocrAll();
+  let n=0;
+  try{
+    const segs=pages.map(textSegments);
+    const annex=segs.map(isAnnexStart);
+    const main=new Set([pages.length-1]);
+    annex.forEach((a,i)=>{if(a&&i)main.add(i-1)});
+    for(let i=0;i<pages.length;i++){
+      showBusy(`Hledám podpisy – strana ${i+1}/${pages.length}…`,i/pages.length);
+      await new Promise(r=>setTimeout(r));
+      const pg=pages[i],sg=segs[i],found=[];
+      const add=(r,text)=>{
+        const px=.006,py=.004,x=clamp(r.x-px),y=clamp(r.y-py);
+        const b={x,y,w:Math.min(1-x,r.w+2*px),h:Math.min(1-y,r.h+2*py),prop:true};
+        const inside=o=>b.x>=o.x-.005&&b.y>=o.y-.005&&b.x+b.w<=o.x+o.w+.005&&b.y+b.h<=o.y+o.h+.005;
+        if(pg.boxes.some(inside)||found.some(inside))return;
+        found.push(b);addBox(pg,b,false);hits.push({pg,pi:i,text,boxes:[b]});n++;
+      };
+      // 1) pole elektronického podpisu v PDF
+      if(pg.kind==='pdf'){
+        const vp=pg.pdfPage.getViewport({scale:1});
+        for(const a of await pg.pdfPage.getAnnotations()){
+          if(a.fieldType!=='Sig')continue;
+          const q=vp.convertToViewportRectangle(a.rect);
+          const r={x:Math.min(q[0],q[2])/vp.width,y:Math.min(q[1],q[3])/vp.height,w:Math.abs(q[2]-q[0])/vp.width,h:Math.abs(q[3]-q[1])/vp.height};
+          if(r.w>.01&&r.h>.005)add(r,'Elektronický podpis');
+        }
+      }
+      // 2) text „Digitálně podepsal…" a jeho pokračování
+      sg.forEach(g=>{
+        if(!RX_ESIGN.test(g.s)||g.s.length>90)return;
+        let r={...g};
+        sg.filter(o=>o!==g&&o.y>g.y&&o.y-g.y<.075&&Math.abs(o.x-g.x)<.03).some(o=>{
+          if(o.y-(r.y+r.h)>.012)return true;
+          r={x:Math.min(r.x,o.x),y:r.y,w:Math.max(r.x+r.w,o.x+o.w)-Math.min(r.x,o.x),h:o.y+o.h-r.y};
+          return false;
+        });
+        add(r,'Elektronický podpis (text)');
+      });
+      // 3) vlastnoruční podpis / razítko
+      const strong=sg.filter(g=>g.s.length<70&&RX_SIGN.test(g.s));
+      if(!main.has(i)&&!strong.length)continue;
+      const anchors=strong.concat(sg.filter(g=>g.s.length<90&&(RX_DOTS.test(g.s)||/[._…]{8,}/.test(g.s)||RX_WEAK.test(g.s))));
+      for(const k of await inkClusters(pg)){
+        const near=anchors.some(g=>k.x<g.x+g.w+.14&&k.x+k.w>g.x-.1&&k.y+k.h>g.y-.09&&k.y<g.y+g.h+.12);
+        // bez kotvy jen barevný inkoust na podpisové straně (mimo záhlaví a zápatí)
+        const free=main.has(i)&&k.color>.5&&k.y>.14&&k.y+k.h<.94;
+        if(near&&k.y>.06||free)add(k,k.h>.05&&k.color>.5?'Podpis / razítko':'Podpis');
+      }
+    }
+  }catch(e){alert('Hledání podpisů se nepodařilo: '+e.message)}
+  hideBusy();refreshBoxes();refreshHits();
+  $('textNote').textContent=n?`Navrženo ${n} podpisů/razítek – zkontrolujte oranžové návrhy a potvrďte.`:'Žádný podpis nenalezen – zkontrolujte dokument očima, případně ho označte ručně.';
+}
 
 /* ---------- EXPORT ---------- */
 async function exportPdf(){
