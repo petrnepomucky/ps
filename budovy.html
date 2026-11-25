@@ -161,6 +161,45 @@ table.tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid va
 @media (max-width:900px){.hero,.planlay{grid-template-columns:1fr}.side{max-height:320px}}
 @media (max-width:600px){header p{display:none}.wrap{padding:10px 12px 30px}.crumbs{padding:10px 12px 0}.hero .imgs{grid-template-columns:1fr}.status{flex-basis:100%;margin-left:0}.pv{height:60vh}}
 @media print{.toolbar,header .hbtn,.pv .ctl{display:none}}
+/* evidence */
+.shell{flex:1;display:flex;min-height:0}
+.shell main{min-width:0}
+.menu{width:200px;flex:none;background:#fff;border-right:1px solid var(--line);padding:12px 8px;overflow:auto}
+.menu small{display:block;color:var(--muted);font-size:11.5px;font-weight:700;padding:10px 10px 4px}
+.menu a{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:13.5px;font-weight:600}
+.menu a:hover{background:var(--bg)}
+.menu a.on{background:var(--gl);color:var(--gd)}
+.menu a .n{margin-left:auto;font-size:12px;color:var(--muted);font-weight:400}
+.evbar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.evbar input[type=search],.evbar select,.fm input,.fm select,.fm textarea{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff;max-width:100%}
+.evbar input[type=search]{flex:1 1 180px}
+.tb tr[data-e]{cursor:pointer}
+.tb tr[data-e]:hover td{background:var(--gl)}
+.tb .nop{color:#a12626}
+.tb button.btn{padding:3px 9px;font-size:12px}
+.md.wide{max-width:1060px}
+.fm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:18px}
+.fm .fl{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;align-content:start}
+.fm label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px;min-width:0}
+.fm label.w{grid-column:1/-1}
+.fm .fl input,.fm .fl select,.fm .fl textarea{width:100%;color:var(--ink)}
+.fm .pv{height:min(54vh,520px);cursor:crosshair}
+.fm .ph1{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-bottom:6px;min-height:34px}
+.ferr{color:var(--red);font-size:13px;margin-right:auto;align-self:center}
+.pin.new{background:var(--g);z-index:5;pointer-events:none}
+.btn[hidden]{display:none}
+@media (max-width:900px){.shell{flex-direction:column}.menu{width:auto;display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:6px 8px}.menu small{display:none}.menu a{white-space:nowrap}.fm{grid-template-columns:1fr}.fm .pv{height:46vh}}
+[hidden]{display:none!important}
+.evbar input[type=file]{font-size:13px;max-width:100%}
+.evbar .ferr{flex-basis:100%}
+.adm{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.adm label{display:block;font-size:13px;margin-top:8px;color:var(--muted)}
+.adm .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.adm textarea{width:100%;font:inherit;font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.fm.solo{grid-template-columns:1fr}
+.menu .who{font-size:12px;color:var(--muted);padding:10px;word-break:break-all}
+@media (max-width:600px){.adm .two{grid-template-columns:1fr}}
+@media print{.menu{display:none}}
 </style>
 </head>
 <body>
@@ -187,10 +226,13 @@ table.tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid va
   <span class="status" id="status"></span>
 </div>
 
+<div class="shell">
+<nav class="menu" id="menu" aria-label="Evidence"></nav>
 <main id="main">
   <nav class="crumbs" id="crumbs"></nav>
   <div class="wrap" id="view"><div class="loading"><div class="spin"></div>Načítám data…</div></div>
 </main>
+</div>
 
 <div class="lb" id="lb">
   <div class="lbh"><span class="t" id="lbT"></span><a id="lbOpen" target="_blank" rel="noopener">Otevřít na Disku</a><button onclick="closeLb()">✕ Zavřít</button></div>
@@ -212,6 +254,28 @@ table.tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid va
   </div>
 </div>
 
+<div class="mo" id="edMo" hidden>
+  <div class="md wide">
+    <button class="x" onclick="edClose()" aria-label="Zavřít">×</button>
+    <h3 id="edT"></h3><div class="bar"></div>
+    <form id="edF" autocomplete="off"><div class="fm"><div class="fl" id="edFl"></div>
+      <div><div class="ph1"><span id="edPos"></span><button type="button" class="btn" id="edClr">Zrušit místo</button></div><div id="edPl"></div></div></div>
+      <div class="acts"><span class="ferr" id="edErr" role="alert"></span><button type="button" class="btn" onclick="edClose()">Zrušit</button><button class="btn green" id="edSave">Uložit</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="mo" id="liMo" style="z-index:1950" hidden>
+  <div class="md" style="max-width:400px">
+    <button class="x" type="button" onclick="document.getElementById('liMo').hidden=true" aria-label="Zavřít">×</button>
+    <h3>Přihlášení</h3><div class="bar"></div>
+    <form id="liF"><p>Na e-mail ti přijde jednorázový kód. Přihlášení vydrží 14 dní.</p>
+    <input id="liEm" type="email" required placeholder="jmeno@psas.cz" aria-label="E-mail" autocomplete="email">
+    <div id="liStep2" hidden><p>Pokud má adresa přístup, kód už je na cestě. Platí 10 minut.</p><input id="liCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Kód z e-mailu" aria-label="Kód"></div>
+    <div class="acts"><span class="ferr" id="liErr" role="alert"></span><button class="btn green" id="liBtn">Poslat kód</button></div></form>
+  </div>
+</div>
+
 <div class="mo" id="infoMo" hidden>
   <div class="md">
     <button class="x" onclick="this.closest('.mo').hidden=true" aria-label="Zavřít">×</button>
@@ -221,7 +285,8 @@ table.tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid va
       • Fotky areálů a budov, plány areálů a plány podlaží se berou přímo ze složek na Disku.<br>
       • Na plánech podlaží jsou špendlíky vybavení (oranžové) a hasicích přístrojů (červené) podle pozic z AppSheet.<br>
       • Kliknutím na fotku nebo plán ji otevřeš na celou obrazovku – kolečkem myši / dvěma prsty přiblížíš.<br>
-      • Úpravy a nahrávání nových fotek dál probíhají v AppSheet; tady se změny projeví po „Obnovit“ (nejpozději do 10 minut).<br>
+      • Zařízení, vybavení a hasicí přístroje přidáš a upravíš v nabídce po straně nebo u plánu podlaží (po přihlášení, podle přidělených práv).<br>
+      • Fotky a ostatní údaje se dál upravují v AppSheet; změny se tu projeví po „Obnovit“ (nejpozději do 10 minut).<br>
       • Poslední načtená data se pamatují, takže stránka se otevře hned i se slabým signálem.
     </div>
     <div class="acts"><button class="btn green" onclick="this.closest('.mo').hidden=true">Rozumím</button></div>
@@ -268,7 +333,7 @@ async function load(refresh) {
   $('#reloadBtn').disabled = true;
   setStatus('Načítám…');
   try {
-    const d = await jsonp(API + (refresh ? (API.indexOf('?') >= 0 ? '&' : '?') + 'refresh=1' : ''));
+    const d = TOKEN ? await apiPost({ action: 'data', refresh: !!refresh }) : await jsonp(API + (refresh ? (API.indexOf('?') >= 0 ? '&' : '?') + 'refresh=1' : ''));
     if (!d || !d.ok) throw new Error((d && d.error) || 'Neplatná odpověď serveru.');
     RAW = d; DB = build(d);
     lsSet(LS_DATA, JSON.stringify(d));
@@ -314,7 +379,7 @@ function build(raw) {
   (T.budovy || []).forEach(r => {
     const id = r.Budova_ID; if (!id) return;
     const p = db.pMap[norm(r.Provozovna_ID)] || orphanP();
-    const b = { k: 'b', id, name: r.Nazev_Budovy || id, r, p, patra: [], zar: [], revize: [], fasady: [] };
+    const b = { k: 'b', id, name: r.Nazev_Budovy || id, r, p, patra: [], zar: [], revize: [], fasady: [], fve: [], soubory: [] };
     p.budovy.push(b); db.B.push(b); db.bMap[norm(id)] = b;
   });
   (T.patra || []).forEach(r => {
@@ -330,12 +395,18 @@ function build(raw) {
     const f = db.fMap[norm(r.Patro_ID)];
     const b = f ? f.b : db.bMap[norm(r.Budova_ID)];
     const pos = parseXY(kind === 'h' ? r.Pozice_Mapa : r.XY_Pozice_X);
-    const z = { k: 'z', kind, name, r, f, b, pos, i: db.Z.length };
+    const z = { k: 'z', kind, name, r, f, b, p: (f && f.p) || (b && b.p) || db.pMap[norm(r.Provozovna_ID)] || null, pos, i: db.Z.length };
     db.Z.push(z);
     if (f) f.zar.push(z); else if (b) b.zar.push(z);
   };
   (T.vybaveni || []).forEach(r => addZ(r, 'v'));
   (T.hasici || []).forEach(r => addZ(r, 'h'));
+  (T.fve || []).forEach(r => {
+    const b = db.bMap[norm(r.Budova_ID)];
+    const z = { k: 'z', kind: 'e', name: r.Nazev || r.FVE_ID, r, f: null, b, p: (b && b.p) || db.pMap[norm(r.Provozovna_ID)] || null, pos: null, i: db.Z.length };
+    db.Z.push(z); if (b) b.fve.push(z);
+  });
+  (T.soubory || []).forEach(r => { const b = db.bMap[norm(r.Budova_ID)]; if (b) b.soubory.push(r); });
   (T.revize || []).forEach(r => { const b = findB(db, r.Budova_ID); if (b) b.revize.push(r); });
   (T.fasady || []).forEach(r => { const b = findB(db, r.Budova_ID); if (b) b.fasady.push(r); });
 
@@ -436,10 +507,13 @@ function route() {
   const q = $('#q').value.trim();
   const h = decodeURIComponent(location.hash.slice(1));
   const k = h.slice(0, 1), id = h.slice(2);
+  drawMenu(k === 'e' || k === 'a' ? id : '');
   $('#main').scrollTop = 0;
   if (k === 'p' && DB.pMap[norm(id)]) return viewP(DB.pMap[norm(id)]);
   if (k === 'b' && DB.bMap[norm(id)]) return viewB(DB.bMap[norm(id)]);
   if (k === 'f' && DB.fMap[norm(id)]) return viewF(DB.fMap[norm(id)]);
+  if (k === 'a') return viewAdmin();
+  if (k === 'e' && EV[id]) return viewE(id);
   if (q) return viewSearch(q);
   viewHome();
 }
@@ -504,7 +578,11 @@ function viewB(b) {
         (v.Druh_Opravy ? '<span class="chip o">' + esc(v.Druh_Opravy) + '</span>' : '') + (v.Termin_Opravy ? '<span class="chip">oprava ' + esc(v.Termin_Opravy) + '</span>' : '') + (v['Termín prohlídky'] ? '<span class="chip">prohlídka ' + esc(v['Termín prohlídky']) + '</span>' : '') + '</div></div></div>';
     }).join('') + '</div>';
   }
+  if (b.fve.length) h += '<h3>Fotovoltaika <span class="n">' + b.fve.length + '</span></h3>' + fveTable(b.fve);
+  h += filesHtml(b);
   $('#view').innerHTML = h;
+  filesBind(b);
+  document.querySelectorAll('#view tr[data-e]').forEach(tr => tr.onclick = e => { if (canEd('energetika') && !e.target.closest('a')) edOpen('', DB.Z[+tr.dataset.e]); });
 }
 function zarTable(list) {
   return '<div class="tbw"><table class="tb"><tr><th>Zařízení</th><th>Druh</th><th>Výrobce / typ</th><th>Výr. číslo</th><th>Stav</th></tr>' + list.map(z => {
@@ -524,18 +602,19 @@ function viewF(f) {
     '<label><input type="checkbox" checked data-flt="v"><i></i> Vybavení (' + f.zar.filter(z => z.kind === 'v').length + ')</label>' +
     '<label><input type="checkbox" checked data-flt="h"><i class="h"></i> Hasicí přístroje (' + f.zar.filter(z => z.kind === 'h').length + ')</label></div><ul id="zarList">' +
     (f.zar.length ? f.zar.map(z => '<li data-z="' + z.i + '" data-kind="' + z.kind + '"><i class="' + (z.pos ? (z.kind === 'h' ? 'h' : '') : 'no') + '"></i><div>' + esc(z.name) + '<small>' + esc([z.r.Kategorie || z.r.Druh, z.r.Umisteni].filter(Boolean).join(' · ')) + (z.pos ? '' : ' · bez pozice') + '</small></div></li>').join('') : '<li style="cursor:default;color:var(--muted)">Žádné zařízení</li>') +
-    '</ul></div></div>';
+    '</ul><div class="links">' + Object.keys(EV).filter(k => k !== 'e' && canEd(SECOF[EV[k].tab])).map(k => '<button class="btn" data-add="' + k + '">+ ' + { z: 'Zařízení', v: 'Vybavení', h: 'Hasičák' }[k] + '</button>').join('') + '</div></div></div>';
   if (plan) h += '<div class="links" style="border:0;padding:10px 0"><a class="btn" target="_blank" rel="noopener" href="' + openUrl(plan) + '">Otevřít plán na Disku</a></div>';
   $('#view').innerHTML = h;
 
+  document.querySelectorAll('[data-add]').forEach(x => x.onclick = () => edOpen(x.dataset.add, null, f));
   const pv = $('#planPv');
-  if (!isImg(plan)) { pv.innerHTML = '<div class="msg">' + (plan ? 'Plán není obrázek – otevři ho na Disku.' : 'K tomuto podlaží není nahraný plán.') + '</div>'; return; }
+  if (!isImg(plan)) { pv.innerHTML = '<div class="msg">' + (plan ? 'Plán není obrázek – otevři ho na Disku.' : 'K tomuto podlaží není nahraný plán.') + '</div>'; document.querySelectorAll('#zarList li[data-z]').forEach(li => li.onclick = () => { const z = DB.Z[+li.dataset.z]; if (canEd(z.kind === 'h' ? 'hasici' : 'vybaveni')) edOpen('', z); }); return; }
   const viewer = makeViewer(pv, thumb(plan.id, 2400), pins);
   pv.addEventListener('pinclick', e => selectZ(e.detail));
   document.querySelectorAll('#zarList li[data-z]').forEach(li => li.addEventListener('click', () => { const z = DB.Z[+li.dataset.z]; selectZ(z); if (z.pos) viewer.focus(z.pos); }));
-  document.querySelectorAll('[data-flt]').forEach(cb => cb.addEventListener('change', () => {
+  document.querySelectorAll('[data-flt]').forEach(cb => { const s = cb.dataset.flt === 'h' ? 'hasici' : 'vybaveni'; if (RAW.me && !canRd(s)) cb.parentNode.hidden = true; cb.addEventListener('change', () => {
     pv.querySelectorAll('.pin').forEach(el => { const z = DB.Z[+el.dataset.z]; el.classList.toggle('hid', !document.querySelector('[data-flt="' + z.kind + '"]').checked); });
-  }));
+  }); });
   function selectZ(z) {
     pv.querySelectorAll('.pin.sel').forEach(el => el.classList.remove('sel'));
     const pin = pv.querySelector('.pin[data-z="' + z.i + '"]'); if (pin) pin.classList.add('sel');
@@ -550,6 +629,8 @@ function viewF(f) {
     pop.className = 'pop on' + (z.kind === 'h' ? ' h' : '');
     pop.innerHTML = '<button class="x" aria-label="Zavřít">×</button><div class="pt">' + esc(z.name) + '</div>' + det.map(d => '<div>' + esc(d) + '</div>').join('') +
       (photos.length ? '<div class="pg">' + photos.map(a => '<img referrerpolicy="no-referrer" src="' + thumb(a[0].id, 300) + '" data-lb="' + esc(a[0].id) + '" data-cap="' + esc(z.name + ' – ' + a[1]) + '" title="' + esc(a[1]) + '">').join('') + '</div>' : '');
+    if (canEd(z.kind === 'h' ? 'hasici' : 'vybaveni')) pop.insertAdjacentHTML('beforeend', '<div style="margin-top:8px"><button class="btn" data-ed>✎ Upravit / přesunout</button></div>');
+    const edB = pop.querySelector('[data-ed]'); if (edB) edB.onclick = () => edOpen('', z);
     pop.querySelector('.x').onclick = () => { pop.classList.remove('on'); pv.querySelectorAll('.pin.sel').forEach(el => el.classList.remove('sel')); };
   }
 }
@@ -629,7 +710,8 @@ function makeViewer(box, src, pins) {
   box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
   const ro = new ResizeObserver(() => { if (W && Math.abs(z - fitZ) < 1e-6) fit(); }); ro.observe(box);
   return {
-    fit,
+    fit, stage,
+    toPct(cx, cy) { if (!W) return null; const r = box.getBoundingClientRect(); const x = (cx - r.left - box.clientLeft - tx) / z / W * 100, y = (cy - r.top - box.clientTop - ty) / z / H * 100; return x >= 0 && x <= 100 && y >= 0 && y <= 100 ? { x, y } : null; },
     focus(pos) { if (!W) return; const nz = Math.max(z, fitZ * 2.5); z = nz; tx = box.clientWidth / 2 - W * pos.x / 100 * z; ty = box.clientHeight / 2 - H * pos.y / 100 * z; apply(); }
   };
 }
@@ -647,7 +729,340 @@ function openLb(id, cap) {
   makeViewer($('#lbPv'), thumb(id, 2400), []);
 }
 function closeLb() { $('#lb').classList.remove('on'); $('#lbPv').innerHTML = ''; }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#lb').classList.contains('on')) closeLb(); else document.querySelectorAll('.mo').forEach(m => m.hidden = true); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('#lb').classList.contains('on')) closeLb(); else if (!$('#liMo').hidden) $('#liMo').hidden = true; else if (!$('#edMo').hidden) edClose(); else document.querySelectorAll('.mo').forEach(m => m.hidden = true); } });
+
+/* ====== Evidence: zařízení / vybavení / hasicí přístroje ====== */
+// Zařízení i vybavení jsou v listu Vybaveni; jako vybavení se berou pomůcky a záznamy bez kategorie.
+const isGear = r => !r.Kategorie || /pomuc|nabyt|vybaven/.test(fold(r.Kategorie));
+const EV = {
+  z: { t: 'Zařízení', one: 'zařízení', tab: 'vybaveni', ic: '⚙️', has: z => z.kind === 'v' && !isGear(z.r) },
+  v: { t: 'Vybavení', one: 'vybavení', tab: 'vybaveni', ic: '🧰', has: z => z.kind === 'v' && isGear(z.r), kat: 'Pomucky' },
+  h: { t: 'Hasičáky', one: 'hasicí přístroj / hydrant', tab: 'hasici', ic: '🧯', has: z => z.kind === 'h', kat: 'Hasící přístroje' },
+  e: { t: 'Energetika', one: 'fotovoltaiku', tab: 'fve', ic: '☀️', has: z => z.kind === 'e' }
+};
+// příznaky: w = celá šířka, l = našeptávač z existujících hodnot, t = víceřádkové
+const FIELDS = {
+  vybaveni: [['Nazev_Zarizeni', 'Název *', 'w'], ['Kategorie', 'Kategorie', 'l'], ['Podkategorie', 'Podkategorie', 'l'], ['Vyrobce', 'Výrobce', 'l'], ['Model', 'Model'], ['Seriove_Cislo', 'Sériové číslo'], ['Inventarni_Cislo', 'Inventární číslo'], ['Rok_Vyroby', 'Rok výroby'], ['Rok_Instalace', 'Rok instalace'], ['Stav_Zarizeni', 'Stav', 'l'], ['Zodpovedna_Osoba', 'Zodpovědná osoba', 'l'], ['Poznamky', 'Poznámky', 'wt']],
+  hasici: [['Nazev_Zarizeni', 'Název / číslo *', 'w'], ['Kategorie', 'Kategorie', 'l'], ['Druh', 'Druh', 'l'], ['Vyrobce', 'Výrobce', 'l'], ['Typ', 'Typ', 'l'], ['Vyrobni_Cislo', 'Výrobní číslo'], ['Rok_Vyroby', 'Rok výroby'], ['Umisteni', 'Umístění', 'w'], ['Stav_Zarizeni Provozuschopne', 'Provozuschopné', 'l'], ['Zodpovedna_Osoba', 'Zodpovědná osoba', 'l']]
+};
+FIELDS.fve = [['Nazev', 'Název *', 'w'], ['Stav', 'Stav', 'l'], ['Vykon_kWp', 'Výkon (kWp)'], ['Pocet_Panelu', 'Počet panelů'], ['Typ_Panelu', 'Typ panelů', 'l'], ['Stridac', 'Střídač', 'l'], ['Baterie_kWh', 'Baterie (kWh)'], ['Datum_Uvedeni', 'Uvedeno do provozu', 'd'], ['EAN_Vyroba', 'EAN výroby'], ['EAN_Odber', 'EAN odběru'], ['Distributor', 'Distributor', 'l'], ['Cislo_Licence', 'Číslo licence'], ['Dodavatel_Servis', 'Dodavatel / servis', 'l'], ['Posledni_Revize', 'Poslední revize', 'd'], ['Pristi_Revize', 'Příští revize', 'd'], ['Monitoring_URL', 'Odkaz na monitoring', 'w'], ['Zodpovedna_Osoba', 'Zodpovědná osoba', 'l'], ['Poznamky', 'Poznámky', 'wt']];
+const SECOF = { vybaveni: 'vybaveni', hasici: 'hasici', fve: 'energetika' };
+const POSCOL = { vybaveni: 'XY_Pozice_X', hasici: 'Pozice_Mapa' };
+const evS = { q: '', p: '', kat: '', np: false };
+let ED = null;
+
+function drawMenu(cur) {
+  $('#menu').innerHTML = '<a href="#"' + (cur ? '' : ' class="on"') + '>🏢 Budovy</a><small>Evidence</small>' +
+    Object.keys(EV).filter(k => !RAW.me || canRd(SECOF[EV[k].tab])).map(k => '<a href="#e/' + k + '"' + (cur === k ? ' class="on"' : '') + '>' + EV[k].ic + ' ' + EV[k].t + '<span class="n">' + DB.Z.filter(EV[k].has).length + '</span></a>').join('') +
+    (me().admin ? '<small>Správa</small><a href="#a/prava"' + (cur === 'prava' ? ' class="on"' : '') + '>🔑 Práva</a>' : '') +
+    (me().email ? '<div class="who">' + esc(me().email) + '</div><a href="#" onclick="event.preventDefault();logout()">Odhlásit</a>' : RAW.me ? '<small>Účet</small><a href="#" onclick="event.preventDefault();loginOpen()">Přihlásit</a>' : '');
+}
+const opts = (list, cur, first) => '<option value="">' + esc(first) + '</option>' + list.map(o => '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('');
+const uniq = a => [...new Set(a.filter(Boolean))].sort((x, y) => x.localeCompare(y, 'cs'));
+
+function viewE(t) {
+  const E = EV[t];
+  crumbs([['#e/' + t, E.t]]);
+  if (RAW.me && !canRd(SECOF[E.tab])) { $('#view').innerHTML = '<div class="empty">K této části nemáš přístup.' + (me().email ? '' : '<br><br><button class="btn green" onclick="loginOpen()">Přihlásit</button>') + '</div>'; return; }
+  const all = DB.Z.filter(E.has);
+  const kats = uniq(all.map(z => z.r.Kategorie));
+  if (kats.indexOf(evS.kat) < 0) evS.kat = '';
+  $('#view').innerHTML = '<h2>' + E.t + '</h2><p class="sub" id="evN"></p><div class="evbar"><input id="evQ" type="search" aria-label="Hledat v tabulce" placeholder="Hledat v tabulce…" value="' + esc(evS.q) + '">' +
+    '<select id="evP" aria-label="Provozovna">' + opts(DB.P.map(p => [p.id, p.name]), evS.p, 'Všechny provozovny') + '</select>' +
+    '<select id="evK" aria-label="Kategorie">' + opts(kats.map(k => [k, k]), evS.kat, 'Všechny kategorie') + '</select>' +
+    '<label class="btn"><input type="checkbox" id="evNp"' + (evS.np ? ' checked' : '') + '> Jen bez místa</label>' + (canEd(SECOF[E.tab]) ? '<button class="btn green" id="evAdd">+ Přidat</button>' : '') + '</div><div class="tbw" id="evT"></div>';
+  const draw = () => {
+    const w = fold(evS.q).split(/\s+/).filter(Boolean);
+    const L = all.filter(z => {
+      if (evS.p && !(z.p && z.p.id === evS.p)) return false;
+      if (evS.kat && z.r.Kategorie !== evS.kat) return false;
+      if (t !== 'e' && evS.np && z.pos) return false;
+      const s = fold(Object.values(z.r).join(' '));
+      return w.every(x => s.indexOf(x) >= 0);
+    });
+    $('#evN').textContent = L.length + ' z ' + all.length + ' záznamů';
+    if (t === 'e') {
+      const sum = L.reduce((s, z) => s + (parseFloat(String(z.r.Vykon_kWp || '').replace(/\s/g, '').replace(',', '.')) || 0), 0);
+      if (sum) $('#evN').textContent += ' · celkem ' + sum.toLocaleString('cs-CZ', { maximumFractionDigits: 2 }) + ' kWp';
+      $('#evT').innerHTML = L.length ? fveTable(L) : '<div class="empty">Zatím žádná fotovoltaika.</div>';
+      return;
+    }
+    $('#evT').innerHTML = L.length ? '<table class="tb"><tr><th>Název</th><th>Druh</th><th>Provozovna</th><th>Budova · podlaží</th><th>Výrobce / typ</th><th>Číslo</th><th>Stav</th><th>Místo</th><th></th></tr>' + L.map(z => {
+      const r = z.r;
+      return '<tr data-e="' + z.i + '"><td><b>' + esc(z.name) + '</b></td><td>' + esc([r.Kategorie, r.Podkategorie || r.Druh].filter(Boolean).join(' – ')) + '</td><td>' + esc(z.p ? z.p.name : '') + '</td><td>' + esc([z.b && z.b.name, z.f && (z.f.r.Cislo_Patra || z.f.name)].filter(Boolean).join(' · ')) + '</td><td>' + esc([r.Vyrobce, r.Model || r.Typ].filter(Boolean).join(' ')) + '</td><td>' + esc([r.Seriove_Cislo || r.Vyrobni_Cislo, r.Inventarni_Cislo].filter(Boolean).join(' / ')) + '</td><td>' + esc(r.Stav_Zarizeni || r['Stav_Zarizeni Provozuschopne'] || '') + '</td><td>' +
+        (z.f && z.pos ? '<a href="' + href('f', z.f.id) + '">na plánu</a>' : '<span class="nop">neoznačeno</span>') + '</td><td>' + (canEd(SECOF[E.tab]) ? '<button class="btn">Upravit</button>' : '') + '</td></tr>';
+    }).join('') + '</table>' : '<div class="empty">Žádné záznamy.</div>';
+  };
+  if (t === 'e') { $('#evK').hidden = true; $('#evNp').parentNode.hidden = true; }
+  $('#evQ').oninput = e => { evS.q = e.target.value; draw(); };
+  $('#evP').onchange = e => { evS.p = e.target.value; draw(); };
+  $('#evK').onchange = e => { evS.kat = e.target.value; draw(); };
+  $('#evNp').onchange = e => { evS.np = e.target.checked; draw(); };
+  if ($('#evAdd')) $('#evAdd').onclick = () => edOpen(t, null, null);
+  $('#evT').onclick = e => { const tr = e.target.closest('tr[data-e]'); if (tr && canEd(SECOF[E.tab]) && !e.target.closest('a')) edOpen(t, DB.Z[+tr.dataset.e]); };
+  draw();
+}
+
+function edOpen(t, z, f) {
+  if (z) t = Object.keys(EV).find(k => EV[k].has(z));
+  const E = EV[t], r = z ? z.r : {};
+  if (!guard(SECOF[E.tab])) return;
+  if (z && !r._row) { alert('Nejdřív načti čerstvá data tlačítkem Obnovit.'); return; }
+  f = z ? z.f : f;
+  const p = z ? z.p : (f ? f.p : DB.pMap[norm(evS.p)]);
+  ED = { t, tab: E.tab, z, orig: Object.assign({}, r), pos: z ? z.pos : null };
+  ED.newId = newId();
+  const fve = E.tab === 'fve';
+  $('#edF .fm').classList.toggle('solo', fve);
+  $('#edPl').parentNode.hidden = fve;
+  ED.pos0 = ED.pos;
+  ED.loc0 = f ? 'f:' + f.id : (z && z.b ? 'b:' + z.b.id : '');
+  $('#edT').textContent = z ? 'Upravit: ' + z.name : 'Přidat ' + E.one;
+  const src = DB.Z.filter(x => x.kind === (fve ? 'e' : E.tab === 'hasici' ? 'h' : 'v'));
+  $('#edFl').innerHTML = '<label>Provozovna *<select id="edP">' + opts(DB.P.map(x => [x.id, x.name]), p ? p.id : '', '– vyber –') + '</select></label><label>' + (fve ? 'Budova' : 'Budova a podlaží') + ' *<select id="edL"></select></label>' +
+    FIELDS[E.tab].map((d, i) => {
+      const o = d[2] || '', v = z ? (r[d[0]] || '') : (d[0] === 'Kategorie' ? (E.kat || '') : '');
+      const list = /l/.test(o) ? uniq(src.map(x => x.r[d[0]])) : [];
+      return '<label' + (/w/.test(o) ? ' class="w"' : '') + '>' + d[1] + (/t/.test(o) ? '<textarea rows="2" data-k="' + esc(d[0]) + '">' + esc(v) + '</textarea>' :
+        '<input' + (/d/.test(o) && /^(\d{4}-\d\d-\d\d)?$/.test(v) ? ' type="date"' : '') + ' data-k="' + esc(d[0]) + '" value="' + esc(v) + '"' + (list.length ? ' list="dl' + i + '"' : '') + '>' + (list.length ? '<datalist id="dl' + i + '">' + list.map(x => '<option value="' + esc(x) + '">').join('') + '</datalist>' : '')) + '</label>';
+    }).join('');
+  const fillL = cur => {
+    const P = DB.pMap[norm($('#edP').value)];
+    const o = (v, n) => '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(n) + '</option>';
+    $('#edL').innerHTML = '<option value="">– vyber –</option>' + (P ? fve ? P.budovy.map(b => o('b:' + b.id, b.name)).join('') : P.budovy.map(b => '<optgroup label="' + esc(b.name) + '">' + b.patra.map(x => o('f:' + x.id, (x.r.Cislo_Patra || x.name) + (x.r.Popis_Patra ? ' – ' + x.r.Popis_Patra : ''))).join('') + o('b:' + b.id, 'bez podlaží') + '</optgroup>').join('') + P.patraBez.map(x => o('f:' + x.id, x.name)).join('') : '');
+  };
+  fillL(ED.loc0);
+  const locChanged = () => { ED.pos = $('#edL').value === ED.loc0 ? ED.pos0 : null; edPlan(); };
+  $('#edP').onchange = () => { fillL(ED.loc0); locChanged(); };
+  $('#edL').onchange = locChanged;
+  $('#edClr').onclick = () => { ED.pos = null; edPin(); };
+  $('#edErr').textContent = '';
+  $('#edSave').disabled = false;
+  $('#edMo').hidden = false;
+  edPlan();
+}
+function edClose() {
+  if (ED && ED.busy) return;
+  $('#edMo').hidden = true; $('#edPl').innerHTML = ''; ED = null;
+}
+function edFloor() { const v = $('#edL').value; return v.startsWith('f:') ? DB.fMap[norm(v.slice(2))] : null; }
+function edPlan() {
+  const f = edFloor(), plan = f && fileOf(f.r.Plan_Podlazi_URL);
+  ED.viewer = null; ED.can = isImg(plan);
+  $('#edPl').innerHTML = '<div class="pv"></div>';
+  const box = $('#edPl .pv');
+  if (!ED.can) {
+    box.innerHTML = '<div class="msg">' + (f ? 'K podlaží není plán jako obrázek, místo nelze označit.' : 'Vyber podlaží a pak klikni do plánu.') + '</div>';
+    return edPin();
+  }
+  const me = ED;
+  me.viewer = makeViewer(box, thumb(plan.id, 2400), f.zar.filter(x => x.pos && x !== me.z));
+  let d = null, down = 0;
+  box.addEventListener('pointerdown', e => { down++; d = down > 1 ? null : { x: e.clientX, y: e.clientY }; });
+  box.addEventListener('pointerup', e => {
+    const s = d; d = null; down = Math.max(0, down - 1);
+    if (!s || me.busy || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 5) return;
+    const pos = me.viewer.toPct(e.clientX, e.clientY);
+    if (pos) { me.pos = pos; edPin(); }
+  });
+  box.addEventListener('pointercancel', () => { d = null; down = 0; });
+  edPin();
+}
+function edPin() {
+  const st = ED.viewer && ED.viewer.stage;
+  if (st) {
+    st.querySelectorAll('.pin.new').forEach(x => x.remove());
+    if (ED.pos) {
+      const el = document.createElement('div'); el.className = 'pin new';
+      el.style.left = ED.pos.x + '%'; el.style.top = ED.pos.y + '%'; st.appendChild(el);
+    }
+  }
+  $('#edPos').textContent = !ED.can ? '' : ED.pos ? 'Místo označeno – kliknutím do plánu ho změníš.' : 'Klikni do plánu a označ místo.';
+  $('#edClr').hidden = !ED.pos;
+}
+$('#edF').addEventListener('submit', async e => {
+  e.preventDefault();
+  const me = ED; if (!me || me.busy) return;
+  const err = s => { $('#edErr').textContent = s; };
+  const vals = {}, o = me.orig;
+  document.querySelectorAll('#edFl [data-k]').forEach(i => { const v = i.value.trim(); if (v !== (o[i.dataset.k] || '')) vals[i.dataset.k] = v; });
+  if (!$('#edFl [data-k="' + FIELDS[me.tab][0][0] + '"]').value.trim()) return err('Vyplň název.');
+  const loc = $('#edL').value, f = edFloor();
+  if (!loc && (!me.z || me.loc0)) return err('Vyber budovu a podlaží.');
+  if (loc && (!me.z || loc !== me.loc0)) {
+    const b = f ? f.b : DB.bMap[norm(loc.slice(2))], p = f ? f.p : b.p;
+    vals.Provozovna_ID = p.id === '__bez' ? '' : p.id; vals.Budova_ID = b ? b.id : ''; if (me.tab !== 'fve') vals.Patro_ID = f ? f.id : '';
+  }
+  if (me.pos !== me.pos0) {
+    vals[POSCOL[me.tab]] = me.pos ? me.pos.x.toFixed(6) + ', ' + me.pos.y.toFixed(6) : '';
+    // AppSheet má u vybavení v XY_Pozice_Y obrázek plánu, ke kterému se souřadnice vztahují
+    if (me.tab === 'vybaveni') vals.XY_Pozice_Y = me.pos && f ? (f.r.Plan_Podlazi_URL || '') : '';
+  }
+  if (!Object.keys(vals).length) return edClose();
+  me.busy = true; $('#edSave').disabled = true; $('#edSave').textContent = 'Ukládám…'; err('');
+  try {
+    const orig = Object.assign({}, o); delete orig._row;
+    const d = await apiPost({ action: 'save', table: me.tab, row: me.z ? o._row : 0, orig, newId: me.newId, values: vals });
+    const T = RAW.tables[me.tab] = RAW.tables[me.tab] || [], i = me.z ? T.findIndex(x => x._row === o._row) : -1;
+    if (i >= 0) T[i] = d.row; else if (!T.some(x => x._row === d.row._row)) T.push(d.row);
+    me.busy = false; edClose(); refreshLocal();
+    setStatus('Uloženo ✓');
+  } catch (x) { err(x.message); }
+  finally { me.busy = false; $('#edSave').disabled = false; $('#edSave').textContent = 'Uložit'; }
+});
+
+/* ====== Přihlášení, práva, soubory, administrace ====== */
+const SEC = { vybaveni: 'Zařízení a vybavení', hasici: 'Hasičáky a hydranty', energetika: 'Energetika (fotovoltaika a její soubory)', soubory: 'Soubory k budovám' };
+let TOKEN = lsGet('sb.token') || '';
+const me = () => (RAW && RAW.me) || { email: '', admin: false, read: [], edit: [] };
+const canEd = s => me().edit.indexOf(s) >= 0;
+const canRd = s => me().read.indexOf(s) >= 0;
+const newId = () => [...crypto.getRandomValues(new Uint8Array(4))].map(x => x.toString(16).padStart(2, '0')).join('');
+
+async function apiPost(body) {
+  // text/plain = bez CORS preflightu, který Apps Script neumí
+  const c = new AbortController(), tm = setTimeout(() => c.abort(), 120000);
+  let d;
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ token: TOKEN }, body)), signal: c.signal });
+    d = await r.json();
+  } catch (e) { throw new Error('Server neodpověděl. Zkontroluj připojení a zkus to znovu.'); }
+  finally { clearTimeout(tm); }
+  if (!d.ok) {
+    if (/Přihlášení vypršelo/.test(d.error)) { forget(); await load(false); }
+    throw new Error(d.error);
+  }
+  return d;
+}
+function forget() {
+  TOKEN = '';
+  try { localStorage.removeItem('sb.token'); localStorage.removeItem(LS_DATA); } catch (e) {}
+}
+async function logout() { forget(); RAW = DB = null; edClose(); location.hash = ''; $('#view').innerHTML = ''; await load(false); }
+function loginOpen() { $('#liErr').textContent = ''; $('#liStep2').hidden = true; $('#liEm').readOnly = false; $('#liCode').value = ''; $('#liBtn').textContent = 'Poslat kód'; $('#liMo').hidden = false; setTimeout(() => $('#liEm').focus(), 30); }
+$('#liF').addEventListener('submit', async e => {
+  e.preventDefault();
+  const b = $('#liBtn'), email = $('#liEm').value.trim(); if (b.disabled) return;
+  b.disabled = true; $('#liErr').textContent = '';
+  try {
+    if ($('#liStep2').hidden) {
+      await apiPost({ action: 'code', email });
+      $('#liStep2').hidden = false; $('#liEm').readOnly = true; b.textContent = 'Přihlásit'; $('#liCode').focus();
+    } else {
+      const d = await apiPost({ action: 'login', email, code: $('#liCode').value });
+      TOKEN = d.token; lsSet('sb.token', TOKEN); $('#liMo').hidden = true;
+      await load(false);
+    }
+  } catch (x) { $('#liErr').textContent = x.message; }
+  finally { b.disabled = false; }
+});
+/** Vrátí true, když uživatel smí upravovat; jinak nabídne přihlášení. */
+function guard(s) {
+  if (canEd(s)) return true;
+  if (!RAW || !RAW.me) alert('Úpravy zatím nejsou zapnuté – je potřeba aktualizovat Apps Script.');
+  else if (!me().email) loginOpen();
+  else alert('K úpravám této části nemáš oprávnění.');
+  return false;
+}
+
+/* --- soubory --- */
+const fmtB = n => n > 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB';
+function filesHtml(b) {
+  const secs = ['soubory', 'energetika'];
+  if (!secs.some(canRd)) return '';
+  const up = secs.filter(canEd);
+  let h = '<h3>Soubory <span class="n">' + b.soubory.length + '</span></h3>';
+  if (up.length) h += '<form class="evbar" id="upF"><input type="file" id="upIn" multiple aria-label="Soubory">' +
+    '<select id="upS" aria-label="Oblast">' + up.map(s => '<option value="' + s + '">' + (s === 'energetika' ? 'Energetika' : 'Obecné') + '</option>').join('') + '</select>' +
+    '<input type="search" id="upP" placeholder="Popis (nepovinné)" aria-label="Popis"><button class="btn green" id="upB">Nahrát</button><span class="ferr" id="upE" role="alert"></span></form>';
+  h += b.soubory.length ? '<div class="tbw"><table class="tb"><tr><th>Soubor</th><th>Oblast</th><th>Popis</th><th>Velikost</th><th>Nahráno</th><th></th></tr>' + b.soubory.map(r =>
+    '<tr><td><b>' + esc(r.Nazev) + '</b></td><td>' + (r.Oblast === 'energetika' ? 'Energetika' : 'Obecné') + '</td><td>' + esc(r.Popis || '') + '</td><td>' + fmtB(+r.Velikost || 0) + '</td><td>' + esc([r.Nahrano, r.Nahral].filter(Boolean).join(' · ')) + '</td><td style="white-space:nowrap"><button class="btn" data-dl="' + esc(r.Soubor_ID) + '">Stáhnout</button> ' + (canEd(r.Oblast) ? '<button class="btn" data-rm="' + esc(r.Soubor_ID) + '">Smazat</button>' : '') + '</td></tr>').join('') + '</table></div>'
+    : '<div class="empty">' + 'Žádné soubory.' + '</div>';
+  return h;
+}
+function filesBind(b) {
+  const uf = $('#upF');
+  if (uf) uf.onsubmit = async e => {
+    e.preventDefault();
+    const L = [...$('#upIn').files], E = $('#upE'), B = $('#upB'), s = $('#upS').value, p = $('#upP').value;
+    if (!L.length) { E.textContent = 'Vyber soubor.'; return; }
+    const big = L.find(x => x.size > 15 * 1048576 || !x.size);
+    if (big) { E.textContent = big.name + ': soubor je prázdný nebo větší než 15 MB.'; return; }
+    B.disabled = true; E.textContent = '';
+    try {
+      for (let i = 0; i < L.length; i++) {
+        B.textContent = 'Nahrávám ' + (i + 1) + '/' + L.length + '…';
+        const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = () => no(new Error('Soubor nelze přečíst.')); r.readAsDataURL(L[i]); });
+        L[i].upId = L[i].upId || newId();
+        const d = await apiPost({ action: 'upload', budova: b.id, oblast: s, name: L[i].name, popis: p, newId: L[i].upId, data });
+        if (!RAW.tables.soubory.some(x => x.Soubor_ID === d.row.Soubor_ID)) RAW.tables.soubory.push(d.row);
+      }
+      setStatus('Nahráno ✓');
+      refreshLocal();
+    } catch (x) {
+      E.textContent = x.message; B.disabled = false; B.textContent = 'Nahrát';
+    }
+  };
+  document.querySelectorAll('[data-dl]').forEach(x => x.onclick = async () => {
+    x.disabled = true;
+    try {
+      const d = await apiPost({ action: 'download', id: x.dataset.dl });
+      const bin = atob(d.data), u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      const a = document.createElement('a'), url = URL.createObjectURL(new Blob([u], { type: 'application/octet-stream' }));
+      a.href = url; a.download = d.name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 20000);
+    } catch (e) { alert(e.message); }
+    x.disabled = false;
+  });
+  document.querySelectorAll('[data-rm]').forEach(x => x.onclick = async () => {
+    const r = b.soubory.find(q => q.Soubor_ID === x.dataset.rm);
+    if (!confirm('Smazat soubor „' + r.Nazev + '“? V koši na Disku zůstane 30 dní.')) return;
+    x.disabled = true;
+    try {
+      await apiPost({ action: 'remove', id: r.Soubor_ID });
+      RAW.tables.soubory = RAW.tables.soubory.filter(q => q.Soubor_ID !== r.Soubor_ID);
+      refreshLocal();
+    } catch (e) { alert(e.message); x.disabled = false; }
+  });
+}
+function refreshLocal() {
+  DB = build(RAW); lsSet(LS_DATA, JSON.stringify(RAW));
+  const top = $('#main').scrollTop; route(); $('#main').scrollTop = top;
+}
+
+/* --- energetika --- */
+function fveTable(L) {
+  return '<div class="tbw"><table class="tb"><tr><th>Fotovoltaika</th><th>Budova</th><th>Výkon</th><th>Panely</th><th>Střídač</th><th>Stav</th><th>Příští revize</th><th></th></tr>' + L.map(z => {
+    const r = z.r, u = /^https?:\/\//i.test(r.Monitoring_URL || '') ? ' <a target="_blank" rel="noopener" href="' + esc(r.Monitoring_URL) + '">monitoring</a>' : '';
+    return '<tr data-e="' + z.i + '"><td><b>' + esc(z.name) + '</b>' + u + '</td><td>' + esc([z.p && z.p.name, z.b && z.b.name].filter(Boolean).join(' · ')) + '</td><td>' + esc(r.Vykon_kWp ? r.Vykon_kWp + ' kWp' : '') + '</td><td>' + esc([r.Pocet_Panelu && r.Pocet_Panelu + '×', r.Typ_Panelu].filter(Boolean).join(' ')) + '</td><td>' + esc(r.Stridac || '') + '</td><td>' + esc(r.Stav || '') + '</td><td>' + esc(r.Pristi_Revize || '') + '</td><td style="white-space:nowrap">' + (canEd('energetika') ? '<button class="btn">Upravit</button> ' : '') + (z.b ? '<a class="btn" href="' + href('b', z.b.id) + '">Soubory</a>' : '') + '</td></tr>';
+  }).join('') + '</table></div>';
+}
+
+/* --- administrace --- */
+async function viewAdmin() {
+  crumbs([['#a/prava', 'Práva']]);
+  if (!me().admin) { $('#view').innerHTML = '<div class="empty">Jen pro administrátora.<br><br>' + (me().email ? '' : '<button class="btn green" onclick="loginOpen()">Přihlásit</button>') + '</div>'; return; }
+  $('#view').innerHTML = '<div class="loading"><div class="spin"></div>Načítám práva…</div>';
+  let d;
+  try { d = await apiPost({ action: 'rights' }); } catch (e) { if (location.hash === '#a/prava') $('#view').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; return; }
+  if (location.hash !== '#a/prava') return;
+  const R = d.rights;
+  $('#view').innerHTML = '<h2>Práva</h2><p class="sub">Jeden e-mail na řádek. Celou firmu povolíš zápisem domény, např. <b>@psas.cz</b>. Kdo smí upravovat, smí i číst.</p><form id="adF">' +
+    Object.keys(SEC).map(s => '<div class="adm" data-s="' + s + '"><b>' + SEC[s] + '</b><label><input type="checkbox"' + (R[s].pub ? ' checked' : '') + '> Číst mohou všichni, i bez přihlášení</label><div class="two"><label>Upravovat mohou<textarea rows="4" data-l="edit">' + esc(R[s].edit.join('\n')) + '</textarea></label><label>Číst mohou (když není povoleno všem)<textarea rows="4" data-l="read">' + esc(R[s].read.join('\n')) + '</textarea></label></div></div>').join('') +
+    '<p class="sub">Administrátoři (mění se ve vlastnostech skriptu, ADMIN_EMAIL): ' + esc(d.admins.join(', ')) + '</p><button class="btn green" id="adB">Uložit práva</button> <span class="ferr" id="adE" role="alert"></span></form>';
+  $('#adF').onsubmit = async e => {
+    e.preventDefault();
+    const rights = {};
+    document.querySelectorAll('.adm').forEach(x => {
+      const g = l => x.querySelector('[data-l=' + l + ']').value.split(/[\s,;]+/).filter(Boolean);
+      rights[x.dataset.s] = { pub: x.querySelector('input').checked, edit: g('edit'), read: g('read') };
+    });
+    $('#adB').disabled = true; $('#adE').textContent = '';
+    try { await apiPost({ action: 'setRights', rights }); setStatus('Práva uložena ✓'); await load(false); }
+    catch (x) { if ($('#adE')) $('#adE').textContent = x.message; }
+    if ($('#adB')) $('#adB').disabled = false;
+  };
+}
 
 /* ====== Start ====== */
 let qT;
