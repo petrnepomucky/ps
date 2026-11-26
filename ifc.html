@@ -67,6 +67,18 @@ li.closed>ul{display:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:70;max-width:90vw}
 .toast.on{opacity:1}
 .mob{display:none}
+#labels{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:hidden}
+.lbl{position:absolute;transform:translate(-50%,-50%);background:#fff;border:1.5px solid var(--o);color:var(--ink);font:700 12px Segoe UI,Arial,sans-serif;padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.lbl.x{border-color:#d93025;color:#b3261e}.lbl.y{border-color:#1e8e3e;color:#137333}.lbl.z{border-color:#1a73e8;color:#1559b5}
+.lbl.m{background:var(--o);color:#fff}
+.mpanel{position:absolute;right:12px;top:12px;z-index:5;background:#fff;border:1px solid var(--line);border-left:4px solid var(--o);border-radius:10px;padding:10px 14px;font-size:13px;min-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.18);display:none}
+.mpanel.on{display:block}.mpanel .mh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.mpanel .mh b{flex:1}
+.mpanel .mx{border:0;background:none;font-size:15px;cursor:pointer;color:var(--muted)}
+.btn.sm{padding:3px 8px;font-size:12px}
+#mout div{display:flex;justify-content:space-between;gap:16px}#mout span{color:var(--muted)}#mout b{color:var(--gd)}#mout .big b{font-size:17px;color:var(--o)}
+#viewer.measuring canvas{cursor:crosshair}
+.ptitle .rn{margin-top:6px}
+.dimtab td:last-child{font-weight:700;color:var(--gd)}
 @media (max-width:860px){
   aside{position:absolute;top:0;bottom:0;z-index:7;width:min(320px,88vw);box-shadow:0 0 20px rgba(0,0,0,.18);display:none}
   aside.tree{left:0}aside.props{right:0}
@@ -91,6 +103,9 @@ li.closed>ul{display:none}
   <button class="btn" id="fitBtn" disabled>⤢ Celý model</button>
   <button class="btn mob" id="treeBtn" disabled>☰ Strom</button>
   <button class="btn mob" id="propsBtn" disabled>ℹ Vlastnosti</button>
+  <button class="btn" id="measBtn" disabled title="Klikni na dva body modelu – změří vzdálenost (přichytává se k rohům)">📏 Vzdálenost</button>
+  <button class="btn" id="dimBtn" disabled title="Zobrazí rozměry vybraného prvku, nebo celého modelu">📐 Rozměry</button>
+  <button class="btn" id="saveBtn" disabled title="Uloží IFC se změněnými názvy prvků" style="display:none">⬇ Uložit IFC</button>
   <button class="btn" id="bgBtn">◐ Pozadí</button>
   <input type="file" id="file" accept=".ifc,.obj,.mtl,.jpg,.jpeg,.png" multiple hidden>
   <span class="file" id="fileName"></span>
@@ -109,6 +124,8 @@ li.closed>ul{display:none}
         <div class="note">Model se zpracuje jen u tebe v prohlížeči, nikam se neodesílá.<br>Ovládání: levé tlačítko = otáčení, pravé = posun, kolečko = zoom, klik = výběr prvku.<br>Na telefonu: jeden prst otáčí, dva prsty posouvají a zoomují.</div>
       </div>
     </div>
+    <div id="labels"></div>
+    <div class="mpanel" id="mpanel"><div class="mh"><b>Měření vzdálenosti</b><button class="btn sm" id="measClear">Smazat</button><button class="mx" id="measClose" title="Ukončit">✕</button></div><div id="mout">Klikni na první bod.</div></div>
     <div class="busy" id="busy"><div class="spin"></div><div id="busyText">Načítám…</div></div>
   </div>
   <aside class="props" id="propsPanel">
@@ -146,7 +163,7 @@ const modelGroup = new THREE.Group(); scene.add(modelGroup);
 
 function resize() { const r = viewerEl.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(r.height, 1); camera.updateProjectionMatrix(); }
 new ResizeObserver(resize).observe(viewerEl); resize();
-renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); updateLabels(); });
 
 /* ── IFC ── */
 const ifc = new WebIFC.IfcAPI();
@@ -176,7 +193,7 @@ function clearModel() {
   modelGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); });
   modelGroup.clear(); meshesById.clear(); childrenOf.clear();
   if (modelID !== null) { try { ifc.CloseModel(modelID); } catch (e) {} modelID = null; }
-  objInfo = null;
+  objInfo = null; clearMeasure(); clearDims(); renames.clear();
 }
 
 async function openFiles(list) {
@@ -188,6 +205,9 @@ async function openFiles(list) {
 }
 
 function modelLoaded(label) {
+  loadRenames(label);
+  for (const b of ['measBtn', 'dimBtn']) $(b).disabled = false;
+  $('saveBtn').style.display = objInfo ? 'none' : ''; $('saveBtn').disabled = true;
   $('empty').style.display = 'none';
   $('fileName').textContent = label;
   for (const b of ['fitBtn', 'treeBtn', 'propsBtn']) $(b).disabled = false;
@@ -405,7 +425,8 @@ function select(ids, propId, nodeEl, zoom) {
   ids.forEach(id => (meshesById.get(id) || []).forEach(m => { m.material = selMat; selected.push(m); }));
   if (nodeEl) nodeEl.classList.add('sel');
   if (zoom && selected.length) fitView(selected);
-  if (propId != null) (objInfo ? showObjProps(propId) : showProps(propId));
+  if (propId != null) Promise.resolve(objInfo ? showObjProps(propId) : showProps(propId)).then(() => afterProps(propId));
+  if (dimsOn) showDims();
   else $('props').innerHTML = `<div class="hint">Vybráno ${ids.length} prvků.</div>`;
 }
 
@@ -418,6 +439,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects(modelGroup.children, false).find(h => h.object.visible);
+  if (measuring) { if (hit) measurePoint(hit, e); return; }
   if (!hit) { clearSel(); $('props').innerHTML = '<div class="hint">Klikni na prvek v modelu nebo ve stromu.</div>'; return; }
   const id = hit.object.userData.id;
   select([id], id, null);
@@ -481,6 +503,143 @@ async function showProps(id) {
   } catch (e) { console.error(e); el.innerHTML = '<div class="hint">Vlastnosti se nepodařilo načíst.</div>'; }
 }
 
+
+/* ── popisky v 3D (měření, rozměry) ── */
+const labels = [];   // {el, pos}
+function addLabel(text, pos, cls) { const el = document.createElement('div'); el.className = 'lbl ' + (cls || ''); el.textContent = text; $('labels').appendChild(el); const l = { el, pos: pos.clone() }; labels.push(l); return l; }
+function removeLabels(list) { list.forEach(l => { l.el.remove(); const i = labels.indexOf(l); if (i >= 0) labels.splice(i, 1); }); }
+const _v = new THREE.Vector3();
+function updateLabels() {
+  if (!labels.length) return;
+  const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+  for (const l of labels) {
+    _v.copy(l.pos).project(camera);
+    const vis = _v.z < 1 && _v.z > -1;
+    l.el.style.display = vis ? '' : 'none';
+    if (vis) { l.el.style.left = ((_v.x + 1) / 2 * w) + 'px'; l.el.style.top = ((1 - _v.y) / 2 * h) + 'px'; }
+  }
+}
+const unit = () => objInfo ? '' : ' m';
+const fmtLen = v => (v = Math.abs(v) < 5e-4 ? 0 : v, Math.abs(v) >= 100 ? v.toFixed(1) : v.toFixed(3)).replace('.', ',') + unit();
+function lineObj(a, b, color, dashed) {
+  const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+  const m = dashed ? new THREE.LineDashedMaterial({ color, dashSize: 0.15, gapSize: 0.08, depthTest: false }) : new THREE.LineBasicMaterial({ color, depthTest: false });
+  const l = new THREE.Line(g, m); if (dashed) l.computeLineDistances(); l.renderOrder = 999; return l;
+}
+function dot(p, color) {
+  const s = new THREE.Box3().setFromObject(modelGroup).getSize(new THREE.Vector3()).length() || 10;
+  const m = new THREE.Mesh(new THREE.SphereGeometry(s / 300, 12, 8), new THREE.MeshBasicMaterial({ color, depthTest: false }));
+  m.position.copy(p); m.renderOrder = 1000; return m;
+}
+
+/* ── měření vzdálenosti ── */
+const measGroup = new THREE.Group(); scene.add(measGroup);
+let measuring = false, measStart = null, measLabels = [];
+function startMeasure() { measuring = true; measStart = null; viewerEl.classList.add('measuring'); $('measBtn').classList.add('on'); $('mpanel').classList.add('on'); $('mout').textContent = 'Klikni na první bod (přichytí se k nejbližšímu rohu).'; }
+function stopMeasure() { measuring = false; viewerEl.classList.remove('measuring'); $('measBtn').classList.remove('on'); $('mpanel').classList.remove('on'); if (measStart) { measGroup.remove(measStart.dot); measStart = null; } }
+function clearMeasure() { measGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); }); measGroup.clear(); removeLabels(measLabels); measLabels = []; measStart = null; if (measuring) $('mout').textContent = 'Klikni na první bod.'; }
+function snap(hit, ev) {
+  // přichycení k vrcholu zasaženého trojúhelníku, pokud je na obrazovce blízko
+  const p = hit.point.clone();
+  if (!hit.face) return p;
+  const pos = hit.object.geometry.attributes.position, r = renderer.domElement.getBoundingClientRect();
+  let best = null, bd = 14;
+  for (const i of [hit.face.a, hit.face.b, hit.face.c]) {
+    const v = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(hit.object.matrixWorld);
+    const s = v.clone().project(camera);
+    const d = Math.hypot((s.x + 1) / 2 * r.width - (ev.clientX - r.left), (1 - s.y) / 2 * r.height - (ev.clientY - r.top));
+    if (d < bd) { bd = d; best = v; }
+  }
+  return best || p;
+}
+function measurePoint(hit, ev) {
+  const p = snap(hit, ev);
+  if (!measStart) { const d = dot(p, 0xf27d00); measGroup.add(d); measStart = { p, dot: d }; $('mout').textContent = 'Klikni na druhý bod.'; return; }
+  const a = measStart.p, b = p, d = a.distanceTo(b);
+  measGroup.add(dot(b, 0xf27d00), lineObj(a, b, 0xf27d00));
+  measLabels.push(addLabel(fmtLen(d), a.clone().add(b).multiplyScalar(0.5), 'm'));
+  const dx = Math.abs(b.x - a.x), dy = Math.abs(b.y - a.y), dz = Math.abs(b.z - a.z);
+  $('mout').innerHTML = `<div class="big"><span>Vzdálenost</span><b>${fmtLen(d)}</b></div><div><span>Vodorovně</span><b>${fmtLen(Math.hypot(dx, dz))}</b></div><div><span>Svisle (výška)</span><b>${fmtLen(dy)}</b></div><div style="margin-top:4px;font-size:12px;color:var(--muted)">Klikni na další bod pro nové měření.</div>`;
+  measStart = null;
+}
+$('measBtn').onclick = () => measuring ? stopMeasure() : startMeasure();
+$('measClose').onclick = stopMeasure;
+$('measClear').onclick = clearMeasure;
+
+/* ── rozměry (obalový kvádr s kótami) ── */
+const dimGroup = new THREE.Group(); scene.add(dimGroup);
+let dimsOn = false, dimLabels = [];
+function clearDims() { dimGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); }); dimGroup.clear(); removeLabels(dimLabels); dimLabels = []; }
+function showDims() {
+  clearDims();
+  const box = new THREE.Box3();
+  if (selected.length) selected.forEach(o => box.expandByObject(o)); else box.setFromObject(modelGroup);
+  if (box.isEmpty()) return;
+  const mn = box.min, mx = box.max, sz = box.getSize(new THREE.Vector3());
+  const bh = new THREE.Box3Helper(box, 0x6b746f); bh.material.depthTest = false; bh.renderOrder = 998; bh.material.transparent = true; bh.material.opacity = .6; dimGroup.add(bh);
+  const off = Math.max(sz.x, sz.y, sz.z) * 0.04;
+  // šířka (X) – dole vpředu, hloubka (Z) – dole vpravo, výška (Y) – svislá hrana
+  const x1 = new THREE.Vector3(mn.x, mn.y, mx.z + off), x2 = new THREE.Vector3(mx.x, mn.y, mx.z + off);
+  const z1 = new THREE.Vector3(mx.x + off, mn.y, mn.z), z2 = new THREE.Vector3(mx.x + off, mn.y, mx.z);
+  const y1 = new THREE.Vector3(mx.x + off, mn.y, mx.z + off), y2 = new THREE.Vector3(mx.x + off, mx.y, mx.z + off);
+  dimGroup.add(lineObj(x1, x2, 0xd93025), lineObj(z1, z2, 0x1a73e8), lineObj(y1, y2, 0x1e8e3e));
+  const mid = (a, b) => a.clone().add(b).multiplyScalar(0.5);
+  dimLabels.push(addLabel('Délka ' + fmtLen(sz.x), mid(x1, x2), 'x'), addLabel('Šířka ' + fmtLen(sz.z), mid(z1, z2), 'z'), addLabel('Výška ' + fmtLen(sz.y), mid(y1, y2), 'y'));
+}
+$('dimBtn').onclick = () => { dimsOn = !dimsOn; $('dimBtn').classList.toggle('on', dimsOn); dimsOn ? showDims() : clearDims(); };
+
+/* ── přejmenování prvků ── */
+const renames = new Map();
+let renameKey = '';
+function loadRenames(label) {
+  renameKey = 'ps-3d-nazvy:' + label; renames.clear();
+  try { Object.entries(JSON.parse(localStorage.getItem(renameKey) || '{}')).forEach(([k, v]) => renames.set(+k, v)); } catch (e) {}
+  renames.forEach((n, id) => applyRename(id, n, false));
+}
+function storeRenames() { try { localStorage.setItem(renameKey, JSON.stringify(Object.fromEntries(renames))); } catch (e) {} }
+function applyRename(id, name, writeIfc) {
+  const n = $('tree').querySelector(`.node[data-id="${id}"] .nm`); if (n) n.textContent = name;
+  if (objInfo && objInfo.get(id)) objInfo.get(id).name = name;
+  if (!objInfo && modelID !== null && writeIfc !== false) {
+    try {
+      const line = ifc.GetLine(modelID, id);
+      if (line.Name && typeof line.Name === 'object') line.Name.value = name; else line.Name = new WebIFC.IFC4.IfcLabel(name);
+      ifc.WriteLine(modelID, line); $('saveBtn').disabled = false;
+    } catch (e) { console.warn(e); }
+  }
+}
+function afterProps(id) {
+  const t = $('props').querySelector('.ptitle'); if (!t || id == null || (objInfo && id === 0)) return;
+  if (renames.has(id)) t.querySelector('b').textContent = renames.get(id);
+  const sizeRows = (() => {
+    const ms = meshesById.get(id) || []; const ids = []; collectIds(id, ids);
+    const box = new THREE.Box3(); ids.forEach(i => (meshesById.get(i) || []).forEach(m => box.expandByObject(m)));
+    if (box.isEmpty()) return '';
+    const s = box.getSize(new THREE.Vector3());
+    return `<div class="pgroup dimtab"><h4>Rozměry (obalový kvádr)</h4><table><tr><td>Délka (X)</td><td>${fmtLen(s.x)}</td></tr><tr><td>Šířka (Z)</td><td>${fmtLen(s.z)}</td></tr><tr><td>Výška (Y)</td><td>${fmtLen(s.y)}</td></tr><tr><td>Spodní hrana</td><td>${fmtLen(box.min.y)}</td></tr></table></div>`;
+  })();
+  t.insertAdjacentHTML('beforeend', '<div class="rn"><button class="btn sm" id="rnBtn">✏ Přejmenovat</button></div>');
+  if (sizeRows && !objInfo) t.insertAdjacentHTML('afterend', sizeRows);
+  $('rnBtn').onclick = () => {
+    const cur = t.querySelector('b').textContent;
+    const n = prompt('Nový název prvku:', cur);
+    if (n === null || !n.trim() || n === cur) return;
+    renames.set(id, n.trim()); storeRenames();
+    applyRename(id, n.trim());
+    t.querySelector('b').textContent = n.trim();
+    $('props').querySelectorAll('td').forEach(td => { if (td.textContent === 'Název' && td.nextElementSibling) td.nextElementSibling.textContent = n.trim(); });
+    toast(objInfo ? 'Název uložen v tomto prohlížeči' : 'Název změněn – tlačítkem „Uložit IFC“ ho uložíte do souboru');
+  };
+}
+$('saveBtn').onclick = () => {
+  try {
+    const data = ifc.SaveModel(modelID);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));
+    a.download = ($('fileName').textContent.split(' · ')[0] || 'model.ifc').replace(/\.ifc$/i, '') + '-upraveno.ifc';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch (e) { console.error(e); toast('Uložení se nepodařilo: ' + (e.message || e)); }
+};
+
 /* ── ovládání ── */
 $('openBtn').onclick = () => $('file').click();
 $('drop').onclick = () => $('file').click();
@@ -494,7 +653,7 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(b.dat
 ['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('hot'); }));
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('hot'); }));
 document.addEventListener('drop', e => openFiles(e.dataTransfer.files));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { clearSel(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (measuring) stopMeasure(); else clearSel(); } });
 window.__openIfc = openFile; // pro testy
 // vložení do prohlížeče výkresů: soubor přijde zprávou
 if (new URLSearchParams(location.search).has('embed')) document.querySelector('header').style.display = 'none';
