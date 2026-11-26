@@ -78,6 +78,23 @@ li.closed>ul{display:none}
 #mout div{display:flex;justify-content:space-between;gap:16px}#mout span{color:var(--muted)}#mout b{color:var(--gd)}#mout .big b{font-size:17px;color:var(--o)}
 #viewer.measuring canvas{cursor:crosshair}
 .ptitle .rn{margin-top:6px}
+.mk{pointer-events:auto;cursor:pointer;position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center}
+.mk i{font-style:normal;font-size:18px;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;background:#fff;border:2px solid var(--o);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.mk i span{transform:rotate(45deg)}
+.mk.k-h i{border-color:#d93025;background:#fff1f0}.mk.k-y i{border-color:#1a73e8}.mk.k-l i{border-color:#1e8e3e}
+.mk b{margin-top:3px;font:600 11px Segoe UI,Arial,sans-serif;background:rgba(255,255,255,.92);padding:1px 5px;border-radius:4px;white-space:nowrap;display:none}
+#labels.names .mk b,.mk:hover b,.mk.sel b{display:block}.mk.sel i{outline:3px solid var(--o);outline-offset:2px}
+.eqhint{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:5;background:var(--o);color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;display:none;align-items:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.eqhint.on{display:flex}
+#viewer.placing canvas{cursor:copy}
+.eqmodal{position:fixed;inset:0;z-index:80;background:rgba(18,28,23,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.eqmodal[hidden]{display:none}
+.eqbox{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.eqbox h3{margin:0;color:var(--gd)}.eqbox label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600;color:var(--muted)}
+.eqbox input,.eqbox select{font:inherit;font-size:14px;color:var(--ink);padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.eqinfo{font-size:12px;color:var(--muted)}.eqacts{display:flex;gap:8px}
+.btn.save3{background:var(--g);border-color:var(--g);color:#fff}
+.eqlist .node .ic{width:18px;text-align:center}
 .dimtab td:last-child{font-weight:700;color:var(--gd)}
 @media (max-width:860px){
   aside{position:absolute;top:0;bottom:0;z-index:7;width:min(320px,88vw);box-shadow:0 0 20px rgba(0,0,0,.18);display:none}
@@ -105,6 +122,9 @@ li.closed>ul{display:none}
   <button class="btn mob" id="propsBtn" disabled>ℹ Vlastnosti</button>
   <button class="btn" id="measBtn" disabled title="Klikni na dva body modelu – změří vzdálenost (přichytává se k rohům)">📏 Vzdálenost</button>
   <button class="btn" id="dimBtn" disabled title="Zobrazí rozměry vybraného prvku, nebo celého modelu">📐 Rozměry</button>
+  <button class="btn" id="eqBtn" disabled title="Klikni do modelu a umísti hasicí přístroj nebo jiné vybavení">🧯 Zakreslit vybavení</button>
+  <button class="btn" id="eqExport" disabled title="Stáhnout seznam vybavení (CSV pro Excel/Tabulky)">⬇ Vybavení CSV</button>
+  <button class="btn save3" id="eqSave" style="display:none" title="Uložit zakreslené vybavení ke 3D modelu ve Správě budov">💾 Uložit do Správy budov</button>
   <button class="btn" id="saveBtn" disabled title="Uloží IFC se změněnými názvy prvků" style="display:none">⬇ Uložit IFC</button>
   <button class="btn" id="bgBtn">◐ Pozadí</button>
   <input type="file" id="file" accept=".ifc,.obj,.mtl,.jpg,.jpeg,.png" multiple hidden>
@@ -125,6 +145,7 @@ li.closed>ul{display:none}
       </div>
     </div>
     <div id="labels"></div>
+    <div class="eqhint" id="eqHint">Klikni do modelu na místo, kde vybavení je. <button class="btn sm" id="eqStop">Hotovo</button></div>
     <div class="mpanel" id="mpanel"><div class="mh"><b>Měření vzdálenosti</b><button class="btn sm" id="measClear">Smazat</button><button class="mx" id="measClose" title="Ukončit">✕</button></div><div id="mout">Klikni na první bod.</div></div>
     <div class="busy" id="busy"><div class="spin"></div><div id="busyText">Načítám…</div></div>
   </div>
@@ -176,6 +197,7 @@ const matCache = new Map();
 const selMat = new THREE.MeshLambertMaterial({ color: 0xf27d00, side: THREE.DoubleSide, depthTest: true });
 let selected = [];
 let objInfo = null;            // údaje o prvcích OBJ (id → info)
+const parentOf = new Map();
 const childrenOf = new Map();   // expressID → node (prostorová struktura)
 
 function getMat(c) {
@@ -191,7 +213,7 @@ function getMat(c) {
 function clearModel() {
   clearSel();
   modelGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-  modelGroup.clear(); meshesById.clear(); childrenOf.clear();
+  modelGroup.clear(); meshesById.clear(); childrenOf.clear(); parentOf.clear(); eqClearAll();
   if (modelID !== null) { try { ifc.CloseModel(modelID); } catch (e) {} modelID = null; }
   objInfo = null; clearMeasure(); clearDims(); renames.clear();
 }
@@ -206,7 +228,8 @@ async function openFiles(list) {
 
 function modelLoaded(label) {
   loadRenames(label);
-  for (const b of ['measBtn', 'dimBtn']) $(b).disabled = false;
+  for (const b of ['measBtn', 'dimBtn', 'eqBtn', 'eqExport']) $(b).disabled = false;
+  eqLoad(label);
   $('saveBtn').style.display = objInfo ? 'none' : ''; $('saveBtn').disabled = true;
   $('empty').style.display = 'none';
   $('fileName').textContent = label;
@@ -399,6 +422,7 @@ async function buildTree() {
     }
   };
   add(root, ul, 0);
+  childrenOf.forEach((n, id) => (n.children || []).forEach(c => parentOf.set(c.expressID, id)));
 }
 
 $('tree').addEventListener('click', e => {
@@ -440,6 +464,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   ray.setFromCamera(ptr, camera);
   const hit = ray.intersectObjects(modelGroup.children, false).find(h => h.object.visible);
   if (measuring) { if (hit) measurePoint(hit, e); return; }
+  if (placing) { if (hit) eqPlace(hit); return; }
   if (!hit) { clearSel(); $('props').innerHTML = '<div class="hint">Klikni na prvek v modelu nebo ve stromu.</div>'; return; }
   const id = hit.object.userData.id;
   select([id], id, null);
@@ -640,6 +665,92 @@ $('saveBtn').onclick = () => {
   } catch (e) { console.error(e); toast('Uložení se nepodařilo: ' + (e.message || e)); }
 };
 
+
+/* ── vybavení: ruční zákres hasicích přístrojů a dalšího vybavení ── */
+const EQK = [['h', '🧯', 'Hasicí přístroj'], ['y', '🚒', 'Hydrant'], ['l', '⛑️', 'Lékárnička'], ['u', '🚰', 'Hlavní uzávěr vody'], ['g', '🔥', 'Hlavní uzávěr plynu'],
+  ['e', '⚡', 'Rozvaděč / hlavní vypínač'], ['a', '🔔', 'Hlásič požáru / tlačítko'], ['x', '🚪', 'Únikový východ'], ['v', '🧰', 'Jiné vybavení']];
+const eqKind = k => EQK.find(x => x[0] === k) || EQK[EQK.length - 1];
+$('eqKind').innerHTML = EQK.map(k => `<option value="${k[0]}">${k[1]} ${k[2]}</option>`).join('');
+let EQ = [], eqKey = '', placing = false, eqEdit = null, eqPending = null, eqDirty = false;
+let EXT = null;   // napojení ze Správy budov: { links:[{id,name,kind}], canSave }
+function eqLoad(label) {
+  eqKey = 'ps-3d-vybaveni:' + label;
+  if (EXT && EXT.markers) EQ = EXT.markers.map(m => ({ ...m }));
+  else { try { EQ = JSON.parse(localStorage.getItem(eqKey) || '[]'); } catch (e) { EQ = []; } }
+  eqDirty = false; eqRender();
+}
+function eqStore() { eqDirty = true; try { localStorage.setItem(eqKey, JSON.stringify(EQ)); } catch (e) {} $('eqSave').disabled = false; }
+function eqClearAll() { EQ.forEach(m => m._lbl && removeLabels([m._lbl])); EQ = []; }
+function storeyOf(id) {
+  let cur = id, guard = 0;
+  while (cur != null && guard++ < 50) { const n = childrenOf.get(cur); if (n && /BUILDINGSTOREY/i.test(n.type)) return nameOf(cur) || 'Podlaží'; cur = parentOf.get(cur); }
+  return '';
+}
+function eqRender() {
+  EQ.forEach(m => { if (m._lbl) removeLabels([m._lbl]); });
+  EQ.forEach((m, i) => {
+    const k = eqKind(m.k);
+    const l = addLabel('', new THREE.Vector3(m.x, m.y, m.z), '');
+    l.el.className = 'mk k-' + m.k; l.el.innerHTML = `<i><span>${k[1]}</span></i><b>${esc(m.name)}</b>`;
+    l.el.title = k[2] + ': ' + m.name + (m.storey ? ' · ' + m.storey : '');
+    l.el.onclick = ev => { ev.stopPropagation(); eqOpen(i); };
+    m._lbl = l;
+  });
+  // seznam ve stromu
+  let box = $('eqList');
+  if (!box) { box = document.createElement('div'); box.id = 'eqList'; box.className = 'eqlist'; $('tree').before(box); }
+  box.innerHTML = EQ.length ? `<div class="node" style="font-weight:700;margin:2px 6px 0">🧯 Zakreslené vybavení (${EQ.length})</div><ul style="list-style:none;margin:0 0 8px;padding:0 6px">` +
+    EQ.map((m, i) => `<li><div class="node" data-eq="${i}"><span class="ic">${eqKind(m.k)[1]}</span><span class="nm">${esc(m.name)}</span> <span class="ty">${esc(m.storey || '')}</span></div></li>`).join('') + '</ul>' : '';
+  box.querySelectorAll('[data-eq]').forEach(n => n.onclick = () => { const m = EQ[+n.dataset.eq]; eqFocus(m); eqOpen(+n.dataset.eq); });
+}
+function eqFocus(m) {
+  const p = new THREE.Vector3(m.x, m.y, m.z), dir = camera.position.clone().sub(controls.target);
+  const d = Math.min(dir.length(), 8); controls.target.copy(p); camera.position.copy(p).add(dir.setLength(d));
+}
+function eqStartPlace() { if (measuring) stopMeasure(); placing = true; viewerEl.classList.add('placing'); $('eqHint').classList.add('on'); $('eqBtn').classList.add('on'); }
+function eqStopPlace() { placing = false; viewerEl.classList.remove('placing'); $('eqHint').classList.remove('on'); $('eqBtn').classList.remove('on'); }
+function eqPlace(hit) {
+  // značka kousek před povrch, ať není schovaná ve stěně
+  const n = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : new THREE.Vector3(0, 1, 0);
+  const p = hit.point.clone().addScaledVector(n, 0.05);
+  eqPending = { x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3), storey: objInfo ? '' : storeyOf(hit.object.userData.id), on: objInfo ? (objInfo.get(hit.object.userData.id) || {}).name : nameOf(hit.object.userData.id) };
+  eqOpen(-1);
+}
+function eqOpen(i) {
+  eqEdit = i; const m = i >= 0 ? EQ[i] : { k: 'h', name: '', note: '', link: '', ...eqPending };
+  $('eqTitle').textContent = i >= 0 ? 'Upravit vybavení' : 'Nové vybavení';
+  $('eqKind').value = m.k; $('eqName').value = m.name; $('eqNote').value = m.note || '';
+  $('eqLinkL').style.display = EXT && EXT.links && EXT.links.length ? '' : 'none';
+  if (EXT && EXT.links) $('eqLink').innerHTML = '<option value="">– nepropojovat –</option>' + EXT.links.map(z => `<option value="${esc(z.id)}"${z.id === m.link ? ' selected' : ''}>${z.kind === 'h' ? '🧯 ' : ''}${esc(z.name)}${z.floor ? ' · ' + esc(z.floor) : ''}</option>`).join('');
+  $('eqInfo').textContent = [m.storey && 'Podlaží: ' + m.storey, m.on && 'Na prvku: ' + m.on, `Pozice: ${fmtLen(m.x)} / ${fmtLen(m.z)} / výška ${fmtLen(m.y)}`].filter(Boolean).join(' · ');
+  $('eqDel').style.display = i >= 0 ? '' : 'none';
+  document.querySelectorAll('.mk.sel').forEach(e => e.classList.remove('sel')); if (i >= 0 && m._lbl) m._lbl.el.classList.add('sel');
+  $('eqModal').hidden = false; setTimeout(() => $('eqName').focus(), 50);
+}
+$('eqLink').onchange = () => { const z = EXT.links.find(x => x.id === $('eqLink').value); if (z && !$('eqName').value) $('eqName').value = z.name; if (z && z.kind === 'h') $('eqKind').value = 'h'; };
+$('eqForm').onsubmit = e => {
+  e.preventDefault();
+  const v = { k: $('eqKind').value, name: $('eqName').value.trim(), note: $('eqNote').value.trim(), link: $('eqLink').value || '' };
+  if (eqEdit >= 0) Object.assign(EQ[eqEdit], v); else EQ.push({ ...eqPending, ...v, id: Math.random().toString(36).slice(2, 10) });
+  $('eqModal').hidden = true; eqStore(); eqRender();
+};
+$('eqCancel').onclick = () => { $('eqModal').hidden = true; };
+$('eqDel').onclick = () => { if (!confirm('Smazat „' + EQ[eqEdit].name + '“?')) return; removeLabels([EQ[eqEdit]._lbl]); EQ.splice(eqEdit, 1); $('eqModal').hidden = true; eqStore(); eqRender(); };
+$('eqBtn').onclick = () => placing ? eqStopPlace() : eqStartPlace();
+$('eqStop').onclick = eqStopPlace;
+$('eqExport').onclick = () => {
+  const head = ['Druh', 'Nazev', 'Podlazi', 'Poznamka', 'X', 'Y_vyska', 'Z', 'Propojeno_ID'];
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const rows = EQ.map(m => [eqKind(m.k)[2], m.name, m.storey, m.note, m.x, m.y, m.z, m.link].map(q).join(';'));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + [head.join(';'), ...rows].join('\r\n')], { type: 'text/csv' }));
+  a.download = 'vybaveni-' + ($('fileName').textContent.split(' · ')[0] || 'model') + '.csv'; a.click();
+};
+$('eqSave').onclick = () => {
+  $('eqSave').disabled = true;
+  parent.postMessage({ type: 'ps-3d-save', markers: EQ.map(({ _lbl, ...m }) => m) }, location.origin);
+};
+
 /* ── ovládání ── */
 $('openBtn').onclick = () => $('file').click();
 $('drop').onclick = () => $('file').click();
@@ -653,13 +764,31 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(b.dat
 ['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('hot'); }));
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('hot'); }));
 document.addEventListener('drop', e => openFiles(e.dataTransfer.files));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (measuring) stopMeasure(); else clearSel(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (placing) eqStopPlace(); else if (measuring) stopMeasure(); else clearSel(); } });
 window.__openIfc = openFile; // pro testy
 // vložení do prohlížeče výkresů: soubor přijde zprávou
 if (new URLSearchParams(location.search).has('embed')) document.querySelector('header').style.display = 'none';
-addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'ps-ifc-file') openFiles(e.data.files || [e.data.file]); });
+addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data) return;
+  const d = e.data;
+  if (d.type === 'ps-ifc-file') { EXT = d.ext || null; $('eqSave').style.display = EXT && EXT.canSave ? '' : 'none'; $('eqSave').disabled = true; openFiles(d.files || [d.file]).then(() => { if (EXT && EXT.focus) { const i = EQ.findIndex(m => m.link === EXT.focus); if (i >= 0) { eqFocus(EQ[i]); EQ[i]._lbl.el.classList.add('sel'); } } }); }
+  if (d.type === 'ps-3d-saved') { eqDirty = false; toast(d.ok ? 'Vybavení uloženo do Správy budov ✓' : 'Uložení se nepodařilo: ' + d.error, 5000); if (!d.ok) $('eqSave').disabled = false; }
+});
+addEventListener('beforeunload', e => { if (eqDirty && EXT && EXT.canSave) { e.preventDefault(); e.returnValue = ''; } });
+window.__eqDirty = () => eqDirty && EXT && EXT.canSave;
 init().catch(e => console.error(e));
 </script>
 <script src="/nav.js" defer></script>
+<div class="eqmodal" id="eqModal" hidden>
+  <form class="eqbox" id="eqForm">
+    <h3 id="eqTitle">Nové vybavení</h3>
+    <label>Druh<select id="eqKind"></select></label>
+    <label>Název / číslo<input id="eqName" required placeholder="např. HP 12 – chodba u schodiště"></label>
+    <label id="eqLinkL">Propojit se záznamem ve Správě budov<select id="eqLink"></select></label>
+    <label>Poznámka<input id="eqNote" placeholder="nepovinné"></label>
+    <div class="eqinfo" id="eqInfo"></div>
+    <div class="eqacts"><button type="button" class="btn" id="eqDel">🗑 Smazat</button><span style="flex:1"></span><button type="button" class="btn" id="eqCancel">Zrušit</button><button class="btn primary">Uložit</button></div>
+  </form>
+</div>
 </body>
 </html>

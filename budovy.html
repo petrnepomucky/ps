@@ -592,7 +592,7 @@ function viewB(b) {
   let h = '<h2>' + esc(b.name) + '</h2><p class="sub">' + esc(b.p.name) + '</p>';
   h += '<div class="hero">' + (fig ? '<div class="imgs one">' + fig + '</div>' : '<div class="empty">K budově není nahraná fotka.</div>') +
     '<div class="info">' + dlHtml(r) + '<div class="links">' + mapBtns(r.GPS_Lat) + linkBtn(r.File, '📐 Výkres (DWG)') +
-    (r.Dokumentace_URL ? linkBtn(r.Dokumentace_URL, '📄 Dokumentace') : '') + (r.Slozka_s_Dokumenty_URL ? linkBtn(r.Slozka_s_Dokumenty_URL, '📁 Složka s dokumenty') : '') + '</div></div></div>';
+    (models3d(b).length ? models3d(b).map(m => '<button class="btn green" data-m3d="' + esc(m.Soubor_ID) + '">🧊 3D model' + (models3d(b).length > 1 ? ': ' + esc(m.Nazev) : '') + '</button>').join('') : '') + (r.Dokumentace_URL ? linkBtn(r.Dokumentace_URL, '📄 Dokumentace') : '') + (r.Slozka_s_Dokumenty_URL ? linkBtn(r.Slozka_s_Dokumenty_URL, '📁 Složka s dokumenty') : '') + '</div></div></div>';
   h += phBtn('budovy', r.Fotografie_Budovy);
   h += '<h3>Podlaží a plány <span class="n">' + b.patra.length + '</span></h3>';
   h += b.patra.length ? '<div class="grid">' + b.patra.map(cardF).join('') + '</div>' : '<div class="empty">K budově nejsou zadaná podlaží.</div>';
@@ -614,6 +614,7 @@ function viewB(b) {
   h += filesHtml(b);
   $('#view').innerHTML = h;
   filesBind(b);
+  document.querySelectorAll('[data-m3d]').forEach(x => x.onclick = () => open3d(b, x.dataset.m3d));
   const pb = document.querySelector('[data-pho]'); if (pb) pb.onclick = () => phOpen('budovy', r);
   document.querySelectorAll('#view tr[data-e]').forEach(tr => tr.onclick = e => { if (canEd('energetika') && !e.target.closest('a')) edOpen('', DB.Z[+tr.dataset.e]); });
 }
@@ -1098,6 +1099,67 @@ function guard(s) {
   else alert('K úpravám této části nemáš oprávnění.');
   return false;
 }
+
+
+/* --- 3D model budovy (IFC / OBJ) se zakresleným vybavením --- */
+const is3dName = n => /\.(ifc|obj)$/i.test(n || '');
+const models3d = b => b.soubory.filter(r => is3dName(r.Nazev));
+const eqFileName = m => m.Nazev + '.vybaveni.json';
+async function dlBytes(id) {
+  const d = await apiPost({ action: 'download', id });
+  const bin = atob(d.data), u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return { name: d.name, bytes: u };
+}
+let M3D = null;
+async function open3d(b, fileId, focus) {
+  const m = b.soubory.find(r => r.Soubor_ID === fileId); if (!m) return;
+  let box = $('#m3d');
+  if (!box) {
+    document.body.insertAdjacentHTML('beforeend', '<div id="m3d" style="position:fixed;inset:0;z-index:950;background:#fff;display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#00532a;color:#fff;font:600 13px Segoe UI,Arial,sans-serif">' +
+      '<button id="m3dBack" style="background:#f27d00;color:#fff;border:0;border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer">← Zpět</button><span id="m3dName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>' +
+      '<span id="m3dSt" style="margin-left:auto;opacity:.85"></span></div><iframe id="m3dF" title="3D model" style="flex:1;border:0;width:100%"></iframe></div>');
+    box = $('#m3d');
+    $('#m3dBack').onclick = () => {
+      const w = $('#m3dF').contentWindow;
+      if (w && w.__eqDirty && w.__eqDirty() && !confirm('Zakreslené vybavení není uložené. Opravdu zavřít?')) return;
+      box.style.display = 'none'; $('#m3dF').src = 'about:blank';
+    };
+  }
+  box.style.display = 'flex';
+  $('#m3dName').textContent = b.name + ' · ' + m.Nazev; $('#m3dSt').textContent = 'Stahuji model z Disku…';
+  M3D = { b, m };
+  try {
+    const files = [];
+    const f = await dlBytes(m.Soubor_ID); files.push(new File([f.bytes], m.Nazev));
+    if (/\.obj$/i.test(m.Nazev)) for (const r of b.soubory.filter(r => /\.(mtl|jpe?g|png)$/i.test(r.Nazev))) { const x = await dlBytes(r.Soubor_ID); files.push(new File([x.bytes], r.Nazev)); }
+    const side = b.soubory.find(r => r.Nazev === eqFileName(m));
+    let markers = [];
+    if (side) { try { markers = JSON.parse(new TextDecoder().decode((await dlBytes(side.Soubor_ID)).bytes)).markers || []; } catch (e) {} }
+    const zs = b.zar.concat(...b.patra.map(f => f.zar));
+    const links = zs.map(z => ({ id: z.kind + ':' + (z.r.Vybaveni_ID || z.r.Zarizeni_ID || z.r['Zarízeni_ID'] || z.r.Hasici_ID || z.name), name: z.name, kind: z.kind, floor: z.f ? z.f.name : '' }));
+    $('#m3dSt').textContent = '';
+    const fr = $('#m3dF');
+    fr.onload = () => fr.contentWindow.postMessage({ type: 'ps-ifc-file', files, ext: { links, markers, canSave: canEd('soubory'), focus } }, location.origin);
+    fr.src = '/ifc.html?embed=1';
+  } catch (e) { $('#m3dSt').textContent = 'Chyba: ' + e.message; }
+}
+addEventListener('message', async e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'ps-3d-save' || !M3D) return;
+  const { b, m } = M3D, w = $('#m3dF').contentWindow;
+  try {
+    const json = JSON.stringify({ model: m.Nazev, modelId: m.Soubor_ID, saved: new Date().toISOString(), markers: e.data.markers });
+    const data = btoa(unescape(encodeURIComponent(json)));
+    const old = b.soubory.filter(r => r.Nazev === eqFileName(m));
+    const d = await apiPost({ action: 'upload', budova: b.id, oblast: 'soubory', name: eqFileName(m), popis: 'Zakreslené vybavení ve 3D modelu', newId: newId(), data });
+    if (!RAW.tables.soubory.some(x => x.Soubor_ID === d.row.Soubor_ID)) RAW.tables.soubory.push(d.row);
+    for (const r of old) { try { await apiPost({ action: 'remove', id: r.Soubor_ID }); } catch (x) {} RAW.tables.soubory = RAW.tables.soubory.filter(q => q.Soubor_ID !== r.Soubor_ID); }
+    DB = build(RAW); lsSet(LS_DATA, JSON.stringify(RAW));
+    M3D.b = DB.bMap[norm(b.id)] || b;
+    w.postMessage({ type: 'ps-3d-saved', ok: true }, location.origin);
+  } catch (x) { w.postMessage({ type: 'ps-3d-saved', ok: false, error: x.message }, location.origin); }
+});
 
 /* --- soubory --- */
 const fmtB = n => n > 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB';
