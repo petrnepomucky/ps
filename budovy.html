@@ -112,6 +112,11 @@ table.tb{width:100%;border-collapse:collapse;background:#fff;border:1px solid va
 .pin{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:translate(-50%,-100%) scale(calc(1 / var(--z))) rotate(-45deg);transform-origin:50% 100%;background:var(--o);border:2px solid #fff;box-shadow:0 2px 6px #0006;cursor:pointer;z-index:2}
 .pin::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;background:#fff;border-radius:50%}
 .pin.h{background:var(--red)}
+.pin.e{background:#e0a800}
+.gmap{height:min(72vh,760px);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#e8ece9}
+.gmap .leaflet-container{font:inherit}
+.fvm{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#e0a800;border:2px solid #fff;box-shadow:0 2px 6px #0006}
+.fvm.sel{background:var(--g)}
 .pin.sel{background:var(--g);z-index:4;width:32px;height:32px}
 .pin.hid{display:none}
 .pop{position:absolute;left:10px;bottom:10px;z-index:5;background:#fff;border:1px solid var(--line);border-left:4px solid var(--o);border-radius:10px;box-shadow:0 8px 24px #0000002e;padding:10px 14px;max-width:min(420px,calc(100% - 20px));font-size:13px;display:none}
@@ -426,7 +431,7 @@ function build(raw) {
   (T.hasici || []).forEach(r => addZ(r, 'h'));
   (T.fve || []).forEach(r => {
     const b = db.bMap[norm(r.Budova_ID)];
-    const z = { k: 'z', kind: 'e', name: r.Nazev || r.FVE_ID, r, f: null, b, p: (b && b.p) || db.pMap[norm(r.Provozovna_ID)] || null, pos: null, i: db.Z.length };
+    const z = { k: 'z', kind: 'e', name: r.Nazev || r.FVE_ID, r, f: null, b, p: (b && b.p) || db.pMap[norm(r.Provozovna_ID)] || null, pos: parseXY(r.Pozice_Plan), gps: gps(r.GPS_FVE), i: db.Z.length };
     db.Z.push(z); if (b) b.fve.push(z);
   });
   (T.soubory || []).forEach(r => { const b = db.bMap[norm(r.Budova_ID)]; if (b) b.soubory.push(r); });
@@ -703,7 +708,7 @@ function makeViewer(box, src, pins) {
     msg.remove();
     (pins || []).forEach(p => {
       const el = document.createElement('div');
-      el.className = 'pin' + (p.kind === 'h' ? ' h' : '');
+      el.className = 'pin' + (p.kind === 'h' ? ' h' : p.kind === 'e' ? ' e' : '');
       el.style.left = p.pos.x + '%'; el.style.top = p.pos.y + '%';
       el.dataset.z = p.i; el.title = p.name;
       el.addEventListener('pointerdown', e => e.stopPropagation());
@@ -775,7 +780,7 @@ const FIELDS = {
 };
 FIELDS.fve = [['Nazev', 'Název *', 'w'], ['Stav', 'Stav', 'l'], ['Vykon_kWp', 'Výkon (kWp)'], ['Pocet_Panelu', 'Počet panelů'], ['Typ_Panelu', 'Typ panelů', 'l'], ['Stridac', 'Střídač', 'l'], ['Baterie_kWh', 'Baterie (kWh)'], ['Datum_Uvedeni', 'Uvedeno do provozu', 'd'], ['EAN_Vyroba', 'EAN výroby'], ['EAN_Odber', 'EAN odběru'], ['Distributor', 'Distributor', 'l'], ['Cislo_Licence', 'Číslo licence'], ['Dodavatel_Servis', 'Dodavatel / servis', 'l'], ['Posledni_Revize', 'Poslední revize', 'd'], ['Pristi_Revize', 'Příští revize', 'd'], ['Monitoring_URL', 'Odkaz na monitoring', 'w'], ['Zodpovedna_Osoba', 'Zodpovědná osoba', 'l'], ['Poznamky', 'Poznámky', 'wt']];
 const SECOF = { vybaveni: 'vybaveni', hasici: 'hasici', fve: 'energetika' };
-const POSCOL = { vybaveni: 'XY_Pozice_X', hasici: 'Pozice_Mapa' };
+const POSCOL = { vybaveni: 'XY_Pozice_X', hasici: 'Pozice_Mapa', fve: 'Pozice_Plan' };
 const evS = { q: '', p: '', kat: '', np: false };
 let ED = null;
 
@@ -813,7 +818,9 @@ function viewE(t) {
     if (t === 'e') {
       const sum = L.reduce((s, z) => s + (parseFloat(String(z.r.Vykon_kWp || '').replace(/\s/g, '').replace(',', '.')) || 0), 0);
       if (sum) $('#evN').textContent += ' · celkem ' + sum.toLocaleString('cs-CZ', { maximumFractionDigits: 2 }) + ' kWp';
-      $('#evT').innerHTML = L.length ? fveTable(L) : '<div class="empty">Zatím žádná fotovoltaika.</div>';
+      const onMap = L.filter(z => z.gps);
+      $('#evT').innerHTML = (onMap.length ? '<div class="links" style="border:0;padding:0 0 10px"><button class="btn" id="fvMap">🗺 Zobrazit na mapě (' + onMap.length + ')</button></div>' : '') + (L.length ? fveTable(L) : '<div class="empty">Zatím žádná fotovoltaika.</div>');
+      if ($('#fvMap')) $('#fvMap').onclick = () => fveShow(null, onMap);
       return;
     }
     $('#evT').innerHTML = L.length ? '<table class="tb"><tr><th>Název</th><th>Druh</th><th>Provozovna</th><th>Budova · podlaží</th><th>Výrobce / typ</th><th>Číslo</th><th>Stav</th><th>Místo</th><th></th></tr>' + L.map(z => {
@@ -828,6 +835,7 @@ function viewE(t) {
   $('#evK').onchange = e => { evS.kat = e.target.value; draw(); };
   $('#evNp').onchange = e => { evS.np = e.target.checked; draw(); };
   if ($('#evAdd')) $('#evAdd').onclick = () => edOpen(t, null, null);
+  $('#evT').addEventListener('click', e => { const a = e.target.closest('[data-fv]'); if (a) { e.preventDefault(); e.stopPropagation(); fveShow(DB.Z[+a.dataset.fv]); } }, true);
   $('#evT').onclick = e => { const tr = e.target.closest('tr[data-e]'); if (tr && canEd(SECOF[E.tab]) && !e.target.closest('a')) edOpen(t, DB.Z[+tr.dataset.e]); };
   draw();
 }
@@ -839,11 +847,12 @@ function edOpen(t, z, f) {
   if (z && !r._row) { alert('Nejdřív načti čerstvá data tlačítkem Obnovit.'); return; }
   f = z ? z.f : f;
   const p = z ? z.p : (f ? f.p : DB.pMap[norm(evS.p)]);
-  ED = { t, tab: E.tab, z, orig: Object.assign({}, r), pos: z ? z.pos : null };
+  ED = { t, tab: E.tab, z, orig: Object.assign({}, r), pos: z ? z.pos : null, gps: z ? z.gps || null : null };
+  ED.gps0 = ED.gps;
   ED.newId = newId();
   const fve = E.tab === 'fve';
-  $('#edF .fm').classList.toggle('solo', fve);
-  $('#edPl').parentNode.hidden = fve;
+  $('#edF .fm').classList.remove('solo');
+  $('#edPl').parentNode.hidden = false;
   ED.pos0 = ED.pos;
   ED.loc0 = f ? 'f:' + f.id : (z && z.b ? 'b:' + z.b.id : '');
   $('#edT').textContent = z ? 'Upravit: ' + z.name : 'Přidat ' + E.one;
@@ -861,10 +870,10 @@ function edOpen(t, z, f) {
     $('#edL').innerHTML = '<option value="">– vyber –</option>' + (P ? fve ? P.budovy.map(b => o('b:' + b.id, b.name)).join('') : P.budovy.map(b => '<optgroup label="' + esc(b.name) + '">' + b.patra.map(x => o('f:' + x.id, (x.r.Cislo_Patra || x.name) + (x.r.Popis_Patra ? ' – ' + x.r.Popis_Patra : ''))).join('') + o('b:' + b.id, 'bez podlaží') + '</optgroup>').join('') + P.patraBez.map(x => o('f:' + x.id, x.name)).join('') : '');
   };
   fillL(ED.loc0);
-  const locChanged = () => { ED.pos = $('#edL').value === ED.loc0 ? ED.pos0 : null; edPlan(); };
+  const locChanged = () => { if (fve) { if (!ED.gps) edPlan(); return; } ED.pos = $('#edL').value === ED.loc0 ? ED.pos0 : null; edPlan(); };
   $('#edP').onchange = () => { fillL(ED.loc0); locChanged(); };
   $('#edL').onchange = locChanged;
-  $('#edClr').onclick = () => { ED.pos = null; edPin(); };
+  $('#edClr').onclick = () => { if (ED.mode === 'map') { ED.gps = null; if (ED.mapPut) ED.mapPut(); } else ED.pos = null; edPin(); };
   $('#edErr').textContent = '';
   $('#edSave').disabled = false;
   PH = null; $('#edPh').innerHTML = '';
@@ -878,6 +887,7 @@ function edClose() {
 }
 function edFloor() { const v = $('#edL').value; return v.startsWith('f:') ? DB.fMap[norm(v.slice(2))] : null; }
 function edPlan() {
+  if (ED.tab === 'fve') return edPlanFve();
   const f = edFloor(), plan = f && fileOf(f.r.Plan_Podlazi_URL);
   ED.viewer = null; ED.can = isImg(plan);
   $('#edPl').innerHTML = '<div class="pv"></div>';
@@ -899,6 +909,85 @@ function edPlan() {
   box.addEventListener('pointercancel', () => { d = null; down = 0; });
   edPin();
 }
+/* Umístění FVE: výchozí podklad je satelitní mapa (souřadnice GPS_FVE), volitelně vlastní plánek (Pozice_Plan) */
+let LLP = null;
+function loadLeaflet() {
+  return LLP || (LLP = new Promise((ok, no) => {
+    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
+    const j = document.createElement('script'); j.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    j.onload = () => ok(window.L.noConflict()); j.onerror = () => { LLP = null; no(new Error('Mapu se nepodařilo načíst.')); }; document.head.appendChild(j);
+  }));
+}
+const fveOwn = r => { const f = fileOf(r && r.Plan_FVE); return isImg(f) ? f : null; };
+const gUrl = g => 'https://www.google.com/maps/search/?api=1&query=' + g.lat + ',' + g.lon;
+function fveCenter(z, p, b) {   // GPS FVE → budova → provozovna
+  return (z && z.gps) || (b && gps(b.r.GPS_Lat)) || (p && gps(p.r['GPS Lat Long'])) || null;
+}
+async function gMap(box, center, zoom) {
+  box.innerHTML = '<div class="pv"><div class="msg"><div><div class="spin"></div>Načítám mapu…</div></div></div>';
+  let LF; try { LF = await loadLeaflet(); } catch (e) { box.innerHTML = '<div class="pv"><div class="msg">' + esc(e.message) + '</div></div>'; return null; }
+  if (!box.isConnected) return null;
+  box.innerHTML = '<div class="gmap"></div>';
+  const m = LF.map(box.firstChild, { zoomControl: true }).setView(center ? [+center.lat, +center.lon] : [49.8, 15.5], center ? (zoom || 18) : 7);
+  const sat = LF.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20, maxNativeZoom: 19, attribution: 'Snímky © Esri' }).addTo(m);
+  const osm = LF.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20, maxNativeZoom: 19, attribution: '© OpenStreetMap' });
+  LF.control.layers({ 'Satelit': sat, 'Mapa': osm }).addTo(m);
+  const icon = sel => LF.divIcon({ className: '', html: '<div class="fvm' + (sel ? ' sel' : '') + '"></div>', iconSize: [26, 26], iconAnchor: [13, 30] });
+  new ResizeObserver(() => m.invalidateSize()).observe(box);
+  return { LF, m, icon };
+}
+function edPlanFve() {
+  const me = ED, p = DB.pMap[norm($('#edP').value)], lv = $('#edL').value, b = lv.startsWith('b:') ? DB.bMap[norm(lv.slice(2))] : null;
+  const slot = PH && PH.table === 'fve' && PH.slots.Plan_FVE;
+  const own = slot && slot.canvas ? slot.canvas.toDataURL('image/jpeg', 0.85) : slot && slot.del ? null : (f => f && thumb(f.id, 2400))(fveOwn(me.orig));
+  me.viewer = null; me.can = true; me.mode = own ? 'plan' : 'map';
+  $('#edPl').innerHTML = '<div id="edMap"></div><p class="sub" style="margin:6px 0 0" id="edMapI"></p>';
+  const box = $('#edMap');
+  if (own) {
+    $('#edMapI').textContent = 'Podklad: vlastní plánek FVE (pro satelitní mapu plánek odeber).';
+    box.innerHTML = '<div class="pv"></div>'; const pv = box.firstChild;
+    me.viewer = makeViewer(pv, own, []);
+    let d = null, down = 0;
+    pv.addEventListener('pointerdown', e => { down++; d = down > 1 ? null : { x: e.clientX, y: e.clientY }; });
+    pv.addEventListener('pointerup', e => {
+      const s = d; d = null; down = Math.max(0, down - 1);
+      if (!s || me.busy || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 5) return;
+      const pos = me.viewer.toPct(e.clientX, e.clientY); if (pos) { me.pos = pos; edPin(); }
+    });
+    pv.addEventListener('pointercancel', () => { d = null; down = 0; });
+    return edPin();
+  }
+  $('#edMapI').innerHTML = 'Podklad: satelitní mapa. Klikni na střechu / místo s panely.';
+  const c = me.gps || fveCenter(null, p, b);
+  edPin();
+  gMap(box, c, me.gps ? 19 : 18).then(G => {
+    if (!G || ED !== me) return;
+    const others = DB.Z.filter(x => x.kind === 'e' && x.gps && x !== me.z && (!p || x.p === p));
+    others.forEach(x => G.LF.marker([+x.gps.lat, +x.gps.lon], { icon: G.icon(false), title: x.name, interactive: false }).addTo(G.m));
+    let mk = null;
+    const put = () => { if (mk) { mk.remove(); mk = null; } if (me.gps) mk = G.LF.marker([+me.gps.lat, +me.gps.lon], { icon: G.icon(true) }).addTo(G.m); };
+    me.mapPut = put; put();
+    G.m.on('click', e => { if (me.busy) return; me.gps = { lat: e.latlng.lat.toFixed(6), lon: e.latlng.lng.toFixed(6) }; put(); edPin(); });
+  });
+}
+/** Náhled umístění: jedna FVE, nebo seznam na jedné mapě. */
+async function fveShow(z, list) {
+  const own = z && fveOwn(z.r);
+  if (own && z.pos) {
+    xOpen(z.name, '<div class="pv" id="fvPv"></div><p class="sub" style="margin:6px 0 0">Vlastní plánek FVE · <a target="_blank" rel="noopener" href="' + openUrl(own) + '">otevřít na Disku</a></p>');
+    const box = $('#fvPv'), v = makeViewer(box, thumb(own.id, 2400), [z]);
+    box.querySelector('img').addEventListener('load', () => setTimeout(() => { v.focus(z.pos); const el = box.querySelector('.pin'); if (el) el.classList.add('sel'); }, 0));
+    return;
+  }
+  const L = z ? [z] : list.filter(x => x.gps);
+  xOpen(z ? z.name : 'Fotovoltaika na mapě (' + L.length + ')', '<div id="fvMapB"></div>' + (z && z.gps ? '<p class="sub" style="margin:6px 0 0"><a class="btn" target="_blank" rel="noopener" href="' + gUrl(z.gps) + '">Otevřít v Google Maps</a></p>' : ''));
+  const G = await gMap($('#fvMapB'), L[0] && L[0].gps, 19);
+  if (!G) return;
+  const pts = L.map(x => { const mk = G.LF.marker([+x.gps.lat, +x.gps.lon], { icon: G.icon(!!z), title: x.name }).addTo(G.m);
+    mk.bindPopup('<b>' + esc(x.name) + '</b><br>' + esc([x.p && x.p.name, x.b && x.b.name].filter(Boolean).join(' · ')) + (x.r.Vykon_kWp ? '<br>' + esc(x.r.Vykon_kWp) + ' kWp' : '') + '<br><a target="_blank" rel="noopener" href="' + gUrl(x.gps) + '">Google Maps</a>');
+    return [+x.gps.lat, +x.gps.lon]; });
+  if (pts.length > 1) G.m.fitBounds(pts, { padding: [40, 40], maxZoom: 19 });
+}
 function edPin() {
   const st = ED.viewer && ED.viewer.stage;
   if (st) {
@@ -908,7 +997,8 @@ function edPin() {
       el.style.left = ED.pos.x + '%'; el.style.top = ED.pos.y + '%'; st.appendChild(el);
     }
   }
-  $('#edPos').textContent = !ED.can ? '' : ED.pos ? 'Místo označeno – kliknutím do plánu ho změníš.' : 'Klikni do plánu a označ místo.';
+  if (ED.mode === 'map') { $('#edPos').textContent = ED.gps ? 'Místo označeno – kliknutím do mapy ho změníš.' : 'Klikni do mapy a označ místo fotovoltaiky.'; $('#edClr').hidden = !ED.gps; return; }
+  $('#edPos').textContent = !ED.can ? '' : ED.pos ? 'Místo označeno – kliknutím do plánu ho změníš.' : 'Klikni do plánu a označ místo' + (ED.tab === 'fve' ? ' fotovoltaiky.' : '.');
   $('#edClr').hidden = !ED.pos;
 }
 $('#edF').addEventListener('submit', async e => {
@@ -925,6 +1015,7 @@ $('#edF').addEventListener('submit', async e => {
     const b = f ? f.b : DB.bMap[norm(loc.slice(2))], p = f ? f.p : b.p;
     vals.Provozovna_ID = p.id === '__bez' ? '' : p.id; vals.Budova_ID = b ? b.id : ''; if (me.tab !== 'fve') vals.Patro_ID = f ? f.id : '';
   }
+  if (me.tab === 'fve' && me.gps !== me.gps0) vals.GPS_FVE = me.gps ? me.gps.lat + ', ' + me.gps.lon : '';
   if (me.pos !== me.pos0) {
     vals[POSCOL[me.tab]] = me.pos ? me.pos.x.toFixed(6) + ', ' + me.pos.y.toFixed(6) : '';
     // AppSheet má u vybavení v XY_Pozice_Y obrázek plánu, ke kterému se souřadnice vztahují
@@ -940,7 +1031,7 @@ $('#edF').addEventListener('submit', async e => {
       row = d.row;
       putRow(me.tab, me.z ? o._row : 0, row);
       // údaje jsou uložené; kdyby selhala fotka, další pokus už nahraje jen ji
-      me.z = me.z || { saved: true }; me.orig = Object.assign({}, row); me.pos0 = me.pos; me.loc0 = loc; me.saved = true;
+      me.z = me.z || { saved: true }; me.orig = Object.assign({}, row); me.pos0 = me.pos; me.gps0 = me.gps; me.loc0 = loc; me.saved = true;
     }
     if (ph && phDirty()) { me.orig = Object.assign({}, await phUpload(ph, row)); }
     me.busy = false; edClose(); refreshLocal();
@@ -1077,9 +1168,9 @@ function refreshLocal() {
 
 /* --- energetika --- */
 function fveTable(L) {
-  return '<div class="tbw"><table class="tb"><tr><th>Fotovoltaika</th><th>Budova</th><th>Výkon</th><th>Panely</th><th>Střídač</th><th>Stav</th><th>Příští revize</th><th></th></tr>' + L.map(z => {
+  return '<div class="tbw"><table class="tb"><tr><th>Fotovoltaika</th><th>Budova</th><th>Výkon</th><th>Panely</th><th>Střídač</th><th>Stav</th><th>Příští revize</th><th>Umístění</th><th></th></tr>' + L.map(z => {
     const r = z.r, u = /^https?:\/\//i.test(r.Monitoring_URL || '') ? ' <a target="_blank" rel="noopener" href="' + esc(r.Monitoring_URL) + '">monitoring</a>' : '';
-    return '<tr data-e="' + z.i + '"><td><b>' + esc(z.name) + '</b>' + u + '</td><td>' + esc([z.p && z.p.name, z.b && z.b.name].filter(Boolean).join(' · ')) + '</td><td>' + esc(r.Vykon_kWp ? r.Vykon_kWp + ' kWp' : '') + '</td><td>' + esc([r.Pocet_Panelu && r.Pocet_Panelu + '×', r.Typ_Panelu].filter(Boolean).join(' ')) + '</td><td>' + esc(r.Stridac || '') + '</td><td>' + esc(r.Stav || '') + '</td><td>' + esc(r.Pristi_Revize || '') + '</td><td style="white-space:nowrap">' + (canEd('energetika') ? '<button class="btn">Upravit</button> ' : '') + (z.b ? '<a class="btn" href="' + href('b', z.b.id) + '">Soubory</a>' : '') + '</td></tr>';
+    return '<tr data-e="' + z.i + '"><td><b>' + esc(z.name) + '</b>' + u + '</td><td>' + esc([z.p && z.p.name, z.b && z.b.name].filter(Boolean).join(' · ')) + '</td><td>' + esc(r.Vykon_kWp ? r.Vykon_kWp + ' kWp' : '') + '</td><td>' + esc([r.Pocet_Panelu && r.Pocet_Panelu + '×', r.Typ_Panelu].filter(Boolean).join(' ')) + '</td><td>' + esc(r.Stridac || '') + '</td><td>' + esc(r.Stav || '') + '</td><td>' + esc(r.Pristi_Revize || '') + '</td><td>' + (z.gps ? '<a href="#" data-fv="' + z.i + '">na mapě</a> · <a target="_blank" rel="noopener" href="' + gUrl(z.gps) + '">Google</a>' : z.pos && fveOwn(z.r) ? '<a href="#" data-fv="' + z.i + '">na plánku</a>' : '<span class="nop">neoznačeno</span>') + '</td><td style="white-space:nowrap">' + (canEd('energetika') ? '<button class="btn">Upravit</button> ' : '') + (z.b ? '<a class="btn" href="' + href('b', z.b.id) + '">Soubory</a>' : '') + '</td></tr>';
   }).join('') + '</table></div>';
 }
 
@@ -1127,24 +1218,85 @@ async function viewL(t) {
   catch (e) { if (location.hash === here) $('#view').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; return; }
   if (location.hash !== here) return;
   LD = d;
-  $('#view').innerHTML = '<h2>' + L.t + '</h2><p class="sub" id="lsN"></p><div class="evbar"><input type="search" id="lsQ" placeholder="Hledat…" aria-label="Hledat"><select id="lsF" aria-label="' + esc(L.flt) + '">' + opts(uniq(d.rows.map(r => r[L.flt])).map(x => [x, x]), '', 'Všechny adresy') + '</select>' +
-    (t === 'helios' ? '<label class="btn"><input type="checkbox" id="lsM"> Jen bez zprávy</label>' : '') + '</div><div class="tbw" id="lsT"></div>';
+  if (t === 'helios') return viewHelios(L);
+  $('#view').innerHTML = '<h2>' + L.t + '</h2><p class="sub" id="lsN"></p><div class="evbar"><input type="search" id="lsQ" placeholder="Hledat…" aria-label="Hledat"><select id="lsF" aria-label="' + esc(L.flt) + '">' + opts(uniq(d.rows.map(r => r[L.flt])).map(x => [x, x]), '', 'Všechny adresy') + '</select></div><div class="tbw" id="lsT"></div>';
   const draw = () => {
-    const w = fold($('#lsQ').value).split(/\s+/).filter(Boolean), f = $('#lsF').value, m = $('#lsM') && $('#lsM').checked;
-    const R = LD.rows.filter(r => (!f || r[L.flt] === f) && (!m || !hFiles(r).length) && (s => w.every(x => s.indexOf(x) >= 0))(fold(Object.values(r).join(' '))));
+    const w = fold($('#lsQ').value).split(/\s+/).filter(Boolean), f = $('#lsF').value;
+    const R = LD.rows.filter(r => (!f || r[L.flt] === f) && (s => w.every(x => s.indexOf(x) >= 0))(fold(Object.values(r).join(' '))));
     $('#lsN').textContent = R.length + ' z ' + LD.rows.length + ' záznamů';
     const max = 300;
-    $('#lsT').innerHTML = R.length ? '<table class="tb"><tr>' + L.cols.map(c => '<th>' + c[1] + '</th>').join('') + (t === 'helios' ? '<th>Zprávy</th>' : '') + '</tr>' + R.slice(0, max).map(r => '<tr data-r="' + r._row + '">' + L.cols.map(c => '<td>' + esc(r[c[0]] || '') + '</td>').join('') + (t === 'helios' ? '<td><button class="btn">' + (hFiles(r).length || (canEd('helios') ? '+ Přidat' : '–')) + '</button></td>' : '') + '</tr>').join('') + '</table>' + (R.length > max ? '<p class="sub">Zobrazeno prvních ' + max + ', upřesni hledání.</p>' : '') : '<div class="empty">Žádné záznamy.</div>';
+    $('#lsT').innerHTML = R.length ? '<table class="tb"><tr>' + L.cols.map(c => '<th>' + c[1] + '</th>').join('') + '</tr>' + R.slice(0, max).map(r => '<tr data-r="' + r._row + '">' + L.cols.map(c => '<td>' + esc(r[c[0]] || '') + '</td>').join('') + '</tr>').join('') + '</table>' : '<div class="empty">Žádné záznamy.</div>';
   };
   LD.draw = draw;
   $('#lsQ').oninput = draw; $('#lsF').onchange = draw;
-  if ($('#lsM')) $('#lsM').onchange = draw;
-  $('#lsT').onclick = e => {
-    const tr = e.target.closest('tr[data-r]'); if (!tr || e.target.closest('a')) return;
-    const r = LD.rows.find(x => x._row === +tr.dataset.r);
-    heliosOpen(r);
-  };
   draw();
+}
+
+/* Revize Helios – pokročilé filtrování, řazení a tlačítko „Otevřít v Heliosu“ */
+const hUrl = r => { const u = String(r['Extrahovaný odkaz'] || '').trim(); return /^heliosgreen:\/\//i.test(u) ? u : ''; };
+function hDate(v) {   // „12.3.2024“, „2024-03-12“ i datum s časem → číslo RRRRMMDD (0 = bez data)
+  v = String(v || '').trim(); let m;
+  if ((m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return +m[1] * 10000 + +m[2] * 100 + +m[3];
+  if ((m = v.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/))) return +m[3] * 10000 + +m[2] * 100 + +m[1];
+  const d = new Date(v); return isNaN(d) ? 0 : d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+const dIn = v => v ? +v.replace(/-/g, '') : 0;
+function viewHelios(L) {
+  const rows = LD.rows, F = { area: 'Areál ulice', obj: 'Objekt', plan: 'Plán revize (název)', resp: 'Zodpovídá' };
+  const sel = (k, t) => '<select data-hf="' + k + '" aria-label="' + esc(t) + '">' + opts(uniq(rows.map(r => r[F[k]])).map(x => [x, x]), '', t) + '</select>';
+  const dCol = [['Poslední prohlídka', 'Poslední prohlídka'], ['Datum realizace', 'Datum realizace']];
+  $('#view').innerHTML = '<h2>' + L.t + '</h2><p class="sub" id="lsN"></p>' +
+    '<form class="evbar" id="hFl"><input type="search" id="lsQ" placeholder="Hledat cokoli…" aria-label="Hledat">' +
+    sel('area', 'Všechny areály') + sel('obj', 'Všechny objekty') + sel('plan', 'Všechny revize') + sel('resp', 'Všichni zodpovědní') +
+    '<button type="button" class="btn" id="hAdv" aria-expanded="false">Pokročilé ▾</button><button type="reset" class="btn">Zrušit filtry</button></form>' +
+    '<form class="evbar" id="hAdvF" hidden>' +
+    '<select id="hDk" aria-label="Filtrovat podle data">' + dCol.map(c => '<option value="' + esc(c[0]) + '">' + esc(c[1]) + '</option>').join('') + '</select>' +
+    '<label class="btn">od <input type="date" id="hD1"></label><label class="btn">do <input type="date" id="hD2"></label>' +
+    '<select id="hDn" aria-label="Prohlídka"><option value="">Jakékoli datum</option><option value="none">Bez data</option><option value="365">Starší než 1 rok</option><option value="730">Starší než 2 roky</option><option value="1095">Starší než 3 roky</option></select>' +
+    '<select id="hRep" aria-label="Zprávy"><option value="">Se zprávou i bez</option><option value="no">Jen bez zprávy</option><option value="yes">Jen se zprávou</option></select>' +
+    '<select id="hLnk" aria-label="Odkaz do Heliosu"><option value="">S odkazem i bez</option><option value="yes">Jen s odkazem do Heliosu</option><option value="no">Jen bez odkazu</option></select>' +
+    '</form><div class="tbw" id="lsT"></div><p><button class="btn" id="hMore" hidden>Zobrazit další</button></p>';
+  const H = rows.map(r => ({ r, s: fold(Object.values(r).join(' ')) }));
+  let R = [], n = 200, sk = '', sd = 1;
+  const isD = k => dCol.some(c => c[0] === k);
+  const draw = () => {
+    $('#lsN').textContent = R.length + ' z ' + rows.length + ' záznamů';
+    const ed = canEd('helios');
+    $('#lsT').innerHTML = R.length ? '<table class="tb"><tr>' + L.cols.map(c => '<th data-sk="' + esc(c[0]) + '" style="cursor:pointer;white-space:nowrap" title="Seřadit">' + c[1] + (sk === c[0] ? (sd > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('') + '<th>Helios</th><th>Zprávy</th></tr>' +
+      R.slice(0, n).map(x => { const r = x.r, u = hUrl(r), nf = hFiles(r).length;
+        return '<tr data-r="' + r._row + '">' + L.cols.map(c => '<td>' + esc(r[c[0]] || '') + '</td>').join('') +
+          '<td style="white-space:nowrap">' + (u ? '<a class="btn" href="' + esc(u) + '" title="Otevřít záznam v Heliosu">Otevřít v Heliosu</a>' : '–') + '</td>' +
+          '<td><button class="btn">' + (nf || (ed ? '+ Přidat' : '–')) + '</button></td></tr>'; }).join('') + '</table>'
+      : '<div class="empty">Nic neodpovídá filtrům.</div>';
+    $('#hMore').hidden = R.length <= n;
+  };
+  const run = () => {
+    const w = fold($('#lsQ').value).split(/\s+/).filter(Boolean);
+    const S = [...document.querySelectorAll('[data-hf]')].filter(e => e.value).map(e => [F[e.dataset.hf], e.value]);
+    const dk = $('#hDk').value, d1 = dIn($('#hD1').value), d2 = dIn($('#hD2').value), dn = $('#hDn').value, rep = $('#hRep').value, lnk = $('#hLnk').value;
+    let lim = 0; if (+dn) { const t = new Date(Date.now() - dn * 864e5); lim = t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate(); }
+    R = H.filter(x => { const r = x.r, dv = hDate(r[dk]);
+      return w.every(q => x.s.indexOf(q) >= 0) && S.every(s => r[s[0]] === s[1]) &&
+        (!d1 || (dv && dv >= d1)) && (!d2 || (dv && dv <= d2)) &&
+        (dn !== 'none' || !dv) && (!lim || (dv && dv < lim)) &&
+        (!rep || (rep === 'yes') === !!hFiles(r).length) && (!lnk || (lnk === 'yes') === !!hUrl(r)); });
+    if (sk) { const D = isD(sk); R.sort((a, b) => sd * (D ? hDate(a.r[sk]) - hDate(b.r[sk]) : String(a.r[sk] || '').localeCompare(String(b.r[sk] || ''), 'cs', { numeric: true }))); }
+    n = 200; draw();
+  };
+  LD.draw = () => { if ($('#hFl')) run(); };
+  let tm; const deb = () => { clearTimeout(tm); tm = setTimeout(LD.draw, 150); };
+  $('#hFl').oninput = deb; $('#hAdvF').oninput = deb;
+  $('#hFl').onsubmit = $('#hAdvF').onsubmit = e => { e.preventDefault(); run(); };
+  $('#hFl').onreset = () => { $('#hAdvF').reset(); setTimeout(run, 0); };
+  $('#hAdv').onclick = () => { const f = $('#hAdvF'); f.hidden = !f.hidden; $('#hAdv').setAttribute('aria-expanded', !f.hidden); $('#hAdv').textContent = f.hidden ? 'Pokročilé ▾' : 'Pokročilé ▴'; };
+  $('#hMore').onclick = () => { n += 300; draw(); };
+  $('#lsT').onclick = e => {
+    const th = e.target.closest('th[data-sk]');
+    if (th) { const k = th.dataset.sk; sd = sk === k ? -sd : 1; sk = k; run(); return; }
+    const tr = e.target.closest('tr[data-r]'); if (!tr || e.target.closest('a')) return;
+    heliosOpen(rows.find(x => x._row === +tr.dataset.r));
+  };
+  run();
 }
 const hFiles = r => ((LD && LD.soubory) || []).filter(s => s.Vazba === r.Odkaz);
 function xOpen(title, html) { $('#xT').textContent = title; $('#xB').innerHTML = html; $('#xMo').hidden = false; }
@@ -1242,7 +1394,8 @@ const PHOTO = {
   vybaveni: [['Fotografie_Zarizeni', 'Zařízení'], ['Fotografie_Umisteni', 'Umístění']],
   hasici: [['Foto_Zarizeni', 'Zařízení'], ['Foto_Prostoru', 'Prostor']],
   budovy: [['Fotografie_Budovy', 'Budova']],
-  provozovny: [['Fotografie_Arealu', 'Areál']]
+  provozovny: [['Fotografie_Arealu', 'Areál']],
+  fve: [['Plan_FVE', 'Vlastní plánek FVE (nepovinné)']]
 };
 let PH = null;   // { box, slots: { sloupec: { canvas | del } }, active }
 const phDirty = () => !!PH && Object.keys(PH.slots).some(k => PH.slots[k].canvas || PH.slots[k].del);
@@ -1288,6 +1441,7 @@ function phDraw(col) {
   else if (has) v.innerHTML = '<img referrerpolicy="no-referrer" alt="" src="' + thumb(f.id, 800) + '">';
   else v.innerHTML = '<span>' + (st.del ? 'bude odebráno' : 'bez fotky') + '</span>';
   s.querySelector('[data-a=rot]').hidden = !st.canvas;
+  if (PH.table === 'fve' && ED && ED.tab === 'fve' && PH.box.isConnected) setTimeout(() => { if (ED && ED.tab === 'fve') edPlanFve(); }, 0);
   const d = s.querySelector('[data-a=del]');
   d.hidden = !st.canvas && !has && !st.del;
   d.textContent = st.canvas ? 'Zrušit změnu' : st.del ? 'Vrátit' : 'Odebrat';
