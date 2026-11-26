@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prohlížeč IFC</title>
+<title>Prohlížeč 3D modelů</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#009645">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
@@ -82,17 +82,17 @@ li.closed>ul{display:none}
 <header>
   <div class="bar">
     <div class="mark"><span>N</span></div>
-    <div><h1>Prohlížeč IFC</h1><p>3D model budovy, strom podlaží a vlastnosti prvků (BIM)</p></div>
+    <div><h1>Prohlížeč 3D modelů</h1><p>IFC (BIM) i OBJ: 3D model, strom a vlastnosti prvků</p></div>
   </div>
   <div class="accent"></div>
 </header>
 <div class="toolbar">
-  <button class="btn primary" id="openBtn">Otevřít IFC</button>
+  <button class="btn primary" id="openBtn">Otevřít model</button>
   <button class="btn" id="fitBtn" disabled>⤢ Celý model</button>
   <button class="btn mob" id="treeBtn" disabled>☰ Strom</button>
   <button class="btn mob" id="propsBtn" disabled>ℹ Vlastnosti</button>
   <button class="btn" id="bgBtn">◐ Pozadí</button>
-  <input type="file" id="file" accept=".ifc" hidden>
+  <input type="file" id="file" accept=".ifc,.obj,.mtl,.jpg,.jpeg,.png" multiple hidden>
   <span class="file" id="fileName"></span>
 </div>
 <div class="main">
@@ -104,8 +104,8 @@ li.closed>ul{display:none}
     <div class="empty" id="empty">
       <div class="drop" id="drop" role="button" tabindex="0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-        <strong>Přetáhni sem IFC soubor nebo klikni</strong>
-        <small>IFC2x3, IFC4 (.ifc)</small>
+        <strong>Přetáhni sem model nebo klikni</strong>
+        <small>IFC (IFC2x3, IFC4) a OBJ · k OBJ můžeš přidat i .mtl a textury (vyber je naráz)</small>
         <div class="note">Model se zpracuje jen u tebe v prohlížeči, nikam se neodesílá.<br>Ovládání: levé tlačítko = otáčení, pravé = posun, kolečko = zoom, klik = výběr prvku.<br>Na telefonu: jeden prst otáčí, dva prsty posouvají a zoomují.</div>
       </div>
     </div>
@@ -122,6 +122,8 @@ li.closed>ul{display:none}
 import * as THREE from './ifc-assets/three.module.min.js';
 import { OrbitControls } from './ifc-assets/OrbitControls.js';
 import * as WebIFC from './ifc-assets/web-ifc-api.js';
+import { OBJLoader } from './ifc-assets/OBJLoader.js';
+import { MTLLoader } from './ifc-assets/MTLLoader.js';
 
 const $ = id => document.getElementById(id);
 const viewerEl = $('viewer');
@@ -156,6 +158,7 @@ const meshesById = new Map();   // expressID → [mesh]
 const matCache = new Map();
 const selMat = new THREE.MeshLambertMaterial({ color: 0xf27d00, side: THREE.DoubleSide, depthTest: true });
 let selected = [];
+let objInfo = null;            // údaje o prvcích OBJ (id → info)
 const childrenOf = new Map();   // expressID → node (prostorová struktura)
 
 function getMat(c) {
@@ -173,6 +176,96 @@ function clearModel() {
   modelGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); });
   modelGroup.clear(); meshesById.clear(); childrenOf.clear();
   if (modelID !== null) { try { ifc.CloseModel(modelID); } catch (e) {} modelID = null; }
+  objInfo = null;
+}
+
+async function openFiles(list) {
+  const files = [...(list || [])];
+  const ifcF = files.find(f => /\.ifc$/i.test(f.name)), objF = files.find(f => /\.obj$/i.test(f.name));
+  if (ifcF) return openFile(ifcF);
+  if (objF) return openObj(objF, files);
+  if (files.length) toast('Vyber soubor .ifc nebo .obj');
+}
+
+function modelLoaded(label) {
+  $('empty').style.display = 'none';
+  $('fileName').textContent = label;
+  for (const b of ['fitBtn', 'treeBtn', 'propsBtn']) $(b).disabled = false;
+  fitView();
+  $('props').innerHTML = '<div class="hint">Klikni na prvek v modelu nebo ve stromu.</div>';
+}
+
+async function openObj(file, all) {
+  busy(true, 'Čtu OBJ…');
+  const urls = [];
+  try {
+    clearModel();
+    await new Promise(r => setTimeout(r, 30));
+    const text = await file.text();
+    const objLoader = new OBJLoader();
+    const mtlF = all.find(f => /\.mtl$/i.test(f.name));
+    if (mtlF) {
+      const byName = new Map(all.map(f => [f.name.toLowerCase(), f]));
+      const mgr = new THREE.LoadingManager();
+      mgr.setURLModifier(u => { const f = byName.get(decodeURIComponent(u.split(/[\\/]/).pop()).toLowerCase()); if (!f) return u; const b = URL.createObjectURL(f); urls.push(b); return b; });
+      const mats = new MTLLoader(mgr).parse(await mtlF.text(), '');
+      mats.side = THREE.DoubleSide; mats.preload();
+      objLoader.setMaterials(mats);
+    }
+    busy(true, 'Zpracovávám geometrii…');
+    const root = objLoader.parse(text);
+    root.updateMatrixWorld(true);
+    const grey = new THREE.MeshLambertMaterial({ color: 0xc8cdc9, side: THREE.DoubleSide });
+    objInfo = new Map();
+    let next = 1;
+    const tree = { expressID: 0, name: file.name, children: [] };
+    const meshes = [];
+    root.traverse(o => { if (o.isMesh || o.isLine || o.isPoints) meshes.push(o); });
+    meshes.forEach(o => {
+      const id = next++;
+      const geo = o.geometry; geo.applyMatrix4(o.matrixWorld);
+      if (!geo.attributes.normal) geo.computeVertexNormals();
+      let mat = o.material;
+      if (!mtlF && o.isMesh) mat = grey;
+      else if (Array.isArray(mat)) mat.forEach(m => m.side = THREE.DoubleSide); else if (mat) mat.side = THREE.DoubleSide;
+      const m = o.isMesh ? new THREE.Mesh(geo, mat) : o;
+      if (!o.isMesh) { o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrix(); }
+      m.userData.id = id; m.userData.mat = m.material;
+      modelGroup.add(m); meshesById.set(id, [m]);
+      geo.computeBoundingBox();
+      const sz = geo.boundingBox.getSize(new THREE.Vector3());
+      const matNames = (Array.isArray(o.material) ? o.material : [o.material]).map(x => x && x.name).filter(Boolean);
+      objInfo.set(id, { name: o.name || ('Objekt ' + id), kind: o.isMesh ? 'Těleso' : o.isLine ? 'Čáry' : 'Body',
+        verts: geo.attributes.position.count, tris: geo.index ? geo.index.count / 3 : geo.attributes.position.count / 3,
+        size: sz, mats: [...new Set(matNames)] });
+      tree.children.push({ expressID: id, name: o.name || ('Objekt ' + id) });
+    });
+    childrenOf.set(0, tree);
+    tree.children.forEach(c => childrenOf.set(c.expressID, c));
+    const el = $('tree');
+    el.innerHTML = `<ul><li><div class="node" data-id="0"><span class="tw">▾</span><span class="nm">${esc(file.name)}</span> <span class="ty">OBJ</span></div><ul>` +
+      tree.children.map(c => `<li><div class="node" data-id="${c.expressID}"><span class="tw"></span><span class="nm">${esc(c.name)}</span></div></li>`).join('') + '</ul></li></ul>';
+    modelLoaded(file.name + ' · OBJ' + (mtlF ? ' + MTL' : ''));
+    if (!meshes.length) toast('Soubor neobsahuje žádnou geometrii', 5000);
+    else toast('Model načten: ' + meshes.length + ' objektů');
+  } catch (e) {
+    console.error(e); toast('Soubor se nepodařilo načíst: ' + (e.message || e), 6000);
+  } finally { busy(false); setTimeout(() => urls.forEach(u => URL.revokeObjectURL(u)), 15000); }
+}
+
+function showObjProps(id) {
+  const fmtM = v => (+v.toFixed(3)).toLocaleString('cs-CZ');
+  if (id === 0) {
+    const box = new THREE.Box3().setFromObject(modelGroup), sz = box.getSize(new THREE.Vector3());
+    $('props').innerHTML = `<div class="ptitle"><b>Celý model</b><span>OBJ</span></div>` +
+      table('Model', [['Počet objektů', objInfo.size], ['Rozměr X', fmtM(sz.x)], ['Rozměr Y', fmtM(sz.y)], ['Rozměr Z', fmtM(sz.z)]]) +
+      '<div class="hint">OBJ nemá jednotky – rozměry jsou v jednotkách souboru (obvykle metry).</div>';
+    return;
+  }
+  const i = objInfo.get(id); if (!i) return;
+  $('props').innerHTML = `<div class="ptitle"><b>${esc(i.name)}</b><span>${i.kind} · #${id}</span></div>` +
+    table('Geometrie', [['Vrcholů', i.verts], ['Trojúhelníků', Math.round(i.tris)], ['Rozměr X', fmtM(i.size.x)], ['Rozměr Y', fmtM(i.size.y)], ['Rozměr Z', fmtM(i.size.z)]]) +
+    (i.mats.length ? table('Materiály', i.mats.map((n, k) => [String(k + 1), n])) : '');
 }
 
 async function openFile(file) {
@@ -191,11 +284,7 @@ async function openFile(file) {
     busy(true, 'Načítám strukturu…');
     await new Promise(r => setTimeout(r, 10));
     await buildTree();
-    $('empty').style.display = 'none';
-    $('fileName').textContent = file.name + ' · ' + ifc.GetModelSchema(modelID);
-    for (const b of ['fitBtn', 'treeBtn', 'propsBtn']) $(b).disabled = false;
-    fitView();
-    $('props').innerHTML = '<div class="hint">Klikni na prvek v modelu nebo ve stromu.</div>';
+    modelLoaded(file.name + ' · ' + ifc.GetModelSchema(modelID));
     toast('Model načten: ' + meshesById.size + ' prvků s geometrií');
   } catch (e) {
     console.error(e);
@@ -316,7 +405,7 @@ function select(ids, propId, nodeEl, zoom) {
   ids.forEach(id => (meshesById.get(id) || []).forEach(m => { m.material = selMat; selected.push(m); }));
   if (nodeEl) nodeEl.classList.add('sel');
   if (zoom && selected.length) fitView(selected);
-  if (propId != null) showProps(propId);
+  if (propId != null) (objInfo ? showObjProps(propId) : showProps(propId));
   else $('props').innerHTML = `<div class="hint">Vybráno ${ids.length} prvků.</div>`;
 }
 
@@ -324,7 +413,7 @@ const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
 let down = null;
 renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
 renderer.domElement.addEventListener('pointerup', e => {
-  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || modelID === null) return;
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || !modelGroup.children.length) return;
   const r = renderer.domElement.getBoundingClientRect();
   ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ptr, camera);
@@ -396,7 +485,7 @@ async function showProps(id) {
 $('openBtn').onclick = () => $('file').click();
 $('drop').onclick = () => $('file').click();
 $('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') $('file').click(); };
-$('file').onchange = e => { openFile(e.target.files[0]); e.target.value = ''; };
+$('file').onchange = e => { openFiles(e.target.files); e.target.value = ''; };
 $('fitBtn').onclick = () => fitView(selected.length ? selected : null);
 $('bgBtn').onclick = () => viewerEl.classList.toggle('dark');
 $('treeBtn').onclick = () => { $('propsPanel').classList.remove('open'); $('treePanel').classList.toggle('open'); };
@@ -404,12 +493,12 @@ $('propsBtn').onclick = () => { $('treePanel').classList.remove('open'); $('prop
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(b.dataset.close).classList.remove('open'));
 ['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('hot'); }));
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('hot'); }));
-document.addEventListener('drop', e => openFile(e.dataTransfer.files[0]));
+document.addEventListener('drop', e => openFiles(e.dataTransfer.files));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { clearSel(); } });
 window.__openIfc = openFile; // pro testy
 // vložení do prohlížeče výkresů: soubor přijde zprávou
 if (new URLSearchParams(location.search).has('embed')) document.querySelector('header').style.display = 'none';
-addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'ps-ifc-file') openFile(e.data.file); });
+addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'ps-ifc-file') openFiles(e.data.files || [e.data.file]); });
 init().catch(e => console.error(e));
 </script>
 <script src="/nav.js" defer></script>

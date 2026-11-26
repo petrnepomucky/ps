@@ -15,7 +15,7 @@
     ['komprimace.html', 'Komprimace'],
     ['tisk.html', 'Hromadný tisk'],
     ['vykresy.html', 'Výkresy'],
-    ['ifc.html', 'IFC model'],
+    ['ifc.html', '3D model IFC/OBJ'],
     ['skladani.html', 'Skládání skenů'],
     ['plany.html', 'Plány podlaží']
   ];
