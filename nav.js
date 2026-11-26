@@ -5,6 +5,7 @@
   if (document.getElementById('ps-nav')) return;
   var TOOLS = [
     ['index.html', '⌂ Nástroje'],
+    ['budovy.html', 'Správa budov'],
     ['cp.html', 'Podací arch'],
     ['ocr.html', 'OCR a redigování'],
     ['text.html', 'Text z obrazovky'],
@@ -14,9 +15,9 @@
     ['komprimace.html', 'Komprimace'],
     ['tisk.html', 'Hromadný tisk'],
     ['vykresy.html', 'Výkresy'],
+    ['ifc.html', 'IFC model'],
     ['skladani.html', 'Skládání skenů'],
-    ['plany.html', 'Plány podlaží'],
-    ['budovy.html', 'Správa budov']
+    ['plany.html', 'Plány podlaží']
   ];
   var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
   var css = document.createElement('style');

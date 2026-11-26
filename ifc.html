@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prohlížeč IFC</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#009645">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nástroje">
+<style>
+:root{--g:#009645;--gd:#00753a;--o:#f27d00;--od:#d46e00;--ink:#1c2321;--muted:#6b746f;--line:#e2e6e3;--bg:#f4f6f5;--soft:#f0f8f3;
+  font-family:Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);line-height:1.45}
+header{background:var(--g);color:#fff;flex:none}
+header .bar{display:flex;align-items:center;gap:14px;padding:12px 16px}
+header .mark{width:36px;height:36px;border-radius:9px;background:#fff;display:grid;place-items:center;flex:none}
+header .mark span{color:var(--g);font-weight:800;font-size:18px}
+header h1{margin:0;font-size:18px}header p{margin:0;font-size:12.5px;opacity:.9}
+header .accent{height:4px;background:var(--o)}
+.toolbar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--line)}
+.toolbar .file{margin-left:auto;color:var(--muted);font-size:13px;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:7px 12px;font:600 13px inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--o);border-color:var(--o);color:#fff}.btn.primary:hover{background:var(--od)}
+.btn.on{background:var(--soft);border-color:var(--g);color:var(--gd)}
+.main{flex:1;min-height:0;display:flex;position:relative}
+aside{background:#fff;display:flex;flex-direction:column;min-height:0;flex:0 0 280px}
+aside.tree{border-right:1px solid var(--line)}aside.props{border-left:1px solid var(--line);flex-basis:320px}
+aside h3{margin:0;padding:12px 14px 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+aside h3 .x{display:none;margin-left:auto;border:0;background:none;font-size:16px;cursor:pointer;color:var(--muted)}
+aside .body{flex:1;overflow:auto;padding:0 6px 12px}
+aside .hint{color:var(--muted);font-size:13px;padding:6px 8px}
+#viewer{flex:1;min-width:0;position:relative;background:#e9eeeb}
+#viewer.dark{background:#212830}
+#viewer canvas{display:block;width:100%;height:100%;touch-action:none}
+/* strom */
+.tree ul{list-style:none;margin:0;padding-left:14px}.tree .body>ul{padding-left:0}
+.node{display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap}
+.node:hover{background:var(--bg)}.node.sel{background:var(--soft);color:var(--gd);font-weight:600}
+.node .tw{width:16px;flex:none;text-align:center;color:var(--muted);font-size:10px}
+.node .ty{color:var(--muted);font-size:11px}
+.node .nm{overflow:hidden;text-overflow:ellipsis}
+li.closed>ul{display:none}
+/* vlastnosti */
+.pgroup{margin:6px 4px 10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pgroup h4{margin:0;padding:7px 10px;font-size:12.5px;background:var(--soft);color:var(--gd);border-bottom:1px solid var(--line)}
+.pgroup table{width:100%;border-collapse:collapse;font-size:12.5px}
+.pgroup td{padding:5px 10px;border-top:1px solid #f0f2f1;vertical-align:top;word-break:break-word}
+.pgroup tr:first-child td{border-top:0}
+.pgroup td:first-child{color:var(--muted);width:45%}
+.ptitle{padding:4px 8px 8px}.ptitle b{display:block;font-size:15px}.ptitle span{color:var(--muted);font-size:12px}
+/* prázdný stav */
+.empty{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.drop{width:100%;max-width:520px;padding:40px 24px;border:2px dashed #c9d1cc;border-radius:12px;background:#fafbfa;text-align:center;cursor:pointer}
+.drop.hot{border-color:var(--g);background:var(--soft)}
+.drop svg{width:42px;height:42px;color:var(--g);margin-bottom:8px}
+.drop strong{display:block;font-size:16px}.drop small{color:var(--muted)}
+.drop .note{margin-top:14px;font-size:12px;color:var(--muted)}
+.busy{position:absolute;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(244,246,245,.85);font-size:14px}
+.busy.on{display:flex}
+.spin{width:36px;height:36px;border:4px solid #cfe8d9;border-top-color:var(--g);border-radius:50%;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:70;max-width:90vw}
+.toast.on{opacity:1}
+.mob{display:none}
+@media (max-width:860px){
+  aside{position:absolute;top:0;bottom:0;z-index:7;width:min(320px,88vw);box-shadow:0 0 20px rgba(0,0,0,.18);display:none}
+  aside.tree{left:0}aside.props{right:0}
+  aside.open{display:flex}
+  aside h3 .x{display:block}
+  .mob{display:inline-flex}
+  .toolbar .file{flex-basis:100%;max-width:100%;margin-left:0}
+  header p{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="mark"><span>N</span></div>
+    <div><h1>Prohlížeč IFC</h1><p>3D model budovy, strom podlaží a vlastnosti prvků (BIM)</p></div>
+  </div>
+  <div class="accent"></div>
+</header>
+<div class="toolbar">
+  <button class="btn primary" id="openBtn">Otevřít IFC</button>
+  <button class="btn" id="fitBtn" disabled>⤢ Celý model</button>
+  <button class="btn mob" id="treeBtn" disabled>☰ Strom</button>
+  <button class="btn mob" id="propsBtn" disabled>ℹ Vlastnosti</button>
+  <button class="btn" id="bgBtn">◐ Pozadí</button>
+  <input type="file" id="file" accept=".ifc" hidden>
+  <span class="file" id="fileName"></span>
+</div>
+<div class="main">
+  <aside class="tree" id="treePanel">
+    <h3>Struktura modelu <button class="x" data-close="treePanel">✕</button></h3>
+    <div class="body" id="tree"><div class="hint">Zatím není otevřený žádný model.</div></div>
+  </aside>
+  <div id="viewer">
+    <div class="empty" id="empty">
+      <div class="drop" id="drop" role="button" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        <strong>Přetáhni sem IFC soubor nebo klikni</strong>
+        <small>IFC2x3, IFC4 (.ifc)</small>
+        <div class="note">Model se zpracuje jen u tebe v prohlížeči, nikam se neodesílá.<br>Ovládání: levé tlačítko = otáčení, pravé = posun, kolečko = zoom, klik = výběr prvku.<br>Na telefonu: jeden prst otáčí, dva prsty posouvají a zoomují.</div>
+      </div>
+    </div>
+    <div class="busy" id="busy"><div class="spin"></div><div id="busyText">Načítám…</div></div>
+  </div>
+  <aside class="props" id="propsPanel">
+    <h3>Vlastnosti <button class="x" data-close="propsPanel">✕</button></h3>
+    <div class="body" id="props"><div class="hint">Klikni na prvek v modelu nebo ve stromu.</div></div>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import * as THREE from './ifc-assets/three.module.min.js';
+import { OrbitControls } from './ifc-assets/OrbitControls.js';
+import * as WebIFC from './ifc-assets/web-ifc-api.js';
+
+const $ = id => document.getElementById(id);
+const viewerEl = $('viewer');
+const toast = (t, ms = 3000) => { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), ms); };
+const busy = (on, t) => { $('busy').classList.toggle('on', on); if (t) $('busyText').textContent = t; };
+
+/* ── 3D scéna ── */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+viewerEl.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 5000);
+camera.position.set(20, 15, 20);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.12;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a9a90, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(30, 50, 20); scene.add(sun);
+const sun2 = new THREE.DirectionalLight(0xffffff, 0.5); sun2.position.set(-30, 20, -40); scene.add(sun2);
+const modelGroup = new THREE.Group(); scene.add(modelGroup);
+
+function resize() { const r = viewerEl.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(r.height, 1); camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(viewerEl); resize();
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+
+/* ── IFC ── */
+const ifc = new WebIFC.IfcAPI();
+ifc.SetWasmPath(new URL('./ifc-assets/', location.href).href, true);
+let ready = null;
+const init = () => ready || (ready = ifc.Init());
+let modelID = null;
+const meshesById = new Map();   // expressID → [mesh]
+const matCache = new Map();
+const selMat = new THREE.MeshLambertMaterial({ color: 0xf27d00, side: THREE.DoubleSide, depthTest: true });
+let selected = [];
+const childrenOf = new Map();   // expressID → node (prostorová struktura)
+
+function getMat(c) {
+  const key = [c.x, c.y, c.z, c.w].map(v => v.toFixed(3)).join();
+  let m = matCache.get(key);
+  if (!m) {
+    m = new THREE.MeshLambertMaterial({ color: new THREE.Color(c.x, c.y, c.z), side: THREE.DoubleSide, transparent: c.w < 1, opacity: c.w, depthWrite: c.w >= 1 });
+    matCache.set(key, m);
+  }
+  return m;
+}
+
+function clearModel() {
+  clearSel();
+  modelGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  modelGroup.clear(); meshesById.clear(); childrenOf.clear();
+  if (modelID !== null) { try { ifc.CloseModel(modelID); } catch (e) {} modelID = null; }
+}
+
+async function openFile(file) {
+  if (!file) return;
+  if (!/\.ifc$/i.test(file.name)) { toast('Vyber soubor s příponou .ifc'); return; }
+  busy(true, 'Spouštím IFC knihovnu…');
+  try {
+    await init();
+    clearModel();
+    busy(true, 'Čtu soubor…');
+    const data = new Uint8Array(await file.arrayBuffer());
+    busy(true, 'Zpracovávám geometrii…');
+    await new Promise(r => setTimeout(r, 30));
+    modelID = ifc.OpenModel(data, { COORDINATE_TO_ORIGIN: true });
+    loadGeometry();
+    busy(true, 'Načítám strukturu…');
+    await new Promise(r => setTimeout(r, 10));
+    await buildTree();
+    $('empty').style.display = 'none';
+    $('fileName').textContent = file.name + ' · ' + ifc.GetModelSchema(modelID);
+    for (const b of ['fitBtn', 'treeBtn', 'propsBtn']) $(b).disabled = false;
+    fitView();
+    $('props').innerHTML = '<div class="hint">Klikni na prvek v modelu nebo ve stromu.</div>';
+    toast('Model načten: ' + meshesById.size + ' prvků s geometrií');
+  } catch (e) {
+    console.error(e);
+    toast('Soubor se nepodařilo načíst: ' + (e.message || e), 6000);
+  } finally { busy(false); }
+}
+
+function loadGeometry() {
+  const mat4 = new THREE.Matrix4();
+  ifc.StreamAllMeshes(modelID, mesh => {
+    const id = mesh.expressID;
+    const pgs = mesh.geometries;
+    for (let i = 0; i < pgs.size(); i++) {
+      const pg = pgs.get(i);
+      const g = ifc.GetGeometry(modelID, pg.geometryExpressID);
+      const v = ifc.GetVertexArray(g.GetVertexData(), g.GetVertexDataSize());
+      const idx = ifc.GetIndexArray(g.GetIndexData(), g.GetIndexDataSize());
+      const n = v.length / 6, pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+      for (let k = 0; k < n; k++) {
+        pos[k * 3] = v[k * 6]; pos[k * 3 + 1] = v[k * 6 + 1]; pos[k * 3 + 2] = v[k * 6 + 2];
+        nor[k * 3] = v[k * 6 + 3]; nor[k * 3 + 1] = v[k * 6 + 4]; nor[k * 3 + 2] = v[k * 6 + 5];
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      mat4.fromArray(pg.flatTransformation);
+      geo.applyMatrix4(mat4);
+      const m = new THREE.Mesh(geo, getMat(pg.color));
+      m.userData.id = id; m.userData.mat = m.material;
+      modelGroup.add(m);
+      if (!meshesById.has(id)) meshesById.set(id, []);
+      meshesById.get(id).push(m);
+      g.delete();
+    }
+  });
+}
+
+function fitView(objs) {
+  const box = new THREE.Box3();
+  if (objs && objs.length) objs.forEach(o => box.expandByObject(o)); else box.setFromObject(modelGroup);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()).length() || 1;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  if (!isFinite(dir.x) || dir.lengthSq() < 0.5) dir.set(1, 0.7, 1).normalize();
+  const dist = s / (2 * Math.tan(camera.fov * Math.PI / 360)) * 1.05;
+  controls.target.copy(c); camera.position.copy(c).addScaledVector(dir, dist);
+  camera.near = Math.max(dist / 1000, 0.01); camera.far = dist * 100; camera.updateProjectionMatrix();
+}
+
+/* ── strom ── */
+const TYPE_CZ = { IFCPROJECT: 'Projekt', IFCSITE: 'Pozemek', IFCBUILDING: 'Budova', IFCBUILDINGSTOREY: 'Podlaží', IFCSPACE: 'Místnost',
+  IFCWALL: 'Stěna', IFCWALLSTANDARDCASE: 'Stěna', IFCSLAB: 'Deska', IFCDOOR: 'Dveře', IFCWINDOW: 'Okno', IFCCOLUMN: 'Sloup', IFCBEAM: 'Nosník',
+  IFCSTAIR: 'Schodiště', IFCSTAIRFLIGHT: 'Rameno schodiště', IFCROOF: 'Střecha', IFCRAILING: 'Zábradlí', IFCCOVERING: 'Obklad/podhled',
+  IFCFURNISHINGELEMENT: 'Nábytek', IFCFURNITURE: 'Nábytek', IFCMEMBER: 'Prvek', IFCPLATE: 'Deska (plech)', IFCCURTAINWALL: 'Lehký obvodový plášť',
+  IFCBUILDINGELEMENTPROXY: 'Obecný prvek', IFCFLOWTERMINAL: 'Koncový prvek TZB', IFCFLOWSEGMENT: 'Potrubí/kanál', IFCFOOTING: 'Základ', IFCOPENINGELEMENT: 'Otvor' };
+const typeName = t => { t = String(t || '').toUpperCase(); return TYPE_CZ[t] || (t ? 'Ifc' + t.slice(3).toLowerCase().replace(/^./, c => c.toUpperCase()) : ''); };
+const val = x => (x && typeof x === 'object' && 'value' in x) ? x.value : x;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function nameOf(id) {
+  try { const l = ifc.GetLine(modelID, id); return val(l.LongName) && val(l.Name) ? val(l.Name) + ' – ' + val(l.LongName) : (val(l.Name) || val(l.LongName) || ''); } catch (e) { return ''; }
+}
+
+async function buildTree() {
+  const root = await ifc.properties.getSpatialStructure(modelID, false);
+  const el = $('tree'); el.innerHTML = '';
+  const ul = document.createElement('ul'); el.appendChild(ul);
+  const add = (node, parent, depth) => {
+    childrenOf.set(node.expressID, node);
+    const li = document.createElement('li');
+    const kids = node.children || [];
+    // prvky v podlaží seskupit podle typu, ať strom není nekonečný
+    const spatial = kids.filter(k => /^IFC(PROJECT|SITE|BUILDING|BUILDINGSTOREY|SPACE)$/i.test(k.type));
+    const elems = kids.filter(k => !spatial.includes(k));
+    if (depth > 2 && kids.length) li.className = 'closed';
+    const nm = nameOf(node.expressID);
+    li.innerHTML = `<div class="node" data-id="${node.expressID}"><span class="tw">${kids.length ? (li.className ? '▸' : '▾') : ''}</span><span class="nm">${esc(nm || typeName(node.type))}</span> <span class="ty">${nm ? esc(typeName(node.type)) : ''}</span></div>`;
+    parent.appendChild(li);
+    if (kids.length) {
+      const sub = document.createElement('ul'); li.appendChild(sub);
+      spatial.forEach(k => add(k, sub, depth + 1));
+      const groups = {};
+      elems.forEach(k => (groups[k.type] = groups[k.type] || []).push(k));
+      Object.keys(groups).sort().forEach(t => {
+        const gl = document.createElement('li'); gl.className = 'closed';
+        gl.innerHTML = `<div class="node" data-group="1"><span class="tw">▸</span><span class="nm">${esc(typeName(t))}</span> <span class="ty">(${groups[t].length})</span></div>`;
+        const gu = document.createElement('ul'); gl.appendChild(gu); sub.appendChild(gl);
+        gl._ids = [];
+        groups[t].forEach(k => { add(k, gu, depth + 2); gl._ids.push(k.expressID); });
+      });
+    }
+  };
+  add(root, ul, 0);
+}
+
+$('tree').addEventListener('click', e => {
+  const n = e.target.closest('.node'); if (!n) return;
+  const li = n.parentElement;
+  if (e.target.classList.contains('tw') && li.querySelector('ul')) { toggle(li); return; }
+  if (n.dataset.group) {
+    toggle(li);
+    const ids = []; li._ids.forEach(id => collectIds(id, ids));
+    select(ids, null, n); return;
+  }
+  const id = +n.dataset.id;
+  const ids = []; collectIds(id, ids);
+  select(ids, id, n, true);
+  if (innerWidth <= 860) $('treePanel').classList.remove('open');
+});
+function toggle(li) { li.classList.toggle('closed'); const tw = li.querySelector(':scope>.node>.tw'); if (tw) tw.textContent = li.classList.contains('closed') ? '▸' : '▾'; }
+function collectIds(id, out) { out.push(id); const n = childrenOf.get(id); if (n && n.children) n.children.forEach(c => collectIds(c.expressID, out)); }
+
+/* ── výběr ── */
+function clearSel() { selected.forEach(m => (m.material = m.userData.mat)); selected = []; document.querySelectorAll('.node.sel').forEach(n => n.classList.remove('sel')); }
+function select(ids, propId, nodeEl, zoom) {
+  clearSel();
+  ids.forEach(id => (meshesById.get(id) || []).forEach(m => { m.material = selMat; selected.push(m); }));
+  if (nodeEl) nodeEl.classList.add('sel');
+  if (zoom && selected.length) fitView(selected);
+  if (propId != null) showProps(propId);
+  else $('props').innerHTML = `<div class="hint">Vybráno ${ids.length} prvků.</div>`;
+}
+
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || modelID === null) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(modelGroup.children, false).find(h => h.object.visible);
+  if (!hit) { clearSel(); $('props').innerHTML = '<div class="hint">Klikni na prvek v modelu nebo ve stromu.</div>'; return; }
+  const id = hit.object.userData.id;
+  select([id], id, null);
+  revealInTree(id);
+  if (innerWidth <= 860) $('propsPanel').classList.add('open');
+});
+function revealInTree(id) {
+  const n = $('tree').querySelector(`.node[data-id="${id}"]`); if (!n) return;
+  let li = n.parentElement.parentElement.closest('li');
+  while (li) { if (li.classList.contains('closed')) toggle(li); li = li.parentElement.closest('li'); }
+  n.classList.add('sel'); n.scrollIntoView({ block: 'nearest' });
+}
+
+/* ── vlastnosti ── */
+function fmt(v) {
+  if (v === null || v === undefined || v === '') return '–';
+  if (typeof v === 'boolean') return v ? 'Ano' : 'Ne';
+  if (typeof v === 'number') return Number.isInteger(v) ? v : +v.toFixed(4);
+  if (v === '.T.' || v === 'T') return 'Ano'; if (v === '.F.' || v === 'F') return 'Ne';
+  return v;
+}
+function table(title, rows) {
+  if (!rows.length) return '';
+  return `<div class="pgroup"><h4>${esc(title)}</h4><table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(fmt(v))}</td></tr>`).join('')}</table></div>`;
+}
+function propValue(p) {
+  if (p.NominalValue) return val(p.NominalValue);
+  for (const k of ['LengthValue', 'AreaValue', 'VolumeValue', 'CountValue', 'WeightValue', 'TimeValue']) if (p[k]) return val(p[k]);
+  if (p.EnumerationValues) return p.EnumerationValues.map(val).join(', ');
+  if (p.ListValues) return p.ListValues.map(val).join(', ');
+  return '';
+}
+async function showProps(id) {
+  const el = $('props');
+  try {
+    const it = await ifc.properties.getItemProperties(modelID, id, false);
+    const type = ifc.GetNameFromTypeCode(it.type) || '';
+    const base = [['Třída IFC', type], ['GlobalId', val(it.GlobalId)], ['Název', val(it.Name)], ['Popis', val(it.Description)],
+      ['Typ objektu', val(it.ObjectType)], ['Označení (Tag)', val(it.Tag)], ['Dlouhý název', val(it.LongName)], ['Kategorie', val(it.PredefinedType)], ['Výška podlaží', it.Elevation != null ? val(it.Elevation) : undefined]]
+      .filter(r => r[1] !== undefined && r[1] !== null && r[1] !== '');
+    let html = `<div class="ptitle"><b>${esc(val(it.Name) || typeName(type))}</b><span>${esc(typeName(type))} · #${id}</span></div>` + table('Základní údaje', base);
+    const psets = await ifc.properties.getPropertySets(modelID, id, true);
+    let typeSets = [];
+    try { const types = await ifc.properties.getTypeProperties(modelID, id, true); types.forEach(t => (t.HasPropertySets || []).forEach(ps => ps && typeSets.push(ps))); } catch (e) {}
+    const render = (ps, suffix = '') => {
+      const items = ps.HasProperties || ps.Quantities || [];
+      return table((val(ps.Name) || 'Sada vlastností') + suffix, items.filter(Boolean).map(p => [val(p.Name), propValue(p)]));
+    };
+    psets.forEach(ps => html += render(ps));
+    typeSets.forEach(ps => html += render(ps, ' (typ)'));
+    try {
+      const mats = await ifc.properties.getMaterialsProperties(modelID, id, true);
+      const names = [];
+      const walk = m => { if (!m) return; if (m.Name && !m.MaterialLayers && !m.Materials) names.push(val(m.Name));
+        (m.MaterialLayers || []).forEach(l => l && (l.Material ? names.push(val(l.Material.Name) + (l.LayerThickness ? ` (${fmt(val(l.LayerThickness))})` : '')) : 0));
+        (m.Materials || []).forEach(walk); if (m.ForLayerSet) walk(m.ForLayerSet); (m.MaterialConstituents || []).forEach(c => c && walk(c.Material)); };
+      mats.forEach(walk);
+      if (names.length) html += table('Materiály', names.map((n, i) => [String(i + 1), n]));
+    } catch (e) {}
+    el.innerHTML = html;
+  } catch (e) { console.error(e); el.innerHTML = '<div class="hint">Vlastnosti se nepodařilo načíst.</div>'; }
+}
+
+/* ── ovládání ── */
+$('openBtn').onclick = () => $('file').click();
+$('drop').onclick = () => $('file').click();
+$('drop').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') $('file').click(); };
+$('file').onchange = e => { openFile(e.target.files[0]); e.target.value = ''; };
+$('fitBtn').onclick = () => fitView(selected.length ? selected : null);
+$('bgBtn').onclick = () => viewerEl.classList.toggle('dark');
+$('treeBtn').onclick = () => { $('propsPanel').classList.remove('open'); $('treePanel').classList.toggle('open'); };
+$('propsBtn').onclick = () => { $('treePanel').classList.remove('open'); $('propsPanel').classList.toggle('open'); };
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(b.dataset.close).classList.remove('open'));
+['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.add('hot'); }));
+['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('drop').classList.remove('hot'); }));
+document.addEventListener('drop', e => openFile(e.dataTransfer.files[0]));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { clearSel(); } });
+window.__openIfc = openFile; // pro testy
+init().catch(e => console.error(e));
+</script>
+<script src="/nav.js" defer></script>
+</body>
+</html>
