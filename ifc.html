@@ -407,6 +407,9 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $(b.dat
 document.addEventListener('drop', e => openFile(e.dataTransfer.files[0]));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { clearSel(); } });
 window.__openIfc = openFile; // pro testy
+// vložení do prohlížeče výkresů: soubor přijde zprávou
+if (new URLSearchParams(location.search).has('embed')) document.querySelector('header').style.display = 'none';
+addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'ps-ifc-file') openFile(e.data.file); });
 init().catch(e => console.error(e));
 </script>
 <script src="/nav.js" defer></script>

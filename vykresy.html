@@ -25,7 +25,7 @@
     <div class="mark"><span>N</span></div>
     <div>
       <h1>Prohlížeč výkresů</h1>
-      <p>Zobrazení výkresů DWG a DXF přímo v prohlížeči</p>
+      <p>Zobrazení výkresů DWG, DXF a 3D modelů IFC přímo v prohlížeči</p>
     </div>
     <button class="info-btn" id="infoBtn" title="O nástroji" aria-label="O nástroji" onclick="document.getElementById('infoModal').hidden=false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="20" height="20"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11.5" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/></svg>
@@ -55,7 +55,7 @@
       <div class="drop" id="drop" role="button" tabindex="0" aria-label="Otevřít výkres">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
         <strong>Přetáhni sem výkres nebo klikni</strong>
-        <small>Soubory DWG a DXF</small>
+        <small>Soubory DWG, DXF a IFC (3D model)</small>
         <div class="note">Výkres se zpracuje jen u tebe v prohlížeči, nikam se neodesílá.<br>Ovládání: kolečko myši = zoom, tažení = posun (na telefonu dvěma prsty).</div>
       </div>
     </div>
@@ -80,7 +80,7 @@
   <button class="x" aria-label="Skrýt" onclick="document.getElementById('installBox').classList.remove('on')">✕</button>
 </div>
 
-<input type="file" id="file" accept=".dwg,.dxf" hidden>
+<input type="file" id="file" accept=".dwg,.dxf,.ifc" hidden>
 
 <div class="modal-overlay" id="infoModal" hidden onclick="if(event.target===this)this.hidden=true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
@@ -108,6 +108,30 @@
   document.addEventListener("keydown",function(e){if(e.key==="Escape")document.getElementById("infoModal").hidden=true;});
   if((matchMedia('(display-mode: standalone)').matches||navigator.standalone)&&window.self===window.top)document.getElementById('ps-zpet').style.display='block';
   if('serviceWorker' in navigator && window.self===window.top) addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
+</script>
+<div id="ifcBox" hidden style="position:fixed;inset:0;z-index:900;background:#fff;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#00532a;color:#fff;font:600 13px Segoe UI,Arial,sans-serif">
+    <button id="ifcBack" style="background:#f27d00;color:#fff;border:0;border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer">← Zpět na výkresy</button>
+    <span id="ifcName" style="opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  </div>
+  <iframe id="ifcFrame" title="Prohlížeč IFC" style="flex:1;border:0;width:100%"></iframe>
+</div>
+<script>
+/* IFC soubory se otevřou v prohlížeči IFC vloženém do této stránky */
+(function(){
+  var box=document.getElementById('ifcBox'),fr=document.getElementById('ifcFrame'),pending=null,loaded=false;
+  box.style.display='none';
+  function isIfc(f){return f&&/\.ifc$/i.test(f.name);}
+  function send(){if(pending&&loaded){fr.contentWindow.postMessage({type:'ps-ifc-file',file:pending},location.origin);pending=null;}}
+  fr.addEventListener('load',function(){loaded=true;send();});
+  function openIfc(f){
+    var n=document.getElementById('ps-nav');box.style.top=(n?n.offsetHeight:0)+'px';pending=f;document.getElementById('ifcName').textContent=f.name;box.hidden=false;box.style.display='flex';
+    if(!fr.src){fr.src='/ifc.html?embed=1';}else send();
+  }
+  document.getElementById('ifcBack').onclick=function(){box.hidden=true;box.style.display='none';};
+  document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='file'&&t.files&&isIfc(t.files[0])){e.stopImmediatePropagation();openIfc(t.files[0]);t.value='';}},true);
+  window.addEventListener('drop',function(e){var f=e.dataTransfer&&e.dataTransfer.files[0];if(isIfc(f)){e.preventDefault();e.stopImmediatePropagation();var d=document.getElementById('drop');d&&d.classList.remove('hot');openIfc(f);}},true);
+})();
 </script>
 <script src="./vykresy-kresleni.js" defer></script>
 <script src="/nav.js" defer></script>
