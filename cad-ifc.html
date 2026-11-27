@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAD → IFC</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#009645">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nástroje">
+<style>
+/* VOICE: věcný firemní nástroj Pražských služeb, klidný a přesný
+   IDEA: rýsovací stůl – vlevo výkres a vrstvy, vpravo model, který z nich vzniká
+   PICTURE: velký živý náhled půdorysu / 3D modelu, který se mění s každým nastavením
+   COLOUR and TYPE: firemní zelená #009645 + oranžová #F27D00, Arial
+   LAYOUT: zelená hlavička s oranžovým pruhem; levý panel kroků 1–3, vpravo náhled, export a výkaz */
+:root{color-scheme:light dark;--g:#009645;--g2:#007a38;--o:#F27D00;
+--bg:light-dark(#eef2f0,#111513);--card:light-dark(#fff,#1a201d);--ink:light-dark(#1b1f1d,#e6ebe8);--mut:light-dark(#5d6762,#9aa6a0);
+--line:light-dark(#dde3e0,#2c3531);--soft:light-dark(#dceee4,#1d3326);--field:light-dark(#fff,#121715);--warn:light-dark(#fff4e5,#3a2a14)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Arial,"Helvetica Neue",Helvetica,sans-serif;overflow-x:clip}
+.hd{background:var(--g);color:#fff;display:flex;align-items:center;gap:16px;padding:16px max(3vw,16px) 18px;border-bottom:6px solid var(--o)}
+.logo{width:54px;height:54px;border-radius:12px;background:#fff;color:var(--g);display:grid;place-items:center;font:900 22px/1 Arial;letter-spacing:-1px;flex:none}
+.hd h1{margin:0;font-size:clamp(24px,3.4vw,34px);line-height:1.05}
+.hd p{margin:4px 0 0;opacity:.9;font-size:15px}
+.hd .sp{flex:1}
+.info{width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:transparent;color:#fff;font:700 20px/1 Georgia,serif;cursor:pointer;flex:none}
+.info:hover{background:rgba(255,255,255,.15)}
+.wrap{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:16px;padding:16px max(3vw,16px) 40px;max-width:1560px;margin:0 auto}
+.col{display:grid;gap:16px;align-content:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h2{margin:0 0 12px;font-size:17px;display:flex;align-items:center;gap:10px}
+.card h2 b{background:var(--g);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-grid;place-items:center;font-size:14px;flex:none}
+.card h2 small{margin-left:auto;font-weight:400;color:var(--mut);font-size:13px}
+label{font-size:13px;color:var(--mut);display:grid;gap:4px}
+input,select,button{font:inherit;color:inherit}
+input[type=text],input[type=number],input:not([type]),select{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px;font-size:16px;width:100%;color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--o) 70%,transparent);outline-offset:1px}
+button{cursor:pointer;border-radius:8px;border:1px solid var(--g);background:var(--g);color:#fff;padding:9px 14px;min-height:44px;font-weight:700}
+button:hover{background:var(--g2)}
+button.ghost{background:transparent;color:var(--g);border-color:var(--line)}
+button.ghost:hover{background:var(--soft)}
+button.or{background:var(--o);border-color:var(--o)}button.or:hover{background:#d96f00}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g3{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:8px}
+.st{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:light-dark(#fafcfb,#161b18)}
+.st.cur{border-color:var(--g);box-shadow:inset 4px 0 0 var(--g)}
+.st-h{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.st-h input{font-weight:700}
+.x{background:transparent;color:var(--mut);border:1px solid var(--line);width:40px;min-height:40px;padding:0;font-size:18px}
+.x:hover{background:var(--warn);color:var(--o)}
+.file{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.file .pick{border:1.5px dashed var(--g);color:var(--g);border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
+.file .pick:hover{background:var(--soft)}
+.file input{position:absolute;width:1px;height:1px;opacity:0}
+.fn{font-size:13px;color:var(--mut);overflow-wrap:anywhere}
+.lay-tools{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--mut);white-space:nowrap}
+.chk input{width:18px;height:18px;accent-color:var(--g)}
+.lays{max-height:460px;overflow:auto;border-top:1px solid var(--line)}
+.lr{display:grid;grid-template-columns:12px minmax(0,1fr) 150px;gap:4px 8px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line)}
+.lr i{width:12px;height:12px;border-radius:3px}
+.ln{font-weight:700;font-size:14px;overflow-wrap:anywhere}.ln small{font-weight:400;color:var(--mut);margin-left:6px}
+.lr select{min-height:36px;padding:4px 6px;font-size:14px}
+.lx{grid-column:2/4;display:grid;grid-template-columns:110px 1fr;gap:8px}
+.lx input{min-height:34px;padding:4px 8px;font-size:14px}
+.lx[hidden]{display:none}
+.empty{color:var(--mut);font-size:14px;padding:10px 0}
+.pv{padding:0;overflow:hidden}
+.pv-bar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--ink);font-weight:700;min-height:38px;padding:6px 14px}
+.seg button.on{background:var(--g);color:#fff}
+.pv-bar select{width:auto;min-height:38px;font-size:14px}
+.pv-bar .sp{flex:1}
+.ib{background:transparent;color:var(--ink);border:1px solid var(--line);min-height:38px;min-width:38px;padding:4px 10px;font-weight:700}
+.ib:hover{background:var(--soft)}
+.fig{position:relative;height:clamp(340px,58vh,640px);background:light-dark(#f7f9f8,#151a17);touch-action:none}
+.fig>canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+.fig>canvas:active{cursor:grabbing}
+.drop{position:absolute;inset:10px;border:3px dashed var(--o);border-radius:12px;background:color-mix(in srgb,var(--o) 12%,transparent);display:none;place-items:center;font-weight:700;font-size:20px;color:var(--o)}
+.fig.dragging .drop{display:grid}
+.hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--mut);background:color-mix(in srgb,var(--card) 85%,transparent);padding:3px 8px;border-radius:6px;pointer-events:none}
+.legend{position:absolute;right:10px;top:10px;display:grid;gap:3px;font-size:12px;background:color-mix(in srgb,var(--card) 90%,transparent);padding:6px 9px;border-radius:8px;border:1px solid var(--line);pointer-events:none}
+.legend span{display:flex;gap:6px;align-items:center}.legend i{width:11px;height:11px;border-radius:2px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--line)}
+.stat{padding:12px 14px;border-right:1px solid var(--line)}.stat:last-child{border-right:0}
+.stat b{display:block;font-size:clamp(20px,2.4vw,28px);line-height:1.1;color:var(--g);white-space:nowrap}
+.stat span{font-size:13px;color:var(--mut)}
+.warn{background:var(--warn);border-top:1px solid var(--line);padding:10px 14px;font-size:13px}
+.warn:empty{display:none}
+.exp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.note{font-size:13px;color:var(--mut);margin:10px 0 0}
+.ok{color:var(--g);font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{background:var(--g);color:#fff;text-align:left;padding:7px 10px;font-weight:700}
+td{padding:6px 10px;border-bottom:1px solid var(--line)}
+tbody tr:nth-child(even) td{background:light-dark(#f4faf6,#18201b)}
+td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.vk h3{font-size:15px;margin:18px 0 8px;color:var(--g)}.vk h3:first-child{margin-top:0}
+.vk h4{font-size:13px;margin:12px 0 6px;color:#9A5200;text-transform:none}
+.scroll{overflow-x:auto}
+dialog{border:0;border-radius:14px;padding:0;max-width:640px;width:calc(100% - 32px);background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dh{background:var(--g);color:#fff;padding:14px 18px;border-bottom:4px solid var(--o);display:flex;align-items:center}
+.dh h3{margin:0;font-size:19px;flex:1}
+.db{padding:16px 20px 20px;font-size:15px}.db h4{margin:16px 0 4px;color:var(--g)}.db p,.db li{margin:4px 0}.db ul{padding-left:20px;margin:4px 0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b1f1d;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:90vw}
+.toast.on{opacity:1}
+@media(max-width:980px){.wrap{grid-template-columns:minmax(0,1fr)}.mainc{order:-1}}
+@media(max-width:600px){.hd{padding:12px 14px 14px}.logo{width:44px;height:44px;font-size:18px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{border-bottom:1px solid var(--line)}.exp,.g3{grid-template-columns:1fr 1fr}.lr{grid-template-columns:12px minmax(0,1fr)}.lr select{grid-column:2}.legend{display:none}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<header class="hd">
+  <div class="logo" aria-hidden="true">PS</div>
+  <div><h1>CAD → IFC</h1><p>Z půdorysu DXF udělá BIM model IFC&nbsp;4 se stěnami, okny, dveřmi a místnostmi</p></div>
+  <div class="sp"></div>
+  <button class="info" id="infoBtn" title="Návod" aria-label="Návod">i</button>
+</header>
+
+<main class="wrap">
+  <div class="col">
+    <section class="card">
+      <h2><b>1</b>Podlaží a výkresy</h2>
+      <div id="storeys"></div>
+      <div class="row"><button id="addSt" class="ghost">+ Přidat podlaží</button><button id="sampleBtn" class="ghost">Načíst ukázkový výkres</button></div>
+    </section>
+    <section class="card">
+      <h2><b>2</b>Co je ve vrstvách <small id="layCount"></small></h2>
+      <div class="lay-tools"><input id="laySearch" placeholder="Hledat vrstvu…" aria-label="Hledat vrstvu"><label class="chk"><input type="checkbox" id="layUsed">jen použité</label></div>
+      <div class="lays" id="layers"><p class="empty">Po nahrání výkresu se tu objeví jeho vrstvy.</p></div>
+    </section>
+    <section class="card">
+      <h2><b>3</b>Nastavení převodu</h2>
+      <div class="g2">
+        <label>Nejtenčí stěna [m]<input type="number" step="0.01" min="0.01" id="o_tmin"></label>
+        <label>Nejtlustší stěna [m]<input type="number" step="0.01" min="0.05" id="o_tmax"></label>
+        <label>Parapet oken [m]<input type="number" step="0.05" min="0" id="o_winSill"></label>
+        <label>Výška oken [m]<input type="number" step="0.05" min="0.1" id="o_winH"></label>
+        <label>Výška dveří [m]<input type="number" step="0.05" min="0.5" id="o_doorH"></label>
+        <label class="chk" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="o_toOrigin">posunout model k&nbsp;počátku</label>
+      </div>
+      <p class="note">U dvojčáry se za stěnu považují dvě rovnoběžné čáry, jejichž vzdálenost leží mezi nejtenčí a nejtlustší stěnou.</p>
+    </section>
+  </div>
+
+  <div class="col mainc">
+    <section class="card pv">
+      <div class="pv-bar">
+        <div class="seg" role="tablist"><button id="v2" class="on">Půdorys</button><button id="v3">3D model</button></div>
+        <select id="stSel" aria-label="Podlaží v půdorysu"></select>
+        <div class="sp"></div>
+        <button class="ib" id="zIn" title="Přiblížit">+</button><button class="ib" id="zOut" title="Oddálit">−</button><button class="ib" id="zFit" title="Celý model">Celé</button>
+      </div>
+      <div class="fig" id="fig">
+        <canvas id="cv2"></canvas><canvas id="cv3" hidden></canvas>
+        <div class="legend" id="legend"></div>
+        <div class="hint" id="hint">Tažením posunete, kolečkem přiblížíte</div>
+        <div class="drop">Pusťte DXF sem</div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="warn" id="warn"></div>
+    </section>
+
+    <section class="card">
+      <h2><b>4</b>Export</h2>
+      <div class="exp">
+        <label>Projekt<input id="m_project" placeholder="např. Sběrný dvůr Proboštská"></label>
+        <label>Budova<input id="m_building" placeholder="Budova"></label>
+        <label>Pozemek / adresa<input id="m_site" placeholder="Pozemek"></label>
+        <label>Zpracoval<input id="m_author" placeholder="Jméno"></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button id="dlIfc" class="or">Stáhnout IFC</button><button id="dlCsv" class="ghost">Výkaz výměr (CSV)</button><a id="viewerLink" href="/ifc.html" class="note" style="margin:0" hidden>Stažený model otevřete v Prohlížeči 3D modelů →</a><span id="dlInfo" class="note" style="margin:0"></span></div>
+    </section>
+
+    <section class="card">
+      <h2>Výkaz výměr <small>z modelu, po odečtení otvorů</small></h2>
+      <div id="vykaz" class="vk"><p class="empty">Model zatím není.</p></div>
+    </section>
+  </div>
+</main>
+
+<dialog id="help">
+  <div class="dh"><h3>Jak na převod CAD → IFC</h3><button class="ib" style="color:#fff;border-color:#fff" id="helpX" aria-label="Zavřít">✕</button></div>
+  <div class="db">
+    <h4>1. Připravte výkres</h4>
+    <p>V AutoCADu, BricsCADu nebo DraftSightu uložte půdorys jako <b>DXF</b> (Uložit jako → DXF, klidně verze 2013). Soubor DWG prohlížeč přečíst neumí. Na každé podlaží patří jeden výkres.</p>
+    <h4>2. Řekněte, co je ve vrstvách</h4>
+    <ul>
+      <li><b>Stěny – dvojčára</b>: líc stěny nakreslený dvěma rovnoběžnými čarami. Tloušťku pozná sám.</li>
+      <li><b>Stěny – osa</b>: jedna čára v ose stěny. Tloušťku zadáte u vrstvy.</li>
+      <li><b>Stěny – uzavřený obrys</b>: každá stěna jako uzavřená křivka.</li>
+      <li><b>Okna / Dveře</b>: bloky nebo čáry. Šířku i stěnu, do které patří, najde sám. Když je stěna v místě otvoru přerušená, doplní nadpraží a parapet.</li>
+      <li><b>Místnosti</b>: uzavřené křivky. Číslo a název převezme z textů ve vrstvě <b>Popisy místností</b>.</li>
+      <li><b>Deska</b>: uzavřený obrys podlahové desky. Tloušťku zadáte u vrstvy.</li>
+    </ul>
+    <p>Kóty, šrafy, nábytek a ostatní vrstvy nechte na „Nepoužít“. Přiřazení vrstev si prohlížeč zapamatuje.</p>
+    <h4>3. Zkontrolujte náhled a stáhněte IFC</h4>
+    <p>Výsledek je IFC&nbsp;4 (Reference View) a otevře se v BIMvision, Solibri, Revitu, ArchiCADu i v online prohlížečích. Stěny nesou výměry (Qto) a vrstvu z CADu, místnosti plochu. Výkaz lze stáhnout i jako CSV pro Excel.</p>
+    <h4>Omezení</h4>
+    <ul><li>Zakřivené stěny ve dvojčáře se přeskočí, použijte uzavřený obrys.</li><li>Šrafy (HATCH) se nečtou.</li><li>Výšky oken a dveří platí stejné pro celý model.</li><li>Rohy u dvojčáry se dorovnají jednoduchým pravidlem. U nepravidelných půdorysů zkontrolujte náhled.</li></ul>
+    <p class="note">Vše běží jen ve vašem prohlížeči, výkres se nikam neodesílá.</p>
+  </div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== CAD → IFC: jádro (bez DOM) ===== */
+const CORE = (() => {
+'use strict';
+
+/* ---------- DXF: dekódování ---------- */
+function decodeDxf(buf) {
+  const bytes = new Uint8Array(buf);
+  const head = new TextDecoder('latin1').decode(bytes.slice(0, 22));
+  if (head.startsWith('AutoCAD Binary DXF')) throw new Error('Binární DXF neumím přečíst – uložte výkres jako DXF ve formátu ASCII.');
+  if (head.startsWith('AC10')) throw new Error('Tohle je soubor DWG. Uložte ho v CADu jako DXF (Uložit jako → DXF).');
+  const latin = new TextDecoder('latin1').decode(bytes.slice(0, Math.min(bytes.length, 300000)));
+  const ver = (latin.match(/\$ACADVER\s*\r?\n\s*1\s*\r?\n\s*(\S+)/) || [])[1] || '';
+  const cp = ((latin.match(/\$DWGCODEPAGE\s*\r?\n\s*3\s*\r?\n\s*(\S+)/) || [])[1] || '').toUpperCase();
+  let enc = 'utf-8';
+  if (ver && ver < 'AC1021') enc = cp.includes('1252') ? 'windows-1252' : cp.includes('1251') ? 'windows-1251' : 'windows-1250';
+  try { return new TextDecoder(enc, { fatal: enc === 'utf-8' }).decode(bytes); }
+  catch (e) { return new TextDecoder('windows-1250').decode(bytes); }
+}
+
+/* ---------- DXF: parser ---------- */
+function parseDxf(text) {
+  const L = text.split(/\r\n|\r|\n/);
+  const P = [];
+  for (let i = 0; i + 1 < L.length; i += 2) {
+    const c = parseInt(L[i].trim(), 10);
+    if (isNaN(c)) { i -= 1; continue; }
+    P.push([c, L[i + 1].replace(/\s+$/, '')]);
+  }
+  const res = { header: {}, layers: [], blocks: {}, entities: [] };
+  let i = 0;
+  const isEnd = (k, names) => P[k] && P[k][0] === 0 && names.includes(P[k][1].trim());
+  function readEntities(endNames) {
+    const out = [];
+    while (i < P.length && !isEnd(i, endNames)) {
+      if (P[i][0] !== 0) { i++; continue; }
+      const ent = { type: P[i][1].trim(), c: [] };
+      i++;
+      while (i < P.length && P[i][0] !== 0) { ent.c.push(P[i]); i++; }
+      out.push(ent);
+    }
+    return out;
+  }
+  while (i < P.length) {
+    if (P[i][0] === 0 && P[i][1].trim() === 'SECTION' && P[i + 1]) {
+      const name = P[i + 1][1].trim(); i += 2;
+      if (name === 'HEADER') {
+        while (i < P.length && !isEnd(i, ['ENDSEC'])) {
+          if (P[i][0] === 9) { const k = P[i][1].trim(); i++; const v = []; while (i < P.length && P[i][0] !== 9 && P[i][0] !== 0) { v.push(P[i]); i++; } res.header[k] = v; }
+          else i++;
+        }
+      } else if (name === 'TABLES') {
+        const ents = readEntities(['ENDSEC']);
+        for (const e of ents) if (e.type === 'LAYER') { const n = e.c.find(p => p[0] === 2); if (n) res.layers.push(n[1].trim()); }
+      } else if (name === 'BLOCKS') {
+        while (i < P.length && !isEnd(i, ['ENDSEC'])) {
+          if (isEnd(i, ['BLOCK'])) {
+            i++; const hc = []; while (i < P.length && P[i][0] !== 0) { hc.push(P[i]); i++; }
+            const g = k => { const p = hc.find(q => q[0] === k); return p ? p[1] : null; };
+            const bname = (g(2) || g(3) || '').trim();
+            const ents = readEntities(['ENDBLK']);
+            res.blocks[bname] = { name: bname, base: [+(g(10) || 0), +(g(20) || 0)], ents: groupEnts(ents) };
+          } else i++;
+        }
+      } else if (name === 'ENTITIES') {
+        res.entities = groupEnts(readEntities(['ENDSEC']));
+      } else {
+        while (i < P.length && !isEnd(i, ['ENDSEC'])) i++;
+      }
+    } else i++;
+  }
+  return res;
+}
+// POLYLINE + VERTEX… + SEQEND → jedna entita; ATTRIB za INSERT zahodit
+function groupEnts(raw) {
+  const out = [];
+  for (let k = 0; k < raw.length; k++) {
+    const e = raw[k];
+    if (e.type === 'POLYLINE') {
+      e.verts = [];
+      while (k + 1 < raw.length && raw[k + 1].type === 'VERTEX') { e.verts.push(raw[k + 1]); k++; }
+      if (k + 1 < raw.length && raw[k + 1].type === 'SEQEND') k++;
+      out.push(e);
+    } else if (e.type === 'ATTRIB' || e.type === 'SEQEND' || e.type === 'VERTEX') {
+      continue;
+    } else out.push(e);
+  }
+  return out;
+}
+const gv = (e, code, def) => { const p = e.c.find(q => q[0] === code); return p ? p[1] : def; };
+const gn = (e, code, def) => { const p = e.c.find(q => q[0] === code); const v = p ? parseFloat(p[1]) : NaN; return isNaN(v) ? def : v; };
+
+function unitFromHeader(dxf) {
+  const v = dxf.header['$INSUNITS'];
+  const u = v && v[0] ? parseInt(v[0][1], 10) : 0;
+  return ({ 1: 0.0254, 2: 0.3048, 4: 0.001, 5: 0.01, 6: 1, 14: 0.1 })[u] || 0;
+}
+
+/* ---------- geometrie: matice ---------- */
+const M_ID = [1, 0, 0, 1, 0, 0];
+const mMul = (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3], A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];
+const mApp = (M, p) => [M[0] * p[0] + M[2] * p[1] + M[4], M[1] * p[0] + M[3] * p[1] + M[5]];
+
+function bulgePts(p0, p1, b, out) {
+  // body oblouku mezi p0 a p1 (bez p0, včetně p1)
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1], c = Math.hypot(dx, dy);
+  if (c < 1e-12) { out.push(p1); return; }
+  const th = 4 * Math.atan(b), r = c / (2 * Math.sin(th / 2));
+  const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2;
+  const h = r * Math.cos(th / 2), nx = -dy / c, ny = dx / c;
+  const cx = mx + nx * h, cy = my + ny * h;
+  const a0 = Math.atan2(p0[1] - cy, p0[0] - cx);
+  const n = Math.max(2, Math.min(32, Math.ceil(Math.abs(th) / (Math.PI / 16))));
+  for (let k = 1; k <= n; k++) { const a = a0 + th * k / n; out.push(k === n ? p1 : [cx + Math.abs(r) * Math.cos(a), cy + Math.abs(r) * Math.sin(a)]); }
+}
+function arcPts(cx, cy, r, a0, a1) {
+  while (a1 <= a0) a1 += 360;
+  const sweep = (a1 - a0) * Math.PI / 180, n = Math.max(4, Math.min(48, Math.ceil(sweep / (Math.PI / 24))));
+  const pts = [];
+  for (let k = 0; k <= n; k++) { const a = a0 * Math.PI / 180 + sweep * k / n; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return pts;
+}
+function cleanMtext(s) {
+  return s.replace(/\\U\+([0-9A-Fa-f]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\P/g, ' ').replace(/\\[ACcFfHhQTWp][^;]*;/g, '').replace(/\\[LlOoKk]/g, '').replace(/[{}]/g, '')
+    .replace(/%%[cC]/g, 'Ø').replace(/%%[dD]/g, '°').replace(/%%[pP]/g, '±').replace(/\s+/g, ' ').trim();
+}
+
+/* Rozbalí výkres na primitiva v jednotkách výkresu.
+   prim: {pts, closed, curved:[bool/segment], layer, anc:[insertId…], text?}
+   inserts: {id, name, layer, anc} */
+function flatten(dxf) {
+  const prims = [], inserts = [];
+  function walk(ents, M, inhLayer, anc, depth) {
+    const mirrored = (M[0] * M[3] - M[1] * M[2]) < 0;
+    for (const e of ents) {
+      let layer = (gv(e, 8, '0') || '0').trim();
+      if (layer === '0' && inhLayer) layer = inhLayer;
+      const ocsFlip = gn(e, 230, 1) < 0;
+      const fx = p => ocsFlip ? [-p[0], p[1]] : p;
+      const T = p => mApp(M, fx(p));
+      const t = e.type;
+      if (t === 'LINE') {
+        prims.push({ pts: [T([gn(e, 10, 0), gn(e, 20, 0)]), T([gn(e, 11, 0), gn(e, 21, 0)])], closed: false, curved: [false], layer, anc });
+      } else if (t === 'LWPOLYLINE') {
+        const vs = []; let cur = null;
+        for (const [c, v] of e.c) {
+          if (c === 10) { cur = { x: +v, y: 0, b: 0 }; vs.push(cur); }
+          else if (c === 20 && cur) cur.y = +v;
+          else if (c === 42 && cur) cur.b = +v;
+        }
+        addPoly(vs, (gn(e, 70, 0) & 1) === 1, layer, anc, T, ocsFlip);
+      } else if (t === 'POLYLINE') {
+        const fl = gn(e, 70, 0);
+        if (fl & (16 | 64)) continue; // sítě a plochy
+        const vs = (e.verts || []).filter(v => !(gn(v, 70, 0) & 16)).map(v => ({ x: gn(v, 10, 0), y: gn(v, 20, 0), b: gn(v, 42, 0) }));
+        addPoly(vs, (fl & 1) === 1, layer, anc, T, ocsFlip);
+      } else if (t === 'ARC' || t === 'CIRCLE') {
+        const cx = gn(e, 10, 0), cy = gn(e, 20, 0), r = gn(e, 40, 0);
+        let a0 = t === 'ARC' ? gn(e, 50, 0) : 0, a1 = t === 'ARC' ? gn(e, 51, 360) : 360;
+        const pts = arcPts(cx, cy, r, a0, a1).map(T);
+        if (t === 'CIRCLE') pts.pop();
+        prims.push({ pts, closed: t === 'CIRCLE', curved: pts.map(() => true), layer, anc });
+      } else if (t === 'TEXT' || t === 'MTEXT' || t === 'ATTDEF') {
+        if (t === 'ATTDEF') continue;
+        let s = t === 'MTEXT' ? e.c.filter(p => p[0] === 3).map(p => p[1]).join('') + gv(e, 1, '') : gv(e, 1, '');
+        s = cleanMtext(s);
+        if (!s) continue;
+        let p = [gn(e, 10, 0), gn(e, 20, 0)];
+        if (t === 'TEXT' && (gn(e, 72, 0) || gn(e, 73, 0))) p = [gn(e, 11, p[0]), gn(e, 21, p[1])];
+        prims.push({ pts: [T(p)], closed: false, curved: [], layer, anc, text: s, th: gn(e, 40, 0) * Math.sqrt(Math.abs(M[0] * M[3] - M[1] * M[2])) });
+      } else if (t === 'INSERT') {
+        if (depth > 12) continue;
+        const b = dxf.blocks[(gv(e, 2, '') || '').trim()];
+        if (!b) continue;
+        const ins = [gn(e, 10, 0), gn(e, 20, 0)];
+        const sx = gn(e, 41, 1), sy = gn(e, 42, 1), rot = gn(e, 50, 0) * Math.PI / 180;
+        const cs = Math.cos(rot), sn = Math.sin(rot);
+        let L = [cs * sx, sn * sx, -sn * sy, cs * sy, ins[0], ins[1]];
+        L = mMul(L, [1, 0, 0, 1, -b.base[0], -b.base[1]]);
+        if (ocsFlip) L = mMul([-1, 0, 0, 1, 0, 0], L); // zrcadlený OCS (extrude Z = -1)
+        const id = inserts.length;
+        inserts.push({ id, name: b.name, layer, anc });
+        walk(b.ents, mMul(M, L), layer, anc.concat(id), depth + 1);
+      }
+    }
+    void mirrored;
+  }
+  function addPoly(vs, closed, layer, anc, T, flip) {
+    if (vs.length < 2 && !(vs.length === 1)) return;
+    const pts = [], curved = [];
+    const n = vs.length, segN = closed ? n : n - 1;
+    pts.push([vs[0].x, vs[0].y]);
+    for (let k = 0; k < segN; k++) {
+      const a = vs[k], b = vs[(k + 1) % n];
+      const p0 = [a.x, a.y], p1 = [b.x, b.y];
+      if (Math.abs(a.b) > 1e-9) { const tmp = []; bulgePts(p0, p1, a.b, tmp); for (const q of tmp) { pts.push(q); curved.push(true); } }
+      else { pts.push(p1); curved.push(false); }
+    }
+    if (closed) { pts.pop(); } // poslední = první
+    const tp = pts.map(T);
+    if (tp.length < 2) return;
+    prims.push({ pts: tp, closed, curved: closed ? curved : curved.slice(0, tp.length - 1), layer, anc });
+    void flip;
+  }
+  walk(dxf.entities, M_ID, null, [], 0);
+  return { prims, inserts };
+}
+
+/* ---------- pomocné ---------- */
+function bboxOf(pts) { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; for (const p of pts) { if (p[0] < a) a = p[0]; if (p[1] < b) b = p[1]; if (p[0] > c) c = p[0]; if (p[1] > d) d = p[1]; } return [a, b, c, d]; }
+function polyArea(p) { let s = 0; for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return s / 2; }
+function pip(pt, poly) { let ins = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if (((a[1] > pt[1]) !== (b[1] > pt[1])) && (pt[0] < (b[0] - a[0]) * (pt[1] - a[1]) / (b[1] - a[1]) + a[0])) ins = !ins; } return ins; }
+function cleanRing(pts) {
+  const out = [];
+  for (const p of pts) { const q = out[out.length - 1]; if (!q || Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-4) out.push(p); }
+  if (out.length > 2) { const a = out[0], b = out[out.length - 1]; if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-4) out.pop(); }
+  if (out.length >= 3 && polyArea(out) < 0) out.reverse();
+  return out;
+}
+function subtractIv(iv, cov) { // iv=[a,b], cov = seznam [a,b]
+  let parts = [iv];
+  for (const c of cov) {
+    const nx = [];
+    for (const p of parts) {
+      if (c[1] <= p[0] || c[0] >= p[1]) { nx.push(p); continue; }
+      if (c[0] > p[0]) nx.push([p[0], c[0]]);
+      if (c[1] < p[1]) nx.push([c[1], p[1]]);
+    }
+    parts = nx;
+  }
+  return parts;
+}
+
+/* ---------- role vrstev ---------- */
+const ROLES = {
+  ignore: { label: 'Nepoužít', color: '#9aa0a6' },
+  wall2: { label: 'Stěny – dvojčára', color: '#009645' },
+  wallAxis: { label: 'Stěny – osa', color: '#2f7d4f' },
+  wallOutline: { label: 'Stěny – uzavřený obrys', color: '#5a9e3a' },
+  window: { label: 'Okna', color: '#1f8fd6' },
+  door: { label: 'Dveře', color: '#F27D00' },
+  slab: { label: 'Deska / strop (obrys)', color: '#8a6d3b' },
+  space: { label: 'Místnosti (obrys)', color: '#b04fc4' },
+  label: { label: 'Popisy místností (text)', color: '#555555' }
+};
+function guessRole(name) {
+  const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/(okn|window|okno|win)/.test(n)) return 'window';
+  if (/(dver|door|vrat)/.test(n)) return 'door';
+  if (/(mistn|room|space|plocha_m|prostor)/.test(n)) return 'space';
+  if (/(popis|text|cisl|nazev|label)/.test(n) && !/(kot|dim)/.test(n)) return 'label';
+  if (/(desk|strop|slab|podlah)/.test(n)) return 'slab';
+  if (/(osa|axis)/.test(n) && /(zd|sten|wall)/.test(n)) return 'wallAxis';
+  if (/(^|[^a-z])(zd|zdi|zdivo|sten|steny|stena|wall|walls|nosn|pricka|pricky|prik|obvod|a-wall|konstr)/.test(n)) return 'wall2';
+  return 'ignore';
+}
+
+/* ---------- stavba modelu ---------- */
+function buildModel(storeys, layerCfg, opt) {
+  const warn = [];
+  const roleOf = l => (layerCfg[l] && layerCfg[l].role) || 'ignore';
+  const cfgOf = l => layerCfg[l] || {};
+  // měřítko + posun
+  const scaled = storeys.map(st => {
+    const s = st.scale;
+    return { st, prims: st.flat.prims.map(p => Object.assign({}, p, { pts: p.pts.map(q => [q[0] * s, q[1] * s]), th: (p.th || 0) * s })), inserts: st.flat.inserts };
+  });
+  let ox = 0, oy = 0;
+  if (opt.toOrigin) {
+    let mnx = Infinity, mny = Infinity, any = false;
+    for (const sc of scaled) for (const p of sc.prims) if (roleOf(p.layer) !== 'ignore' && roleOf(p.layer) !== 'label') { any = true; for (const q of p.pts) { if (q[0] < mnx) mnx = q[0]; if (q[1] < mny) mny = q[1]; } }
+    if (!any) for (const sc of scaled) for (const p of sc.prims) for (const q of p.pts) { if (q[0] < mnx) mnx = q[0]; if (q[1] < mny) mny = q[1]; }
+    if (isFinite(mnx)) { ox = Math.floor(mnx * 1000) / 1000; oy = Math.floor(mny * 1000) / 1000; }
+    for (const sc of scaled) for (const p of sc.prims) p.pts = p.pts.map(q => [q[0] - ox, q[1] - oy]);
+  }
+  let uid = 0;
+  const out = scaled.map(sc => {
+    const st = sc.st;
+    const H = +st.height || 3;
+    const walls = [], openings = [], slabs = [], spaces = [];
+    const prims = sc.prims;
+    // primitiva patřící k bloku okna/dveří
+    const objOfPrim = p => { for (const id of p.anc) { const r = roleOf(sc.inserts[id].layer); if (r === 'window' || r === 'door') return id; } return -1; };
+
+    /* stěny – dvojčára */
+    const segs = [];
+    for (const p of prims) {
+      if (p.text !== undefined || roleOf(p.layer) !== 'wall2' || objOfPrim(p) >= 0) continue;
+      const n = p.pts.length, segN = p.closed ? n : n - 1;
+      for (let k = 0; k < segN; k++) {
+        if (p.curved[k]) continue;
+        const a = p.pts[k], b = p.pts[(k + 1) % n];
+        const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (L < 0.05) continue;
+        const u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+        segs.push({ a, b, u, n: [-u[1], u[0]], L, layer: p.layer, cov: [] });
+      }
+    }
+    const tmin = opt.tmin, tmax = opt.tmax;
+    // mřížka pro rychlé hledání
+    const cell = Math.max(tmax, 0.5), grid = new Map();
+    segs.forEach((s, idx) => {
+      const bb = bboxOf([s.a, s.b]);
+      for (let gx = Math.floor((bb[0] - tmax) / cell); gx <= Math.floor((bb[2] + tmax) / cell); gx++)
+        for (let gy = Math.floor((bb[1] - tmax) / cell); gy <= Math.floor((bb[3] + tmax) / cell); gy++) {
+          const k = gx + ',' + gy; let arr = grid.get(k); if (!arr) grid.set(k, arr = []); arr.push(idx);
+        }
+    });
+    const cand = [], seen = new Set();
+    for (const arr of grid.values()) {
+      if (arr.length > 4000) continue;
+      for (let x = 0; x < arr.length; x++) for (let y = x + 1; y < arr.length; y++) {
+        let i = arr[x], j = arr[y]; if (i > j) [i, j] = [j, i];
+        const key = i * 1e7 + j; if (seen.has(key)) continue; seen.add(key);
+        const A = segs[i], B = segs[j];
+        if (Math.abs(A.u[0] * B.u[1] - A.u[1] * B.u[0]) > 0.035) continue;
+        const d0 = (B.a[0] - A.a[0]) * A.n[0] + (B.a[1] - A.a[1]) * A.n[1];
+        const d1 = (B.b[0] - A.a[0]) * A.n[0] + (B.b[1] - A.a[1]) * A.n[1];
+        if (Math.abs(d0 - d1) > 0.02) continue;
+        const d = Math.abs((d0 + d1) / 2);
+        if (d < tmin || d > tmax) continue;
+        const s0 = (B.a[0] - A.a[0]) * A.u[0] + (B.a[1] - A.a[1]) * A.u[1];
+        const s1 = (B.b[0] - A.a[0]) * A.u[0] + (B.b[1] - A.a[1]) * A.u[1];
+        const lo = Math.max(0, Math.min(s0, s1)), hi = Math.min(A.L, Math.max(s0, s1));
+        const ov = hi - lo;
+        if (ov < 0.05 || ov < 0.5 * d) continue;
+        cand.push({ i, j, d: Math.round(d * 1000) / 1000, sign: (d0 + d1) > 0 ? 1 : -1, lo, hi, ov });
+      }
+    }
+    cand.sort((p, q) => p.d - q.d || q.ov - p.ov);
+    const tOn = (S, pt) => (pt[0] - S.a[0]) * S.u[0] + (pt[1] - S.a[1]) * S.u[1];
+    const ptAt = (S, t) => [S.a[0] + S.u[0] * t, S.a[1] + S.u[1] * t];
+    const pieces = [];
+    for (const c of cand) {
+      const A = segs[c.i], B = segs[c.j];
+      for (const p of subtractIv([c.lo, c.hi], A.cov)) {
+        let t0 = tOn(B, ptAt(A, p[0])), t1 = tOn(B, ptAt(A, p[1])); const rev = t0 > t1; if (rev) [t0, t1] = [t1, t0];
+        for (const q of subtractIv([t0, t1], B.cov)) {
+          let a0 = tOn(A, ptAt(B, q[0])), a1 = tOn(A, ptAt(B, q[1])); if (a0 > a1) [a0, a1] = [a1, a0];
+          if (a1 - a0 < 0.05 || a1 - a0 < 0.5 * c.d) continue;
+          A.cov.push([a0, a1]); B.cov.push(q.slice());
+          pieces.push({ c, a0, a1 });
+        }
+      }
+    }
+    const runFrom = (S, t, dir) => { // nezakrytá délka od t ve směru dir
+      let lim = dir > 0 ? S.L - t : t; if (lim <= 0) return 0;
+      for (const cv of S.cov) {
+        if (dir > 0 && cv[1] > t + 1e-4 && cv[0] >= t - 1e-4) lim = Math.min(lim, cv[0] - t);
+        if (dir < 0 && cv[0] < t - 1e-4 && cv[1] <= t + 1e-4) lim = Math.min(lim, t - cv[1]);
+      }
+      return Math.max(0, lim);
+    };
+    for (const pc of pieces) {
+      const A = segs[pc.c.i], B = segs[pc.c.j], d = pc.c.d;
+      let a0 = pc.a0, a1 = pc.a1;
+      if (Math.abs(A.u[0]) >= Math.abs(A.u[1]) - 1e-6) { // vodorovnější stěny zaplní rohy
+        const sgn = A.u[0] * B.u[0] + A.u[1] * B.u[1] > 0 ? 1 : -1;
+        const lim = 1.05 * d + 0.01;
+        const e1 = [runFrom(A, a1, 1), runFrom(B, tOn(B, ptAt(A, a1)), sgn)].filter(x => x > 0.01 && x <= lim);
+        const e0 = [runFrom(A, a0, -1), runFrom(B, tOn(B, ptAt(A, a0)), -sgn)].filter(x => x > 0.01 && x <= lim);
+        if (e1.length) a1 += Math.max(...e1);
+        if (e0.length) a0 -= Math.max(...e0);
+      }
+      const off = pc.c.sign * d / 2;
+      const p0 = ptAt(A, a0);
+      const cfg = cfgOf(A.layer);
+      walls.push({ id: ++uid, kind: 'axis', x0: p0[0] + A.n[0] * off, y0: p0[1] + A.n[1] * off, u: A.u.slice(), L: a1 - a0, t: d, h: H, layer: A.layer, mat: cfg.mat || 'Zdivo' });
+    }
+
+    /* stěny – osa */
+    const axisSegs = [];
+    for (const p of prims) {
+      if (p.text !== undefined || roleOf(p.layer) !== 'wallAxis' || objOfPrim(p) >= 0) continue;
+      const n = p.pts.length, segN = p.closed ? n : n - 1;
+      for (let k = 0; k < segN; k++) { if (p.curved[k]) continue; const a = p.pts[k], b = p.pts[(k + 1) % n]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L > 0.02) axisSegs.push({ a, b, L, layer: p.layer }); }
+    }
+    const near = (P, Q) => Math.hypot(P[0] - Q[0], P[1] - Q[1]) < 0.01;
+    for (const s of axisSegs) {
+      const cfg = cfgOf(s.layer), t = +cfg.t || 0.3;
+      const u = [(s.b[0] - s.a[0]) / s.L, (s.b[1] - s.a[1]) / s.L];
+      const ja = axisSegs.some(o => o !== s && (near(o.a, s.a) || near(o.b, s.a)));
+      const jb = axisSegs.some(o => o !== s && (near(o.a, s.b) || near(o.b, s.b)));
+      const e0 = ja ? t / 2 : 0, e1 = jb ? t / 2 : 0;
+      walls.push({ id: ++uid, kind: 'axis', x0: s.a[0] - u[0] * e0, y0: s.a[1] - u[1] * e0, u, L: s.L + e0 + e1, t, h: H, layer: s.layer, mat: cfg.mat || 'Zdivo' });
+    }
+
+    /* uzavřené obrysy: stěny, desky, místnosti */
+    const rings = role => prims.filter(p => p.text === undefined && roleOf(p.layer) === role && objOfPrim(p) < 0 && (p.closed || (p.pts.length > 3 && near(p.pts[0], p.pts[p.pts.length - 1]))) ).map(p => ({ ring: cleanRing(p.pts), layer: p.layer })).filter(r => r.ring.length >= 3 && Math.abs(polyArea(r.ring)) > 1e-3);
+    for (const r of rings('wallOutline')) {
+      // osa = nejdelší hrana
+      let best = 0, u = [1, 0];
+      for (let k = 0; k < r.ring.length; k++) { const a = r.ring[k], b = r.ring[(k + 1) % r.ring.length]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L > best) { best = L; u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; } }
+      const n = [-u[1], u[0]];
+      const ss = r.ring.map(p => p[0] * u[0] + p[1] * u[1]), rr = r.ring.map(p => p[0] * n[0] + p[1] * n[1]);
+      const smin = Math.min(...ss), smax = Math.max(...ss), rmin = Math.min(...rr), rmax = Math.max(...rr);
+      const rc = (rmin + rmax) / 2;
+      const cfg = cfgOf(r.layer);
+      walls.push({ id: ++uid, kind: 'outline', x0: u[0] * smin + n[0] * rc, y0: u[1] * smin + n[1] * rc, u, L: smax - smin, t: rmax - rmin, h: H, layer: r.layer, mat: cfg.mat || 'Zdivo', ring: r.ring, area: Math.abs(polyArea(r.ring)) });
+    }
+    for (const r of rings('slab')) { const cfg = cfgOf(r.layer); slabs.push({ id: ++uid, ring: r.ring, t: +cfg.t || 0.25, layer: r.layer, mat: cfg.mat || 'Železobeton', area: Math.abs(polyArea(r.ring)) }); }
+    const labels = prims.filter(p => p.text !== undefined && roleOf(p.layer) === 'label');
+    for (const r of rings('space')) {
+      const inside = labels.filter(l => pip(l.pts[0], r.ring)).sort((a, b) => b.pts[0][1] - a.pts[0][1] || a.pts[0][0] - b.pts[0][0]);
+      const isNum = s => /^[0-9A-Za-z]{0,3}[.\-/]?[0-9]+([.\-/][0-9]+)*[a-z]?$/.test(s.trim());
+      let num = inside.find(l => isNum(l.text)), rest = inside.filter(l => l !== num && !/m\s*[²2]$/.test(l.text.trim()) && !/^[0-9]+([.,][0-9]+)?\s*m?[²2]?$/.test(l.text.trim()));
+      const name = num ? num.text : (rest[0] ? rest[0].text : 'M' + (spaces.length + 1));
+      const longName = (num ? rest : rest.slice(1)).map(l => l.text).join(' ');
+      spaces.push({ id: ++uid, ring: r.ring, name, longName, h: H, layer: r.layer, area: Math.abs(polyArea(r.ring)) });
+    }
+
+    /* okna a dveře */
+    const objs = new Map(); // klíč → {role, pts, layer, name}
+    const free = [];
+    for (const p of prims) {
+      if (p.text !== undefined) continue;
+      const oid = objOfPrim(p);
+      if (oid >= 0) {
+        let o = objs.get('i' + oid);
+        if (!o) objs.set('i' + oid, o = { role: roleOf(sc.inserts[oid].layer), pts: [], layer: sc.inserts[oid].layer, name: sc.inserts[oid].name });
+        for (const q of p.pts) o.pts.push(q);
+      } else { const r = roleOf(p.layer); if (r === 'window' || r === 'door') free.push(p); }
+    }
+    // shluky volné geometrie
+    const par = free.map((_, k) => k), find = k => par[k] === k ? k : (par[k] = find(par[k]));
+    const fb = free.map(p => bboxOf(p.pts));
+    for (let a = 0; a < free.length; a++) for (let b = a + 1; b < free.length; b++) {
+      if (roleOf(free[a].layer) !== roleOf(free[b].layer)) continue;
+      const A = fb[a], B = fb[b], g = 0.03;
+      if (A[0] - g <= B[2] && B[0] - g <= A[2] && A[1] - g <= B[3] && B[1] - g <= A[3]) par[find(a)] = find(b);
+    }
+    free.forEach((p, k) => { const key = 'f' + find(k); let o = objs.get(key); if (!o) objs.set(key, o = { role: roleOf(p.layer), pts: [], layer: p.layer, name: '' }); for (const q of p.pts) o.pts.push(q); });
+
+    const axisWalls = walls;
+    const found = [];
+    for (const o of objs.values()) {
+      if (o.pts.length < 2) continue;
+      const bb = bboxOf(o.pts); const c = [(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2];
+      let best = null;
+      for (const w of axisWalls) {
+        const n = [-w.u[1], w.u[0]], band = w.t / 2 + 0.06;
+        let cnt = 0, smin = Infinity, smax = -Infinity;
+        for (const q of o.pts) {
+          const dx = q[0] - w.x0, dy = q[1] - w.y0, s = dx * w.u[0] + dy * w.u[1], r = dx * n[0] + dy * n[1];
+          if (Math.abs(r) <= band && s > -2.5 && s < w.L + 2.5) { cnt++; if (s < smin) smin = s; if (s > smax) smax = s; }
+        }
+        if (!cnt || smax - smin < 0.25) continue;
+        const dx = c[0] - w.x0, dy = c[1] - w.y0, s = dx * w.u[0] + dy * w.u[1];
+        const gap = Math.max(0, -smin, smax - w.L); // jak daleko otvor vyčnívá za stěnu
+        const score = cnt / o.pts.length - gap * 0.05 - Math.max(0, -s, s - w.L) * 0.02;
+        if (!best || score > best.score) best = { w, smin, smax, score };
+      }
+      if (!best) { warn.push(`${st.name}: ${o.role === 'door' ? 'dveře' : 'okno'} (vrstva ${o.layer}) nenalezlo stěnu – vynecháno.`); continue; }
+      found.push({ o, host: best.w, s0: best.smin, s1: best.smax });
+    }
+    // sloučit překrývající se otvory na stejné stěně
+    const merged = [];
+    for (const f of found) {
+      const m = merged.find(g => g.host === f.host && g.o.role === f.o.role && f.s0 < g.s1 - 0.05 && g.s0 < f.s1 - 0.05);
+      if (m) { m.s0 = Math.min(m.s0, f.s0); m.s1 = Math.max(m.s1, f.s1); } else merged.push(Object.assign({}, f));
+    }
+    for (const f of merged) {
+      let host = f.host, s0 = f.s0, s1 = f.s1;
+      const w = s1 - s0, inHost = Math.max(0, Math.min(s1, host.L) - Math.max(s0, 0)) / w;
+      if (inHost >= 0.5 || host.kind === 'outline') {
+        s0 = Math.max(s0, 0); s1 = Math.min(s1, host.L);
+      } else {
+        // výplňová stěna v mezeře (nadpraží / parapet)
+        const collinear = walls.filter(x => x.kind === 'axis' && Math.abs(x.u[0] * host.u[1] - x.u[1] * host.u[0]) < 0.02 && Math.abs(x.t - host.t) < 0.02 &&
+          Math.abs((x.x0 - host.x0) * -host.u[1] + (x.y0 - host.y0) * host.u[0]) < 0.02);
+        const cov = collinear.map(x => { const a = (x.x0 - host.x0) * host.u[0] + (x.y0 - host.y0) * host.u[1]; const sg = x.u[0] * host.u[0] + x.u[1] * host.u[1] > 0 ? 1 : -1; const b = a + sg * x.L; return [Math.min(a, b), Math.max(a, b)]; });
+        const parts = subtractIv([s0, s1], cov).sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]));
+        if (!parts.length || parts[0][1] - parts[0][0] < 0.2) { s0 = Math.max(s0, 0); s1 = Math.min(s1, host.L); if (s1 - s0 < 0.2) continue; }
+        else {
+          const g = parts[0];
+          const fw = { id: ++uid, kind: 'axis', x0: host.x0 + host.u[0] * g[0], y0: host.y0 + host.u[1] * g[0], u: host.u.slice(), L: g[1] - g[0], t: host.t, h: host.h, layer: host.layer, mat: host.mat, filler: true };
+          walls.push(fw); host = fw; s0 = 0; s1 = fw.L;
+        }
+      }
+      const isDoor = f.o.role === 'door';
+      const sill = isDoor ? 0 : +opt.winSill;
+      let oh = isDoor ? +opt.doorH : +opt.winH;
+      oh = Math.min(oh, host.h - sill - 0.01);
+      if (oh <= 0.05) continue;
+      openings.push({ id: ++uid, role: f.o.role, host, s0, w: s1 - s0, sill, h: oh, layer: f.o.layer, block: f.o.name });
+    }
+    // otvory pro výkaz u stěn
+    for (const w of walls) w.openings = openings.filter(o => o.host === w);
+    return { name: st.name, elev: +st.elev || 0, height: H, walls, openings, slabs, spaces, prims, roleOf };
+  });
+  return { storeys: out, warn, offset: [ox, oy] };
+}
+
+/* ---------- výkaz ---------- */
+function quantities(model) {
+  const rows = [];
+  for (const st of model.storeys) {
+    const wallGroups = new Map();
+    for (const w of st.walls) {
+      const area = w.kind === 'outline' ? w.area : w.L * w.t;
+      const opV = w.openings.reduce((s, o) => s + o.w * o.h * w.t, 0);
+      const opA = w.openings.reduce((s, o) => s + o.w * o.h, 0);
+      const key = (Math.round(w.t * 1000) / 1000) + '|' + w.mat;
+      let g = wallGroups.get(key); if (!g) wallGroups.set(key, g = { t: w.t, mat: w.mat, n: 0, L: 0, A: 0, V: 0 });
+      g.n++; g.L += w.L; g.A += w.L * w.h - opA; g.V += area * w.h - opV;
+    }
+    const opGroups = new Map();
+    for (const o of st.openings) {
+      const key = o.role + '|' + o.w.toFixed(2) + '|' + o.h.toFixed(2);
+      let g = opGroups.get(key); if (!g) opGroups.set(key, g = { role: o.role, w: o.w, h: o.h, n: 0 }); g.n++;
+    }
+    rows.push({ storey: st.name, walls: [...wallGroups.values()].sort((a, b) => b.t - a.t), openings: [...opGroups.values()].sort((a, b) => a.role.localeCompare(b.role) || b.w - a.w), spaces: st.spaces.slice().sort((a, b) => a.name.localeCompare(b.name, 'cs', { numeric: true })), slabs: st.slabs });
+  }
+  return rows;
+}
+
+/* ---------- IFC4 zápis ---------- */
+const B64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$';
+function guid() {
+  const b = new Uint8Array(16);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(b); else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  let n = 0n; for (const x of b) n = (n << 8n) | BigInt(x);
+  let s = ''; for (let i = 0; i < 22; i++) s += B64[Number((n >> BigInt(6 * (21 - i))) & 63n)];
+  return s;
+}
+function S(str) {
+  if (str === null || str === undefined) return '$';
+  let o = "'", buf = '';
+  const flush = () => { if (buf) { o += '\\X2\\' + buf + '\\X0\\'; buf = ''; } };
+  for (const ch of String(str)) {
+    const c = ch.codePointAt(0);
+    if (c >= 32 && c <= 126) { flush(); o += ch === "'" ? "''" : ch === '\\' ? '\\\\' : ch; }
+    else if (c > 0xffff) { const h = ch.charCodeAt(0), l = ch.charCodeAt(1); buf += h.toString(16).toUpperCase().padStart(4, '0') + l.toString(16).toUpperCase().padStart(4, '0'); }
+    else if (c >= 160) buf += c.toString(16).toUpperCase().padStart(4, '0');
+  }
+  flush();
+  return o + "'";
+}
+function F(x) {
+  if (!isFinite(x)) x = 0;
+  let s = (Math.round(x * 1e6) / 1e6).toString();
+  if (s === '-0') s = '0';
+  if (s.includes('e')) { const [m, e] = s.split('e'); s = (m.includes('.') ? m : m + '.') + 'E' + e; }
+  else if (!s.includes('.')) s += '.';
+  return s;
+}
+function writeIfc(model, meta) {
+  const L = []; let n = 0;
+  const add = s => { L.push('#' + (++n) + '=' + s + ';'); return '#' + n; };
+  const memo = new Map();
+  const once = s => { if (!memo.has(s)) memo.set(s, add(s)); return memo.get(s); };
+  const P3 = (x, y, z) => once(`IFCCARTESIANPOINT((${F(x)},${F(y)},${F(z)}))`);
+  const P2 = (x, y) => `IFCCARTESIANPOINT((${F(x)},${F(y)}))`;
+  const D3 = (x, y, z) => once(`IFCDIRECTION((${F(x)},${F(y)},${F(z)}))`);
+  const D2 = (x, y) => once(`IFCDIRECTION((${F(x)},${F(y)}))`);
+  const AX3 = (o, z, x) => add(`IFCAXIS2PLACEMENT3D(${o},${z || '$'},${x || '$'})`);
+  const now = Math.floor(Date.now() / 1000);
+
+  const org = add(`IFCORGANIZATION($,${S(meta.org || 'Pražské služby, a.s.')},$,$,$)`);
+  const person = add(`IFCPERSON($,${S(meta.author || '')},$,$,$,$,$,$)`);
+  const pao = add(`IFCPERSONANDORGANIZATION(${person},${org},$)`);
+  const app = add(`IFCAPPLICATION(${org},'1.0',${S('CAD → IFC převodník')},'CAD2IFC')`);
+  const oh = add(`IFCOWNERHISTORY(${pao},${app},$,.ADDED.,${now},$,$,${now})`);
+  const units = [
+    add(`IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.)`), add(`IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.)`),
+    add(`IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.)`), add(`IFCSIUNIT(*,.PLANEANGLEUNIT.,$,.RADIAN.)`)];
+  const ua = add(`IFCUNITASSIGNMENT((${units.join(',')}))`);
+  const O = P3(0, 0, 0), Z = D3(0, 0, 1), X = D3(1, 0, 0);
+  const wcs = AX3(O, Z, X);
+  const ctx = add(`IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05,${wcs},${D2(0, 1)})`);
+  const body = add(`IFCGEOMETRICREPRESENTATIONSUBCONTEXT('Body','Model',*,*,*,*,${ctx},$,.MODEL_VIEW.,$)`);
+  const axisCtx = add(`IFCGEOMETRICREPRESENTATIONSUBCONTEXT('Axis','Model',*,*,*,*,${ctx},$,.GRAPH_VIEW.,$)`);
+  const project = add(`IFCPROJECT('${guid()}',${oh},${S(meta.project || 'Projekt')},$,$,$,$,(${ctx}),${ua})`);
+  const siteLp = add(`IFCLOCALPLACEMENT($,${AX3(O, Z, X)})`);
+  const site = add(`IFCSITE('${guid()}',${oh},${S(meta.site || 'Pozemek')},$,$,${siteLp},$,$,.ELEMENT.,$,$,$,$,$)`);
+  const bldLp = add(`IFCLOCALPLACEMENT(${siteLp},${AX3(O, Z, X)})`);
+  const bld = add(`IFCBUILDING('${guid()}',${oh},${S(meta.building || 'Budova')},$,$,${bldLp},$,$,.ELEMENT.,$,$,$)`);
+  add(`IFCRELAGGREGATES('${guid()}',${oh},$,$,${project},(${site}))`);
+  add(`IFCRELAGGREGATES('${guid()}',${oh},$,$,${site},(${bld}))`);
+  if (model.offset && (model.offset[0] || model.offset[1])) {
+    const pr = [add(`IFCPROPERTYSINGLEVALUE('Posun X',${S('Odečteno od souřadnic výkresu [m]')},IFCLENGTHMEASURE(${F(model.offset[0])}),$)`),
+      add(`IFCPROPERTYSINGLEVALUE('Posun Y',${S('Odečteno od souřadnic výkresu [m]')},IFCLENGTHMEASURE(${F(model.offset[1])}),$)`)];
+    const ps = add(`IFCPROPERTYSET('${guid()}',${oh},'CAD_Posun',$,(${pr.join(',')}))`);
+    add(`IFCRELDEFINESBYPROPERTIES('${guid()}',${oh},$,$,(${site}),${ps})`);
+  }
+  const shape = (items, type, ctxRef, rid) => `IFCSHAPEREPRESENTATION(${ctxRef},'${rid}','${type}',(${items.join(',')}))`;
+  const rectSolid = (cx, cy, w, d, z0, h) => {
+    const prof = add(`IFCRECTANGLEPROFILEDEF(.AREA.,$,${add(`IFCAXIS2PLACEMENT2D(${once(P2(cx, cy))},$)`)},${F(w)},${F(d)})`);
+    return add(`IFCEXTRUDEDAREASOLID(${prof},${AX3(P3(0, 0, z0))},${Z},${F(h)})`);
+  };
+  const ringSolid = (ring, z0, h) => {
+    const pts = ring.map(p => add(P2(p[0], p[1])));
+    const pl = add(`IFCPOLYLINE((${pts.concat(pts[0]).join(',')}))`);
+    const prof = add(`IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,$,${pl})`);
+    return add(`IFCEXTRUDEDAREASOLID(${prof},${AX3(P3(0, 0, z0))},${Z},${F(h)})`);
+  };
+  const pds = reps => add(`IFCPRODUCTDEFINITIONSHAPE($,$,(${reps.join(',')}))`);
+  const qto = (objs, name, qs) => {
+    const items = qs.map(([t, nm, v]) => t === 'L' ? add(`IFCQUANTITYLENGTH('${nm}',$,$,${F(v)},$)`) : t === 'A' ? add(`IFCQUANTITYAREA('${nm}',$,$,${F(v)},$)`) : t === 'C' ? add(`IFCQUANTITYCOUNT('${nm}',$,$,${F(v)},$)`) : add(`IFCQUANTITYVOLUME('${nm}',$,$,${F(v)},$)`));
+    const q = add(`IFCELEMENTQUANTITY('${guid()}',${oh},'${name}',$,$,(${items.join(',')}))`);
+    add(`IFCRELDEFINESBYPROPERTIES('${guid()}',${oh},$,$,(${objs.join(',')}),${q})`);
+  };
+  const layerGroups = new Map(), matGroups = new Map();
+  const tagLayer = (obj, layer) => { let a = layerGroups.get(layer); if (!a) layerGroups.set(layer, a = []); a.push(obj); };
+  const tagMat = (obj, mat) => { let a = matGroups.get(mat); if (!a) matGroups.set(mat, a = []); a.push(obj); };
+  const storeyRefs = [];
+  let wn = 0, on = 0, dn = 0, sn = 0;
+  for (const st of model.storeys) {
+    const stLp = add(`IFCLOCALPLACEMENT(${bldLp},${AX3(P3(0, 0, st.elev), Z, X)})`);
+    const storey = add(`IFCBUILDINGSTOREY('${guid()}',${oh},${S(st.name)},$,$,${stLp},$,$,.ELEMENT.,${F(st.elev)})`);
+    storeyRefs.push(storey);
+    const contained = [], spaceRefs = [];
+    for (const w of st.walls) {
+      const lp = add(`IFCLOCALPLACEMENT(${stLp},${AX3(P3(w.x0, w.y0, 0), Z, D3(w.u[0], w.u[1], 0))})`);
+      let solid;
+      if (w.kind === 'outline') {
+        const nrm = [-w.u[1], w.u[0]];
+        const loc = w.ring.map(p => { const dx = p[0] - w.x0, dy = p[1] - w.y0; return [dx * w.u[0] + dy * w.u[1], dx * nrm[0] + dy * nrm[1]]; });
+        solid = ringSolid(cleanRing(loc), 0, w.h);
+      } else solid = rectSolid(w.L / 2, 0, w.L, w.t, 0, w.h);
+      const reps = [add(shape([solid], 'SweptSolid', body, 'Body'))];
+      if (w.kind === 'axis') reps.unshift(add(shape([add(`IFCPOLYLINE((${once(P2(0, 0))},${once(P2(w.L, 0))}))`)], 'Curve2D', axisCtx, 'Axis')));
+      const wall = add(`IFCWALL('${guid()}',${oh},${S('Stěna ' + (++wn))},$,${S(w.filler ? 'Nadpraží/parapet' : 'Stěna ' + Math.round(w.t * 1000) + ' mm')},${lp},${pds(reps)},$,.STANDARD.)`);
+      contained.push(wall); tagLayer(wall, w.layer); tagMat(wall, w.mat);
+      const opA = w.openings.reduce((s, o) => s + o.w * o.h, 0);
+      const baseA = w.kind === 'outline' ? w.area : w.L * w.t;
+      qto([wall], 'Qto_WallBaseQuantities', [['L', 'Length', w.L], ['L', 'Width', w.t], ['L', 'Height', w.h], ['A', 'GrossSideArea', w.L * w.h], ['A', 'NetSideArea', w.L * w.h - opA], ['V', 'GrossVolume', baseA * w.h], ['V', 'NetVolume', baseA * w.h - opA * w.t]]);
+      for (const o of w.openings) {
+        const olp = add(`IFCLOCALPLACEMENT(${lp},${AX3(P3(o.s0, 0, o.sill), Z, X)})`);
+        const osol = rectSolid(o.w / 2, 0, o.w, w.t + 0.2, 0, o.h);
+        const op = add(`IFCOPENINGELEMENT('${guid()}',${oh},${S('Otvor')},$,$,${olp},${pds([add(shape([osol], 'SweptSolid', body, 'Body'))])},$,.OPENING.)`);
+        add(`IFCRELVOIDSELEMENT('${guid()}',${oh},$,$,${wall},${op})`);
+        const flp = add(`IFCLOCALPLACEMENT(${olp},${AX3(O, Z, X)})`);
+        const isDoor = o.role === 'door';
+        const fsol = rectSolid(o.w / 2, 0, o.w, isDoor ? 0.05 : 0.08, 0, o.h);
+        const frep = pds([add(shape([fsol], 'SweptSolid', body, 'Body'))]);
+        const nm = isDoor ? 'Dveře ' + (++dn) : 'Okno ' + (++on);
+        const typ = `${Math.round(o.w * 1000)}×${Math.round(o.h * 1000)}`;
+        const fill = isDoor
+          ? add(`IFCDOOR('${guid()}',${oh},${S(nm)},$,${S('Dveře ' + typ)},${flp},${frep},$,${F(o.h)},${F(o.w)},.DOOR.,$,$)`)
+          : add(`IFCWINDOW('${guid()}',${oh},${S(nm)},$,${S('Okno ' + typ)},${flp},${frep},$,${F(o.h)},${F(o.w)},.WINDOW.,$,$)`);
+        add(`IFCRELFILLSELEMENT('${guid()}',${oh},$,$,${op},${fill})`);
+        contained.push(fill); tagLayer(fill, o.layer);
+        qto([fill], isDoor ? 'Qto_DoorBaseQuantities' : 'Qto_WindowBaseQuantities', [['L', 'Width', o.w], ['L', 'Height', o.h], ['A', 'Area', o.w * o.h]]);
+      }
+    }
+    for (const sl of st.slabs) {
+      const lp = add(`IFCLOCALPLACEMENT(${stLp},${AX3(O, Z, X)})`);
+      const solid = ringSolid(sl.ring, -sl.t, sl.t);
+      const slab = add(`IFCSLAB('${guid()}',${oh},${S('Deska')},$,$,${lp},${pds([add(shape([solid], 'SweptSolid', body, 'Body'))])},$,.FLOOR.)`);
+      contained.push(slab); tagLayer(slab, sl.layer); tagMat(slab, sl.mat);
+      qto([slab], 'Qto_SlabBaseQuantities', [['L', 'Width', sl.t], ['A', 'GrossArea', sl.area], ['V', 'GrossVolume', sl.area * sl.t]]);
+    }
+    for (const sp of st.spaces) {
+      const lp = add(`IFCLOCALPLACEMENT(${stLp},${AX3(O, Z, X)})`);
+      const solid = ringSolid(sp.ring, 0, sp.h);
+      const space = add(`IFCSPACE('${guid()}',${oh},${S(sp.name)},$,$,${lp},${pds([add(shape([solid], 'SweptSolid', body, 'Body'))])},${S(sp.longName || null)},.ELEMENT.,.INTERNAL.,$)`);
+      spaceRefs.push(space); sn++;
+      qto([space], 'Qto_SpaceBaseQuantities', [['L', 'Height', sp.h], ['A', 'NetFloorArea', sp.area], ['V', 'NetVolume', sp.area * sp.h]]);
+    }
+    if (contained.length) add(`IFCRELCONTAINEDINSPATIALSTRUCTURE('${guid()}',${oh},$,$,(${contained.join(',')}),${storey})`);
+    if (spaceRefs.length) add(`IFCRELAGGREGATES('${guid()}',${oh},$,$,${storey},(${spaceRefs.join(',')}))`);
+  }
+  if (storeyRefs.length) add(`IFCRELAGGREGATES('${guid()}',${oh},$,$,${bld},(${storeyRefs.join(',')}))`);
+  for (const [mat, objs] of matGroups) { const m = add(`IFCMATERIAL(${S(mat)},$,$)`); add(`IFCRELASSOCIATESMATERIAL('${guid()}',${oh},$,$,(${objs.join(',')}),${m})`); }
+  for (const [layer, objs] of layerGroups) {
+    const pr = add(`IFCPROPERTYSINGLEVALUE(${S('Vrstva CAD')},$,IFCLABEL(${S(layer)}),$)`);
+    const ps = add(`IFCPROPERTYSET('${guid()}',${oh},'CAD_Zdroj',$,(${pr}))`);
+    add(`IFCRELDEFINESBYPROPERTIES('${guid()}',${oh},$,$,(${objs.join(',')}),${ps})`);
+  }
+  const ts = new Date().toISOString().slice(0, 19);
+  const head = ['ISO-10303-21;', 'HEADER;', "FILE_DESCRIPTION(('ViewDefinition [ReferenceView_V1.2]'),'2;1');",
+    `FILE_NAME(${S(meta.fileName || 'model.ifc')},'${ts}',(${S(meta.author || '')}),(${S(meta.org || '')}),'CAD2IFC','CAD2IFC 1.0','');`,
+    "FILE_SCHEMA(('IFC4'));", 'ENDSEC;', 'DATA;'];
+  return { text: head.concat(L, ['ENDSEC;', 'END-ISO-10303-21;']).join('\n') + '\n', counts: { walls: wn, windows: on, doors: dn, spaces: sn } };
+}
+
+/* ---------- ZIP (bez komprese) ---------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function zipOne(name, data) {
+  const nb = new TextEncoder().encode(name), crc = crc32(data), sz = data.length;
+  const lh = new Uint8Array(30 + nb.length), dv = new DataView(lh.buffer);
+  dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true); dv.setUint32(14, crc, true); dv.setUint32(18, sz, true); dv.setUint32(22, sz, true); dv.setUint16(26, nb.length, true); lh.set(nb, 30);
+  const ch = new Uint8Array(46 + nb.length), cv = new DataView(ch.buffer);
+  cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint32(16, crc, true); cv.setUint32(20, sz, true); cv.setUint32(24, sz, true); cv.setUint16(28, nb.length, true); ch.set(nb, 46);
+  const end = new Uint8Array(22), ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, 1, true); ev.setUint16(10, 1, true); ev.setUint32(12, ch.length, true); ev.setUint32(16, lh.length + sz, true);
+  const out = new Uint8Array(lh.length + sz + ch.length + 22);
+  out.set(lh, 0); out.set(data, lh.length); out.set(ch, lh.length + sz); out.set(end, lh.length + sz + ch.length);
+  return out;
+}
+
+/* ---------- ukázkový výkres ---------- */
+function sampleDxf() {
+  const o = [];
+  const p = (...a) => { for (let i = 0; i < a.length; i += 2) o.push(String(a[i]), String(a[i + 1])); };
+  const line = (ly, x1, y1, x2, y2) => p(0, 'LINE', 8, ly, 10, x1, 20, y1, 30, 0, 11, x2, 21, y2, 31, 0);
+  const lw = (ly, pts, closed, bulges) => { p(0, 'LWPOLYLINE', 8, ly, 90, pts.length, 70, closed ? 1 : 0); pts.forEach((q, k) => { p(10, q[0], 20, q[1]); if (bulges && bulges[k]) p(42, bulges[k]); }); };
+  const ins = (ly, b, x, y, r) => p(0, 'INSERT', 8, ly, 2, b, 10, x, 20, y, 30, 0, 50, r || 0);
+  const txt = (ly, x, y, h, s) => p(0, 'TEXT', 8, ly, 10, x, 20, y, 30, 0, 40, h, 1, s);
+  p(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1027', 9, '$INSUNITS', 70, 4, 0, 'ENDSEC');
+  p(0, 'SECTION', 2, 'TABLES', 0, 'TABLE', 2, 'LAYER');
+  for (const n of ['A-ZDI', 'A-OKNA', 'A-DVERE', 'A-MISTNOSTI', 'A-POPISY', 'A-KOTY', 'A-DESKA']) p(0, 'LAYER', 2, n, 70, 0, 62, 7, 6, 'CONTINUOUS');
+  p(0, 'ENDTAB', 0, 'ENDSEC');
+  p(0, 'SECTION', 2, 'BLOCKS');
+  p(0, 'BLOCK', 8, '0', 2, 'OKNO_1200', 70, 0, 10, 0, 20, 0, 30, 0);
+  lw('0', [[0, 0], [1200, 0], [1200, 400], [0, 400]], true); line('0', 0, 180, 1200, 180); line('0', 0, 220, 1200, 220); line('0', 0, -120, 1200, -120);
+  p(0, 'ENDBLK', 8, '0');
+  p(0, 'BLOCK', 8, '0', 2, 'OKNO_1800', 70, 0, 10, 0, 20, 0, 30, 0);
+  lw('0', [[0, 0], [1800, 0], [1800, 400], [0, 400]], true); line('0', 0, 180, 1800, 180); line('0', 0, 220, 1800, 220); line('0', 900, 0, 900, 400);
+  p(0, 'ENDBLK', 8, '0');
+  p(0, 'BLOCK', 8, '0', 2, 'DVERE_900', 70, 0, 10, 0, 20, 0, 30, 0);
+  line('0', 0, 0, 0, 900); line('0', 40, 0, 40, 900); p(0, 'ARC', 8, '0', 10, 0, 20, 0, 30, 0, 40, 900, 50, 0, 51, 90);
+  p(0, 'ENDBLK', 8, '0');
+  p(0, 'ENDSEC');
+  p(0, 'SECTION', 2, 'ENTITIES');
+  const W = 'A-ZDI';
+  // obvodové zdi 450 mm, vstup v jižní stěně 4000–4900
+  line(W, 0, 0, 4000, 0); line(W, 4900, 0, 12000, 0); line(W, 450, 450, 4000, 450); line(W, 4900, 450, 11550, 450);
+  line(W, 4000, 0, 4000, 450); line(W, 4900, 0, 4900, 450);
+  line(W, 12000, 0, 12000, 9000); line(W, 11550, 450, 11550, 8550);
+  line(W, 12000, 9000, 0, 9000); line(W, 11550, 8550, 450, 8550);
+  line(W, 0, 9000, 0, 0); line(W, 450, 8550, 450, 450);
+  // příčka 150 mm s dveřmi 3000–3900, dělicí stěna 300 mm
+  line(W, 6000, 450, 6000, 3000); line(W, 6150, 450, 6150, 3000); line(W, 6000, 3900, 6000, 8550); line(W, 6150, 3900, 6150, 8550);
+  line(W, 6000, 3000, 6150, 3000); line(W, 6000, 3900, 6150, 3900);
+  line(W, 6150, 5000, 8000, 5000); line(W, 8900, 5000, 11550, 5000); line(W, 6150, 5150, 8000, 5150); line(W, 8900, 5150, 11550, 5150);
+  line(W, 8000, 5000, 8000, 5150); line(W, 8900, 5000, 8900, 5150);
+  // okna
+  ins('A-OKNA', 'OKNO_1800', 1500, 0, 0); ins('A-OKNA', 'OKNO_1800', 8500, 0, 0);
+  ins('A-OKNA', 'OKNO_1200', 3300, 9000, 180); ins('A-OKNA', 'OKNO_1200', 10500, 9000, 180);
+  ins('A-OKNA', 'OKNO_1200', 0, 5500, 270); ins('A-OKNA', 'OKNO_1200', 12000, 2000, 90); ins('A-OKNA', 'OKNO_1200', 12000, 6500, 90);
+  // dveře
+  ins('A-DVERE', 'DVERE_900', 4900, 450, 180); ins('A-DVERE', 'DVERE_900', 6150, 3000, 90); ins('A-DVERE', 'DVERE_900', 8000, 5150, 0);
+  // místnosti + popisy
+  lw('A-MISTNOSTI', [[450, 450], [6000, 450], [6000, 8550], [450, 8550]], true);
+  lw('A-MISTNOSTI', [[6150, 450], [11550, 450], [11550, 5000], [6150, 5000]], true);
+  lw('A-MISTNOSTI', [[6150, 5150], [11550, 5150], [11550, 8550], [6150, 8550]], true);
+  txt('A-POPISY', 2600, 4800, 250, '1.01'); txt('A-POPISY', 2300, 4400, 200, 'Kancelář');
+  txt('A-POPISY', 8400, 2900, 250, '1.02'); txt('A-POPISY', 8300, 2500, 200, 'Dílna');
+  txt('A-POPISY', 8400, 7000, 250, '1.03'); txt('A-POPISY', 8350, 6600, 200, 'Sklad');
+  // podlahová deska + kóty (ignorované)
+  lw('A-DESKA', [[0, 0], [12000, 0], [12000, 9000], [0, 9000]], true);
+  line('A-KOTY', 0, -1200, 12000, -1200); line('A-KOTY', 0, -1350, 0, -1050); line('A-KOTY', 12000, -1350, 12000, -1050); txt('A-KOTY', 5800, -1100, 250, '12000');
+  p(0, 'ENDSEC', 0, 'EOF');
+  return o.join('\n');
+}
+
+return { decodeDxf, parseDxf, flatten, unitFromHeader, buildModel, quantities, writeIfc, zipOne, guessRole, ROLES, sampleDxf, bboxOf, polyArea };
+})();
+if (typeof module !== 'undefined') module.exports = CORE;
+
+</script>
+<script>
+{
+const C = CORE;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
+const nf = (x, d = 2) => (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('cs-CZ', { minimumFractionDigits: d, maximumFractionDigits: d });
+const ROLES = C.ROLES;
+const UNITS = { mm: 0.001, cm: 0.01, m: 1 };
+
+const state = {
+  storeys: [], layers: {}, cur: 0, view: '2d', model: null,
+  opt: Object.assign({ tmin: 0.05, tmax: 0.75, toOrigin: true, winSill: 0.9, winH: 1.5, doorH: 2.1 }, LS.get('cad2ifc.opt', {})),
+  meta: Object.assign({ project: '', building: '', site: '', author: '' }, LS.get('cad2ifc.meta', {}))
+};
+const savedLayers = LS.get('cad2ifc.layers', {});
+let sid = 0;
+function newStorey() {
+  const prev = state.storeys[state.storeys.length - 1];
+  let name = '1.NP';
+  if (prev) { const m = prev.name.match(/^(\d+)\s*\.?\s*NP/i); name = m ? (+m[1] + 1) + '.NP' : 'Podlaží ' + (state.storeys.length + 1); }
+  return { id: ++sid, name, elev: prev ? Math.round((+prev.elev + +prev.height) * 1000) / 1000 : 0, height: prev ? prev.height : 3, unit: 'auto', autoScale: 0.001, fileName: '', flat: null, count: 0, sample: false };
+}
+const scaleOf = st => st.unit === 'auto' ? st.autoScale : UNITS[st.unit];
+
+/* ---------- toast ---------- */
+let tt; function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 3200); }
+
+/* ---------- načtení výkresu ---------- */
+function ingest(st, text, fileName) {
+  const dxf = C.parseDxf(text);
+  const flat = C.flatten(dxf);
+  if (!flat.prims.length) throw new Error('Ve výkresu jsem nenašel žádnou geometrii.');
+  let sc = C.unitFromHeader(dxf);
+  if (!sc) { const bb = C.bboxOf(flat.prims.flatMap(p => p.pts)); const ext = Math.max(bb[2] - bb[0], bb[3] - bb[1]); sc = ext > 2000 ? 0.001 : ext > 200 ? 0.01 : 1; }
+  st.autoScale = sc; st.flat = flat; st.fileName = fileName; st.count = flat.prims.length;
+  const seen = new Set(flat.prims.map(p => p.layer).concat(flat.inserts.map(i => i.layer)));
+  for (const l of seen) if (!state.layers[l]) {
+    const sv = savedLayers[l];
+    const role = sv ? sv.role : C.guessRole(l);
+    state.layers[l] = { role, t: sv ? sv.t : (role === 'slab' ? 0.25 : 0.3), mat: sv ? sv.mat : (role === 'slab' ? 'Železobeton' : 'Zdivo') };
+  }
+}
+async function loadFile(st, file) {
+  try {
+    const buf = await file.arrayBuffer();
+    const text = C.decodeDxf(buf);
+    ingest(st, text, file.name);
+    st.sample = false;
+    state.cur = state.storeys.indexOf(st);
+    renderStoreys(); renderLayers(); rebuild(true);
+    toast(`Načteno: ${file.name}`);
+  } catch (e) { toast(e.message || 'Výkres se nepodařilo načíst.'); console.error(e); }
+}
+function loadSample() {
+  state.storeys = [newStorey()];
+  const st = state.storeys[0];
+  st.height = 3.2; st.sample = true;
+  ingest(st, C.sampleDxf(), 'ukazka-dilna.dxf');
+  if (!state.meta.project) state.meta.project = 'Ukázka – dílna';
+  state.cur = 0;
+  renderStoreys(); renderLayers(); renderMeta(); rebuild(true);
+}
+
+/* ---------- podlaží ---------- */
+function renderStoreys() {
+  const box = $('#storeys');
+  box.innerHTML = state.storeys.map((st, i) => `
+    <div class="st${i === state.cur ? ' cur' : ''}" data-i="${i}">
+      <div class="st-h"><input type="text" class="s_name" value="${esc(st.name)}" aria-label="Název podlaží">${state.storeys.length > 1 ? '<button class="x s_del" title="Odebrat podlaží" aria-label="Odebrat podlaží">✕</button>' : ''}</div>
+      <div class="g3">
+        <label>Úroveň [m]<input type="number" step="0.01" class="s_elev" value="${esc(st.elev)}"></label>
+        <label>Výška [m]<input type="number" step="0.05" min="0.5" class="s_height" value="${esc(st.height)}"></label>
+        <label>Jednotky<select class="s_unit">
+          <option value="auto"${st.unit === 'auto' ? ' selected' : ''}>${st.autoScale === 0.001 ? 'mm' : st.autoScale === 0.01 ? 'cm' : st.autoScale === 1 ? 'm' : '?'} (auto)</option>
+          ${Object.keys(UNITS).map(u => `<option value="${u}"${st.unit === u ? ' selected' : ''}>${u}</option>`).join('')}
+        </select></label>
+      </div>
+      <div class="file"><label class="pick">${st.flat ? 'Vyměnit DXF…' : 'Vybrat DXF…'}<input type="file" accept=".dxf,.DXF" class="s_file"></label>
+      <span class="fn">${st.flat ? esc(st.fileName) + (st.sample ? ' (ukázka)' : '') + ' · ' + st.count.toLocaleString('cs-CZ') + ' objektů' : 'zatím bez výkresu – můžete ho sem i přetáhnout'}</span></div>
+    </div>`).join('');
+  const sel = $('#stSel');
+  sel.innerHTML = state.storeys.map((s, i) => `<option value="${i}"${i === state.cur ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
+  sel.hidden = state.storeys.length < 2;
+}
+$('#storeys').addEventListener('input', e => {
+  const card = e.target.closest('.st'); if (!card) return;
+  const st = state.storeys[+card.dataset.i];
+  if (e.target.classList.contains('s_name')) { st.name = e.target.value; $('#stSel').options[+card.dataset.i].textContent = st.name; schedule(); }
+  if (e.target.classList.contains('s_elev')) { st.elev = parseFloat(e.target.value) || 0; schedule(); }
+  if (e.target.classList.contains('s_height')) { st.height = parseFloat(e.target.value) || 3; schedule(); }
+});
+$('#storeys').addEventListener('change', e => {
+  const card = e.target.closest('.st'); if (!card) return;
+  const st = state.storeys[+card.dataset.i];
+  if (e.target.classList.contains('s_unit')) { st.unit = e.target.value; rebuild(true); }
+  if (e.target.classList.contains('s_file') && e.target.files[0]) loadFile(st, e.target.files[0]);
+});
+$('#storeys').addEventListener('click', e => {
+  const card = e.target.closest('.st'); if (!card) return;
+  const i = +card.dataset.i;
+  if (e.target.closest('.s_del')) { state.storeys.splice(i, 1); state.cur = Math.min(state.cur, state.storeys.length - 1); renderStoreys(); renderLayers(); rebuild(true); return; }
+  if (state.cur !== i) { state.cur = i; document.querySelectorAll('.st').forEach((c, k) => c.classList.toggle('cur', k === i)); $('#stSel').value = i; fit2d(); draw2d(); }
+});
+$('#addSt').onclick = () => {
+  if (state.storeys.length === 1 && state.storeys[0].sample) { state.storeys = []; state.layers = {}; }
+  state.storeys.push(newStorey()); state.cur = state.storeys.length - 1; renderStoreys(); renderLayers(); rebuild(true);
+};
+$('#sampleBtn').onclick = loadSample;
+$('#stSel').onchange = e => { state.cur = +e.target.value; renderStoreys(); fit2d(); draw2d(); };
+
+/* ---------- vrstvy ---------- */
+let layList = [];
+function layerCounts() {
+  const m = {};
+  for (const st of state.storeys) if (st.flat) {
+    for (const p of st.flat.prims) m[p.layer] = (m[p.layer] || 0) + 1;
+    for (const i of st.flat.inserts) m[i.layer] = (m[i.layer] || 0) + 1;
+  }
+  return m;
+}
+function renderLayers() {
+  const cnt = layerCounts();
+  const q = $('#laySearch').value.trim().toLowerCase(), used = $('#layUsed').checked;
+  const all = Object.keys(state.layers).filter(l => cnt[l]);
+  $('#layCount').textContent = all.length ? all.length + ' vrstev' : '';
+  layList = all.filter(l => (!q || l.toLowerCase().includes(q)) && (!used || state.layers[l].role !== 'ignore'))
+    .sort((a, b) => (state.layers[a].role === 'ignore') - (state.layers[b].role === 'ignore') || cnt[b] - cnt[a] || a.localeCompare(b, 'cs'));
+  const box = $('#layers');
+  if (!all.length) { box.innerHTML = '<p class="empty">Po nahrání výkresu se tu objeví jeho vrstvy.</p>'; return; }
+  if (!layList.length) { box.innerHTML = '<p class="empty">Žádná vrstva neodpovídá filtru.</p>'; return; }
+  box.innerHTML = layList.map((l, i) => {
+    const c = state.layers[l];
+    const needT = c.role === 'wallAxis' || c.role === 'slab';
+    const needM = ['wall2', 'wallAxis', 'wallOutline', 'slab'].includes(c.role);
+    return `<div class="lr" data-i="${i}"><i style="background:${ROLES[c.role].color}"></i>
+      <span class="ln">${esc(l)}<small>${cnt[l].toLocaleString('cs-CZ')}</small></span>
+      <select class="l_role" aria-label="Význam vrstvy">${Object.entries(ROLES).map(([k, r]) => `<option value="${k}"${k === c.role ? ' selected' : ''}>${r.label}</option>`).join('')}</select>
+      <div class="lx"${needT || needM ? '' : ' hidden'}>
+        <label${needT ? '' : ' style="visibility:hidden"'}>Tloušťka [m]<input type="number" step="0.01" min="0.01" class="l_t" value="${esc(c.t)}"></label>
+        <label${needM ? '' : ' style="visibility:hidden"'}>Materiál<input type="text" class="l_m" value="${esc(c.mat)}"></label>
+      </div></div>`;
+  }).join('');
+}
+function saveLayers() { for (const [k, v] of Object.entries(state.layers)) savedLayers[k] = v; LS.set('cad2ifc.layers', savedLayers); }
+$('#layers').addEventListener('change', e => {
+  const row = e.target.closest('.lr'); if (!row) return;
+  const l = layList[+row.dataset.i], c = state.layers[l];
+  if (e.target.classList.contains('l_role')) {
+    c.role = e.target.value;
+    if (c.role === 'slab' && c.t === 0.3) c.t = 0.25;
+    if (c.role === 'slab' && c.mat === 'Zdivo') c.mat = 'Železobeton';
+    saveLayers(); renderLayers(); rebuild();
+  }
+});
+$('#layers').addEventListener('input', e => {
+  const row = e.target.closest('.lr'); if (!row) return;
+  const c = state.layers[layList[+row.dataset.i]];
+  if (e.target.classList.contains('l_t')) c.t = parseFloat(e.target.value) || c.t;
+  if (e.target.classList.contains('l_m')) c.mat = e.target.value || 'Zdivo';
+  saveLayers(); schedule();
+});
+$('#laySearch').oninput = renderLayers; $('#layUsed').onchange = renderLayers;
+
+/* ---------- nastavení a metadata ---------- */
+for (const k of ['tmin', 'tmax', 'winSill', 'winH', 'doorH']) {
+  const el = $('#o_' + k); el.value = state.opt[k];
+  el.oninput = () => { const v = parseFloat(el.value); if (!isNaN(v)) { state.opt[k] = v; LS.set('cad2ifc.opt', state.opt); schedule(); } };
+}
+$('#o_toOrigin').checked = state.opt.toOrigin;
+$('#o_toOrigin').onchange = e => { state.opt.toOrigin = e.target.checked; LS.set('cad2ifc.opt', state.opt); rebuild(true); };
+function renderMeta() { for (const k of ['project', 'building', 'site', 'author']) $('#m_' + k).value = state.meta[k] || ''; }
+for (const k of ['project', 'building', 'site', 'author']) $('#m_' + k).oninput = e => { state.meta[k] = e.target.value; LS.set('cad2ifc.meta', state.meta); };
+renderMeta();
+
+/* ---------- stavba modelu ---------- */
+let tmr;
+function schedule() { clearTimeout(tmr); tmr = setTimeout(() => rebuild(false), 160); }
+function rebuild(refit) {
+  const sts = state.storeys.filter(s => s.flat);
+  if (!sts.length) { state.model = null; tris = []; renderStats(); renderVykaz(); draw2d(); draw3d(); return; }
+  try {
+    state.model = C.buildModel(sts.map(s => ({ name: s.name, elev: s.elev, height: s.height, scale: scaleOf(s), flat: s.flat })), state.layers, state.opt);
+  } catch (e) { console.error(e); toast('Chyba při stavbě modelu: ' + e.message); return; }
+  build3d();
+  renderStats(); renderVykaz();
+  if (refit) { fit2d(); fit3d(); }
+  draw2d(); draw3d();
+}
+const curModelStorey = () => {
+  if (!state.model) return null;
+  const st = state.storeys[state.cur]; if (!st || !st.flat) return null;
+  const idx = state.storeys.filter(s => s.flat).indexOf(st);
+  return state.model.storeys[idx];
+};
+
+/* ---------- statistiky + výkaz ---------- */
+function renderStats() {
+  const m = state.model;
+  const s = { w: 0, L: 0, V: 0, win: 0, door: 0, sp: 0, A: 0 };
+  if (m) for (const q of C.quantities(m)) {
+    for (const g of q.walls) { s.w += g.n; s.L += g.L; s.V += g.V; }
+    for (const o of q.openings) o.role === 'door' ? s.door += o.n : s.win += o.n;
+    for (const p of q.spaces) { s.sp++; s.A += p.area; }
+  }
+  const it = [[s.w, 'stěn · ' + nf(s.L, 1) + ' m'], [nf(s.V, 1) + ' m³', 'zdivo po odečtení otvorů'], [s.win, 'oken'], [s.door, 'dveří'], [s.sp, 'místností · ' + nf(s.A, 1) + ' m²']];
+  $('#stats').innerHTML = it.map(([a, b]) => `<div class="stat"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('');
+  const w = m ? m.warn : [];
+  $('#warn').innerHTML = w.length ? '<b>Pozor:</b> ' + w.slice(0, 6).map(esc).join('<br>') + (w.length > 6 ? `<br>… a dalších ${w.length - 6}` : '') : '';
+  $('#dlIfc').disabled = $('#dlCsv').disabled = !m || !s.w && !s.sp;
+}
+function renderVykaz() {
+  const m = state.model;
+  if (!m) { $('#vykaz').innerHTML = '<p class="empty">Model zatím není.</p>'; return; }
+  $('#vykaz').innerHTML = C.quantities(m).map(q => `
+    <h3>${esc(q.storey)}</h3>
+    ${q.walls.length ? `<h4>Stěny</h4><div class="scroll"><table><thead><tr><th>Tloušťka</th><th>Materiál</th><th class="n">Kusů</th><th class="n">Délka [m]</th><th class="n">Plocha [m²]</th><th class="n">Objem [m³]</th></tr></thead><tbody>
+      ${q.walls.map(g => `<tr><td>${Math.round(g.t * 1000)} mm</td><td>${esc(g.mat)}</td><td class="n">${g.n}</td><td class="n">${nf(g.L)}</td><td class="n">${nf(g.A)}</td><td class="n">${nf(g.V, 3)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${q.openings.length ? `<h4>Okna a dveře</h4><div class="scroll"><table><thead><tr><th>Druh</th><th class="n">Šířka × výška [mm]</th><th class="n">Kusů</th><th class="n">Plocha celkem [m²]</th></tr></thead><tbody>
+      ${q.openings.map(o => `<tr><td>${o.role === 'door' ? 'Dveře' : 'Okno'}</td><td class="n">${Math.round(o.w * 1000)} × ${Math.round(o.h * 1000)}</td><td class="n">${o.n}</td><td class="n">${nf(o.w * o.h * o.n)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${q.spaces.length ? `<h4>Místnosti</h4><div class="scroll"><table><thead><tr><th>Číslo</th><th>Název</th><th class="n">Plocha [m²]</th><th class="n">Výška [m]</th></tr></thead><tbody>
+      ${q.spaces.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.longName)}</td><td class="n">${nf(p.area)}</td><td class="n">${nf(p.h)}</td></tr>`).join('')}
+      <tr><td colspan="2"><b>Celkem</b></td><td class="n"><b>${nf(q.spaces.reduce((s, p) => s + p.area, 0))}</b></td><td></td></tr></tbody></table></div>` : ''}
+    ${q.slabs.length ? `<h4>Desky</h4><div class="scroll"><table><thead><tr><th>Materiál</th><th class="n">Tloušťka</th><th class="n">Plocha [m²]</th><th class="n">Objem [m³]</th></tr></thead><tbody>
+      ${q.slabs.map(s => `<tr><td>${esc(s.mat)}</td><td class="n">${Math.round(s.t * 1000)} mm</td><td class="n">${nf(s.area)}</td><td class="n">${nf(s.area * s.t, 3)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${!q.walls.length && !q.openings.length && !q.spaces.length && !q.slabs.length ? '<p class="empty">V tomto podlaží zatím nic – přiřaďte vrstvám význam.</p>' : ''}
+  `).join('');
+}
+
+/* ---------- stahování ---------- */
+let dl = null;
+if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { dl = d; if (d) $('#dlInfo').textContent = 'V tomto náhledu se IFC stáhne zabalené v ZIP.'; }).catch(() => { });
+async function saveFile(name, bytes, ext) {
+  if (dl) {
+    let fname = name + '.' + ext, data = bytes;
+    if (!['csv', 'txt', 'json', 'zip'].includes(ext)) { data = C.zipOne(name + '.' + ext, bytes); fname = name + '.' + ext + '.zip'; }
+    try { await dl.save({ filename: fname, data }); toast('Uloženo: ' + fname); }
+    catch (e) { if (e && e.code !== 'declined') toast('Soubor se nepodařilo uložit (' + (e.code || e.message) + ').'); }
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([bytes], { type: ext === 'csv' ? 'text/csv' : 'application/x-step' }));
+  const a = document.createElement('a'); a.href = url; a.download = name + '.' + ext; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+const slug = s => (s || 'model').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'model';
+$('#dlIfc').onclick = () => {
+  if (!state.model) return;
+  const name = slug(state.meta.project || state.storeys.find(s => s.flat)?.fileName.replace(/\.dxf$/i, ''));
+  const r = C.writeIfc(state.model, Object.assign({}, state.meta, { fileName: name + '.ifc' }));
+  saveFile(name, new TextEncoder().encode(r.text), 'ifc');
+};
+$('#dlCsv').onclick = () => {
+  if (!state.model) return;
+  const n = (x, d) => (Math.round(x * 10 ** d) / 10 ** d).toFixed(d).replace('.', ',');
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const rows = [['Podlaží', 'Druh', 'Popis', 'Kusů', 'Délka [m]', 'Plocha [m²]', 'Objem [m³]']];
+  for (const g of C.quantities(state.model)) {
+    for (const w of g.walls) rows.push([g.storey, 'Stěna', Math.round(w.t * 1000) + ' mm – ' + w.mat, w.n, n(w.L, 2), n(w.A, 2), n(w.V, 3)]);
+    for (const o of g.openings) rows.push([g.storey, o.role === 'door' ? 'Dveře' : 'Okno', Math.round(o.w * 1000) + ' × ' + Math.round(o.h * 1000) + ' mm', o.n, '', n(o.w * o.h * o.n, 2), '']);
+    for (const p of g.spaces) rows.push([g.storey, 'Místnost', p.name + (p.longName ? ' ' + p.longName : ''), 1, '', n(p.area, 2), n(p.area * p.h, 3)]);
+    for (const s of g.slabs) rows.push([g.storey, 'Deska', Math.round(s.t * 1000) + ' mm – ' + s.mat, 1, '', n(s.area, 2), n(s.area * s.t, 3)]);
+  }
+  const csv = '﻿' + rows.map(r => r.map(q).join(';')).join('\r\n');
+  saveFile(slug(state.meta.project) + '_vykaz', new TextEncoder().encode(csv), 'csv');
+};
+
+/* ---------- plátna ---------- */
+const fig = $('#fig'), cv2 = $('#cv2'), cv3 = $('#cv3');
+let dpr = 1;
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
+function sizeCanvases() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (const c of [cv2, cv3]) { c.width = Math.max(1, Math.round(fig.clientWidth * dpr)); c.height = Math.max(1, Math.round(fig.clientHeight * dpr)); }
+}
+const ro = new ResizeObserver(() => { sizeCanvases(); fit2d(); fit3d(); draw2d(); draw3d(); });
+ro.observe(fig);
+
+/* ----- 2D půdorys ----- */
+const v2 = { s: 40, x: 0, y: 0 };
+function storeyBounds(ms) {
+  let pts = [];
+  for (const p of ms.prims) { const r = ms.roleOf(p.layer); if (r !== 'ignore') pts = pts.concat(p.pts); }
+  if (!pts.length) for (const p of ms.prims) pts = pts.concat(p.pts);
+  return pts.length ? C.bboxOf(pts) : null;
+}
+function fit2d() {
+  const ms = curModelStorey(); if (!ms || !cv2.width) return;
+  const bb = storeyBounds(ms); if (!bb) return;
+  const W = cv2.width, H = cv2.height, w = Math.max(bb[2] - bb[0], 1), h = Math.max(bb[3] - bb[1], 1);
+  v2.s = Math.min(W / w, H / h) * 0.88; v2.x = (bb[0] + bb[2]) / 2; v2.y = (bb[1] + bb[3]) / 2;
+}
+function draw2d() {
+  if (state.view !== '2d') return;
+  const ctx = cv2.getContext('2d'), W = cv2.width, H = cv2.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+  const dark = isDark();
+  const ms = curModelStorey();
+  legend();
+  if (!ms) {
+    ctx.fillStyle = dark ? '#9aa6a0' : '#5d6762'; ctx.font = `${15 * dpr}px Arial`; ctx.textAlign = 'center';
+    ctx.fillText('Nahrajte výkres DXF, nebo ho sem přetáhněte', W / 2, H / 2);
+    return;
+  }
+  const X = x => W / 2 + (x - v2.x) * v2.s, Y = y => H / 2 - (y - v2.y) * v2.s;
+  const path = (pts, closed) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); if (closed) ctx.closePath(); };
+  // místnosti
+  for (const sp of ms.spaces) { path(sp.ring, true); ctx.fillStyle = dark ? 'rgba(176,79,196,.16)' : 'rgba(176,79,196,.10)'; ctx.fill(); }
+  // stěny
+  ctx.fillStyle = dark ? 'rgba(0,150,69,.55)' : 'rgba(0,150,69,.32)';
+  for (const w of ms.walls) {
+    if (w.kind === 'outline') { path(w.ring, true); ctx.fill(); continue; }
+    const n = [-w.u[1], w.u[0]], a = [w.x0 + n[0] * w.t / 2, w.y0 + n[1] * w.t / 2], b = [w.x0 - n[0] * w.t / 2, w.y0 - n[1] * w.t / 2];
+    const e = [w.u[0] * w.L, w.u[1] * w.L];
+    path([a, [a[0] + e[0], a[1] + e[1]], [b[0] + e[0], b[1] + e[1]], b], true); ctx.fill();
+  }
+  for (const sl of ms.slabs) { path(sl.ring, true); ctx.setLineDash([6 * dpr, 4 * dpr]); ctx.strokeStyle = ROLES.slab.color; ctx.lineWidth = 1.5 * dpr; ctx.stroke(); ctx.setLineDash([]); }
+  // výkres
+  ctx.lineWidth = Math.max(1, dpr * 0.9); ctx.lineJoin = 'round';
+  for (const p of ms.prims) {
+    const r = ms.roleOf(p.layer);
+    if (p.text !== undefined) {
+      if (r === 'label' && ms.spaces.length) continue;
+      if (r === 'ignore' && v2.s * (p.th || 0.2) < 6 * dpr) continue;
+      ctx.fillStyle = r === 'label' ? (dark ? '#e6ebe8' : '#333') : (dark ? '#4c5651' : '#b8c0bc');
+      ctx.font = `${Math.max(9 * dpr, Math.min(16 * dpr, (p.th || 0.2) * v2.s))}px Arial`; ctx.textAlign = 'left';
+      ctx.fillText(p.text, X(p.pts[0][0]), Y(p.pts[0][1])); continue;
+    }
+    ctx.strokeStyle = r === 'ignore' ? (dark ? '#3a433f' : '#cfd6d2') : ROLES[r].color;
+    path(p.pts, p.closed); ctx.stroke();
+  }
+  // otvory
+  for (const o of ms.openings) {
+    const w = o.host, n = [-w.u[1], w.u[0]], h = w.t / 2 + 0.03;
+    const s0 = [w.x0 + w.u[0] * o.s0, w.y0 + w.u[1] * o.s0], e = [w.u[0] * o.w, w.u[1] * o.w];
+    path([[s0[0] + n[0] * h, s0[1] + n[1] * h], [s0[0] + n[0] * h + e[0], s0[1] + n[1] * h + e[1]], [s0[0] - n[0] * h + e[0], s0[1] - n[1] * h + e[1]], [s0[0] - n[0] * h, s0[1] - n[1] * h]], true);
+    ctx.fillStyle = o.role === 'door' ? 'rgba(242,125,0,.55)' : 'rgba(31,143,214,.55)'; ctx.fill();
+    ctx.strokeStyle = o.role === 'door' ? '#F27D00' : '#1f8fd6'; ctx.lineWidth = 2 * dpr; ctx.stroke(); ctx.lineWidth = Math.max(1, dpr * 0.9);
+  }
+  // popisky místností
+  ctx.textAlign = 'center';
+  for (const sp of ms.spaces) {
+    const bb = C.bboxOf(sp.ring), cx = X((bb[0] + bb[2]) / 2), cy = Y((bb[1] + bb[3]) / 2);
+    if ((bb[2] - bb[0]) * v2.s < 60 * dpr) continue;
+    ctx.fillStyle = dark ? '#e3c6ea' : '#7a2f8c';
+    ctx.font = `700 ${13 * dpr}px Arial`; ctx.fillText(sp.name + (sp.longName ? ' ' + sp.longName : ''), cx, cy - 2 * dpr);
+    ctx.font = `${12 * dpr}px Arial`; ctx.fillText(nf(sp.area) + ' m²', cx, cy + 14 * dpr);
+  }
+}
+function legend() {
+  const it = state.view === '2d'
+    ? [['rgba(0,150,69,.45)', 'stěna v modelu'], ['#1f8fd6', 'okno'], ['#F27D00', 'dveře'], ['rgba(176,79,196,.4)', 'místnost'], ['#cfd6d2', 'nepoužitá vrstva']]
+    : [['#e9e7e2', 'stěna'], ['#7cc4f0', 'okno'], ['#F27D00', 'dveře'], ['#b59a74', 'deska']];
+  $('#legend').innerHTML = it.map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('');
+  $('#hint').textContent = state.view === '2d' ? 'Tažením posunete, kolečkem přiblížíte' : 'Tažením otočíte, Shift + tažení posune, kolečkem přiblížíte';
+}
+
+/* ----- 3D ----- */
+let tris = [];
+const cam = { yaw: -0.65, pitch: 0.62, s: 30, c: [0, 0, 0] };
+function earcut(ring) {
+  const idx = ring.map((_, i) => i), out = [];
+  const area = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  let guard = 0;
+  while (idx.length > 3 && guard++ < 5000) {
+    let cut = false;
+    for (let k = 0; k < idx.length; k++) {
+      const a = ring[idx[(k + idx.length - 1) % idx.length]], b = ring[idx[k]], c = ring[idx[(k + 1) % idx.length]];
+      if (area(a, b, c) <= 1e-12) continue;
+      let inside = false;
+      for (const j of idx) { const p = ring[j]; if (p === a || p === b || p === c) continue; if (area(a, b, p) >= 0 && area(b, c, p) >= 0 && area(c, a, p) >= 0) { inside = true; break; } }
+      if (inside) continue;
+      out.push([a, b, c]); idx.splice(k, 1); cut = true; break;
+    }
+    if (!cut) break;
+  }
+  if (idx.length === 3) out.push(idx.map(i => ring[i]));
+  return out;
+}
+function build3d() {
+  tris = [];
+  const m = state.model; if (!m) return;
+  let fid = 0;
+  const L = [0.35, -0.55, 0.76];
+  const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const push = (a, b, c, col, id) => {
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], l = Math.hypot(...n) || 1;
+    const sh = 0.58 + 0.42 * Math.abs((n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / l);
+    const cc = rgb(col).map(x => Math.min(255, Math.round(x * sh)));
+    tris.push({ p: [a, b, c], c: (255 << 24) | (cc[2] << 16) | (cc[1] << 8) | cc[0], id });
+  };
+  const quad = (a, b, c, d, col) => { fid++; push(a, b, c, col, fid); push(a, c, d, col, fid); };
+  const box = (w, s0, s1, r0, r1, z0, z1, col, ze) => {
+    if (s1 - s0 < 1e-4 || z1 - z0 < 1e-4) return;
+    const n = [-w.u[1], w.u[0]];
+    const P = (s, r, z) => [w.x0 + w.u[0] * s + n[0] * r, w.y0 + w.u[1] * s + n[1] * r, ze + z];
+    const v = [P(s0, r0, z0), P(s1, r0, z0), P(s1, r1, z0), P(s0, r1, z0), P(s0, r0, z1), P(s1, r0, z1), P(s1, r1, z1), P(s0, r1, z1)];
+    quad(v[0], v[1], v[2], v[3], col); quad(v[4], v[5], v[6], v[7], col); quad(v[0], v[1], v[5], v[4], col);
+    quad(v[1], v[2], v[6], v[5], col); quad(v[2], v[3], v[7], v[6], col); quad(v[3], v[0], v[4], v[7], col);
+  };
+  const prism = (ring, z0, z1, col) => {
+    const tr = earcut(ring);
+    fid++; for (const t of tr) push([t[0][0], t[0][1], z0], [t[1][0], t[1][1], z0], [t[2][0], t[2][1], z0], col, fid);
+    fid++; for (const t of tr) push([t[0][0], t[0][1], z1], [t[1][0], t[1][1], z1], [t[2][0], t[2][1], z1], col, fid);
+    for (let k = 0; k < ring.length; k++) { const a = ring[k], b = ring[(k + 1) % ring.length]; quad([a[0], a[1], z0], [b[0], b[1], z0], [b[0], b[1], z1], [a[0], a[1], z1], col); }
+  };
+  const WALL = '#ebe8e2', FILL = '#e2ded6';
+  for (const st of m.storeys) {
+    const ze = st.elev;
+    for (const w of st.walls) {
+      const col = w.filler ? FILL : WALL;
+      if (w.kind === 'outline') { prism(w.ring, ze, ze + w.h, col); continue; }
+      const ops = w.openings.slice().sort((a, b) => a.s0 - b.s0);
+      let cur = 0;
+      for (const o of ops) {
+        box(w, cur, o.s0, -w.t / 2, w.t / 2, 0, w.h, col, ze);
+        if (o.sill > 0) box(w, o.s0, o.s0 + o.w, -w.t / 2, w.t / 2, 0, o.sill, col, ze);
+        box(w, o.s0, o.s0 + o.w, -w.t / 2, w.t / 2, o.sill + o.h, w.h, col, ze);
+        const d = o.role === 'door' ? 0.025 : 0.035;
+        box(w, o.s0 + 0.02, o.s0 + o.w - 0.02, -d, d, o.sill, o.sill + o.h, o.role === 'door' ? '#F27D00' : '#7cc4f0', ze);
+        cur = Math.max(cur, o.s0 + o.w);
+      }
+      box(w, cur, w.L, -w.t / 2, w.t / 2, 0, w.h, col, ze);
+    }
+    for (const sl of st.slabs) prism(sl.ring, ze - sl.t, ze, '#b59a74');
+  }
+}
+function fit3d() {
+  if (!tris.length || !cv3.width) return;
+  let mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+  for (const t of tris) for (const p of t.p) for (let k = 0; k < 3; k++) { if (p[k] < mn[k]) mn[k] = p[k]; if (p[k] > mx[k]) mx[k] = p[k]; }
+  cam.c = [(mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2];
+  const diag = Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) || 1;
+  cam.s = Math.min(cv3.width, cv3.height) / diag * 0.95;
+}
+let raf3 = 0;
+function draw3d() { if (state.view !== '3d' || raf3) return; raf3 = requestAnimationFrame(() => { raf3 = 0; render3d(); }); }
+function render3d() {
+  const W = cv3.width, H = cv3.height; if (!W || !H) return;
+  const ctx = cv3.getContext('2d');
+  const img = ctx.createImageData(W, H), buf = new Uint32Array(img.data.buffer);
+  const zb = new Float32Array(W * H).fill(Infinity), ib = new Int32Array(W * H);
+  const dark = isDark();
+  const bg = dark ? 0xff171a15 : 0xfff8f9f7;
+  buf.fill(bg);
+  legend();
+  if (!tris.length) {
+    ctx.putImageData(img, 0, 0);
+    ctx.fillStyle = dark ? '#9aa6a0' : '#5d6762'; ctx.font = `${15 * dpr}px Arial`; ctx.textAlign = 'center';
+    ctx.fillText(state.model ? 'V modelu zatím nejsou žádné stěny ani desky' : 'Nahrajte výkres DXF', W / 2, H / 2);
+    return;
+  }
+  const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const pr = p => { const x = p[0] - cam.c[0], y = p[1] - cam.c[1], z = p[2] - cam.c[2]; const ax = x * cy - y * sy, ay = x * sy + y * cy; return [W / 2 + ax * cam.s, H / 2 - (ay * sp + z * cp) * cam.s, ay * cp - z * sp]; };
+  for (const t of tris) {
+    const a = pr(t.p[0]), b = pr(t.p[1]), c = pr(t.p[2]);
+    const area = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    if (Math.abs(area) < 1e-6) continue;
+    const x0 = Math.max(0, Math.floor(Math.min(a[0], b[0], c[0]))), x1 = Math.min(W - 1, Math.ceil(Math.max(a[0], b[0], c[0])));
+    const y0 = Math.max(0, Math.floor(Math.min(a[1], b[1], c[1]))), y1 = Math.min(H - 1, Math.ceil(Math.max(a[1], b[1], c[1])));
+    if (x0 > x1 || y0 > y1) continue;
+    const inv = 1 / area, col = t.c, id = t.id;
+    for (let py = y0; py <= y1; py++) {
+      const yy = py + 0.5;
+      for (let px = x0; px <= x1; px++) {
+        const xx = px + 0.5;
+        let w0 = ((c[0] - b[0]) * (yy - b[1]) - (c[1] - b[1]) * (xx - b[0])) * inv;
+        let w1 = ((a[0] - c[0]) * (yy - c[1]) - (a[1] - c[1]) * (xx - c[0])) * inv;
+        let w2 = 1 - w0 - w1;
+        if (w0 < -1e-7 || w1 < -1e-7 || w2 < -1e-7) continue;
+        const z = w0 * a[2] + w1 * b[2] + w2 * c[2], k = py * W + px;
+        if (z < zb[k] - 1e-5) { zb[k] = z; buf[k] = col; ib[k] = id; }
+      }
+    }
+  }
+  // obrysové hrany
+  const edge = dark ? 0xff0d0f0e : 0xff505a55;
+  for (let y = 0; y < H - 1; y++) for (let x = 0; x < W - 1; x++) {
+    const k = y * W + x, i = ib[k];
+    if (i !== ib[k + 1] || i !== ib[k + W]) { const zz = Math.min(zb[k], zb[k + 1], zb[k + W]); if (zz < Infinity) buf[(ib[k] === 0 ? (zb[k + 1] < zb[k + W] ? k + 1 : k + W) : k)] = edge; }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/* ----- ovládání plátna ----- */
+let drag = null;
+function onDown(e) { drag = { x: e.clientX, y: e.clientY, shift: e.shiftKey || e.button === 2 }; e.target.setPointerCapture(e.pointerId); }
+function onMove(e) {
+  if (!drag) return;
+  const dx = (e.clientX - drag.x) * dpr, dy = (e.clientY - drag.y) * dpr; drag.x = e.clientX; drag.y = e.clientY;
+  if (state.view === '2d') { v2.x -= dx / v2.s; v2.y += dy / v2.s; draw2d(); }
+  else if (drag.shift) {
+    const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), sp = Math.sin(cam.pitch);
+    const mx = dx / cam.s, my = dy / cam.s;
+    const right = [cy, -sy, 0], up = [sy * sp, cy * sp, Math.cos(cam.pitch)];
+    for (let k = 0; k < 3; k++) cam.c[k] += -mx * right[k] + my * up[k];
+    draw3d();
+  } else { cam.yaw += dx / (200 * dpr); cam.pitch = Math.max(0.02, Math.min(1.55, cam.pitch + dy / (200 * dpr))); draw3d(); }
+}
+function onUp() { drag = null; }
+function zoom(f, cx, cy) {
+  if (state.view === '2d') {
+    const W = cv2.width, H = cv2.height; cx = cx ?? W / 2; cy = cy ?? H / 2;
+    const wx = v2.x + (cx - W / 2) / v2.s, wy = v2.y - (cy - H / 2) / v2.s;
+    v2.s *= f; v2.x = wx - (cx - W / 2) / v2.s; v2.y = wy + (cy - H / 2) / v2.s; draw2d();
+  } else { cam.s *= f; draw3d(); }
+}
+for (const c of [cv2, cv3]) {
+  c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);
+  c.addEventListener('contextmenu', e => e.preventDefault());
+  c.addEventListener('wheel', e => { e.preventDefault(); const r = c.getBoundingClientRect(); zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15, (e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr); }, { passive: false });
+  c.addEventListener('dblclick', () => { state.view === '2d' ? (fit2d(), draw2d()) : (fit3d(), draw3d()); });
+}
+$('#zIn').onclick = () => zoom(1.3); $('#zOut').onclick = () => zoom(1 / 1.3);
+$('#zFit').onclick = () => { if (state.view === '2d') { fit2d(); draw2d(); } else { cam.yaw = -0.65; cam.pitch = 0.62; fit3d(); draw3d(); } };
+function setView(v) {
+  state.view = v; $('#v2').classList.toggle('on', v === '2d'); $('#v3').classList.toggle('on', v === '3d');
+  cv2.hidden = v !== '2d'; cv3.hidden = v !== '3d'; $('#stSel').style.visibility = v === '2d' ? '' : 'hidden';
+  if (v === '3d') { if (!cam.s || cam.s === 30) fit3d(); draw3d(); } else draw2d();
+}
+$('#v2').onclick = () => setView('2d'); $('#v3').onclick = () => setView('3d');
+
+/* ----- přetažení souboru ----- */
+let dc = 0;
+document.addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { dc++; fig.classList.add('dragging'); } });
+document.addEventListener('dragleave', () => { dc = Math.max(0, dc - 1); if (!dc) fig.classList.remove('dragging'); });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault(); dc = 0; fig.classList.remove('dragging');
+  const files = [...(e.dataTransfer?.files || [])].filter(f => /\.dxf$/i.test(f.name));
+  if (!files.length) { if (e.dataTransfer?.files?.length) toast('Potřebuji soubor DXF (DWG uložte v CADu jako DXF).'); return; }
+  if (state.storeys.length === 1 && state.storeys[0].sample) { state.storeys = [newStorey()]; state.layers = {}; }
+  let st = state.storeys[state.cur];
+  files.forEach((f, k) => {
+    let target = k === 0 ? st : null;
+    if (!target) { state.storeys.push(newStorey()); target = state.storeys[state.storeys.length - 1]; }
+    loadFile(target, f);
+  });
+});
+
+/* ----- nápověda ----- */
+$('#infoBtn').onclick = () => $('#help').showModal();
+$('#helpX').onclick = () => $('#help').close();
+$('#help').addEventListener('click', e => { if (e.target === $('#help')) $('#help').close(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { draw2d(); draw3d(); });
+new MutationObserver(() => { draw2d(); draw3d(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ----- start ----- */
+loadSample();
+}
+
+</script>
+<script>if(/yey\.cz$/.test(location.hostname)){document.getElementById('viewerLink').hidden=false;if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));var s=document.createElement('script');s.src='/nav.js';s.defer=true;document.body.appendChild(s);}</script>
+</body>
+</html>

@@ -509,6 +509,28 @@ footer { background: var(--green-dark); padding: 32px; border-top: 3px solid var
     </div>
   </div>
 
+  <!-- CAD → IFC -->
+  <div class="tool-row" data-url="https://ps.yey.cz/cad-ifc.html" data-name="CAD → IFC">
+    <div class="tool-info">
+      <div class="tool-cat cat-tech">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>
+        BIM model
+      </div>
+      <div class="tool-title">Převod CAD → IFC</div>
+      <div class="tool-desc">Z půdorysu DXF udělá BIM model IFC 4: stěny, okna, dveře, místnosti a desky podle vrstev výkresu, s 3D náhledem a výkazem výměr do Excelu.</div>
+      <div class="tool-actions">
+        <a href="https://ps.yey.cz/cad-ifc.html" class="btn-open">
+          <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Otevřít nástroj
+        </a>
+        <button class="btn-qr" onclick="showQR(this.closest('.tool-row'))">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          QR kód
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 2a. komprimace.html -->
   <div class="tool-row rev" data-url="https://ps.yey.cz/komprimace.html" data-name="Komprimace → ZIP">
     <div class="tool-info">

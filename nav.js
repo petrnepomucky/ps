@@ -16,6 +16,7 @@
     ['tisk.html', 'Hromadný tisk'],
     ['vykresy.html', 'Výkresy'],
     ['ifc.html', '3D model IFC/OBJ'],
+    ['cad-ifc.html', 'CAD → IFC'],
     ['skladani.html', 'Skládání skenů'],
     ['plany.html', 'Plány podlaží']
   ];
